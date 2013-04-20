@@ -5,15 +5,6 @@
 ?>
 <legend>Notícias da Rede</legend>
 
-<h4>Recado do Paulo Aguinaga (Brejal)</h4>
-Aqui choveu sexta, sábado e domingo. As plantas não desenvolveram bem, mas procuramos passar uma disponibilidade bem próxima do real.
-Tomara que o tempo firme até sábado.<br>
-De novidade temos a ORA PRONOBIS, resultado de um trabalho que estamos implantando aos poucos, de incentivo as culturas nativas, não convencionais. A ora pronobis será fresca, em molho, ideal para refogar.<br>
-<br>
-Abraço<br>
-Paulo.<br>
-
-<hr />
 
 <h4>Sistema de pedidos on-line</h4>
 
