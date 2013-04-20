@@ -1,0 +1,246 @@
+function calculaTotalPedido(e){
+	var valorInformado = $(this).val().replace(",",".");
+	var item = $(this).attr('id').substring($(this).attr('id').indexOf('_')+1);
+	if (valorInformado == "") {
+		$('#totalprod_'+item).text("0,00");
+		formataTotalProdEPedido(0, item);
+		return;
+	}
+	if (!$.isNumeric(valorInformado)){
+		alert("Por favor, informe uma quantidade válida para o pedido.");
+		$(this).focus();
+		$('#totalprod_'+item).text("0,00");
+		formataTotalProdEPedido(0, item);
+		return;
+	}
+	var multiploValido = $('#multiploprod_'+item).val();
+	if(	(valorInformado*100)%(multiploValido*100)!=0){
+		alert('A quantidade informada deve ser um múltiplo de '+multiploValido.replace(".",",")+".");
+		$(this).focus();
+		$('#totalprod_'+item).text("0,00");
+		formataTotalProdEPedido(0, item);
+		return;
+	}
+	formataTotalProdEPedido(valorInformado, item);
+
+}
+
+function formataTotalProdEPedido(valorInformado, item) {
+	var totalProd = valorInformado*$('#valorprod_'+item).val();
+	totalProd = Math.round(totalProd*100)/100;
+	$('#totalprod_'+item).text(totalProd);
+	$('#totalprod_'+item).formataValor();
+	
+	var totalPedido = 0;
+	$(".total_prod").each(function(){
+		totalPedido += +$(this).text().replace(",",".");
+	});
+	totalPedido = Math.round(totalPedido*100)/100;
+	$("#total_pedido").text(totalPedido);
+	$("#total_pedido").formataValor();
+}
+
+(function($) {
+  $.fn.formataValor = function() {
+	return this.each(function() {
+		if ($(this).text().indexOf(',')!=-1) return;
+		if ($(this).text().indexOf('.')==-1)
+			$(this).text($(this).text()+',00');
+		else {
+			$(this).text($(this).text().replace(".",","));
+			if ($(this).text().substring($(this).text().indexOf(',')+1).length < 2)
+				$(this).text($(this).text()+'0');
+		}
+	});
+  }
+})(jQuery);	
+
+(function($) {
+  $.fn.verificaEnterSetas = function(e){
+	e.stopImmediatePropagation();
+	if( e.which == 13 || e.which == 38 || e.which == 40 )	{
+		e.preventDefault();
+		var $input = $('input:visible');
+		if( $(this).is( $input.last() ) && e.which == 13) {
+			$('form').submit();
+		} else if ( e.which == 13 || e.which == 40 ) {
+			$input.eq( $(this).index('input:visible') + 1 ).focus();
+		}
+		else if( e.which == 38){
+			$input.eq( $(this).index('input:visible') - 1 ).focus();
+		}
+	}
+  }
+})(jQuery);	
+
+
+function enforceNumeric (e) {
+	var code = (e.keyCode ? e.keyCode : e.which);
+	var functional = false;
+
+	//0 to 9
+	if((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) functional = true;
+
+	// vírgula
+	if (code ==  188) functional = true;
+
+	// Backspace, Tab, Enter, Delete, up/down/left/right arrows
+	if (code ==  8) functional = true;
+	if (code ==  9) functional = true;
+	if (code == 13) functional = true;
+	if (code == 46) functional = true;
+	if (code == 37) functional = true;
+	if (code == 38) functional = true;
+	if (code == 39) functional = true;
+	if (code == 40) functional = true;
+
+	if (!functional)
+	{
+		e.preventDefault();
+		e.stopPropagation();
+	}
+}
+
+function keyCheck(e){
+	enforceNumeric(e);
+	$(this).verificaEnterSetas(e);
+}
+
+function emailValido(email){
+	return /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))$/i.test(email);
+	}
+
+function verificaHora() {
+	if ($(this).val() == "") return true;
+	var hora = $(this).val().substring(0,2);
+	var min = $(this).val().substring(3,5);
+	if (hora>23 || min>59) {
+		alert("Hora inválida");
+		$(this).val("");
+	}
+}
+
+function verificaDatas(){
+	if ($("#cha_dt_min").val() != "" && $("#cha_dt_max").val() != "") {
+		var dataMin = $("#cha_dt_min").data('datepicker').getDate();
+		var dataMax = $("#cha_dt_max").data('datepicker').getDate();
+		if (dataMin >= dataMax) {
+			alert('A data de Término do Pedido precisa ser posterior à data de Início do Pedido.');
+			$(this).val("");
+			return false;
+		}
+	}
+	if ($("#cha_dt_entrega").val() != "" && ($("#cha_dt_min").val() != "" || $("#cha_dt_max").val() != "")) {
+		var dataEntrega = $("#cha_dt_entrega").data('datepicker').getDate();
+		var dataMin = $("#cha_dt_min").data('datepicker').getDate();
+		var dataMax = $("#cha_dt_max").data('datepicker').getDate();
+		if (($("#cha_dt_min").val() != "" && dataMin >= dataEntrega) || ($("#cha_dt_max").val() != "" && dataMax >= dataEntrega)) {
+			alert('A Data da Entrega precisa ser posterior às datas de Início do Pedido e Término do Pedido.');
+			$(this).val("");
+			return false;
+		}
+	}
+}
+
+function confirmaExclusao( deleteObj ) {
+    return confirm('Tem certeza que deseja excluir ' + deleteObj + '?');
+} 
+
+$(function() {
+        // Add Confirmation dialogs for all Deletes
+        $("a.confirm-delete").on('click', function(event) {
+            return confirmaExclusao('o registro');
+        });
+});
+
+
+function validaCestante(){
+	if ($("#usr_nuc").val() == -1) {
+		alert("Por favor, selecione um núcleo antes de salvar suas alterações.");
+		$("#usr_nuc").focus();
+		return false;
+	}
+	if (!emailValido($("#usr_email").val())) {
+		alert("Por favor, informe um email válido.");
+		$("#usr_email").focus();
+		return false;
+	}
+	if($("#usr_email_alternativo").val()!=="") {
+		var emails = $("#usr_email_alternativo").val().split(",");
+		var emailInvalido = false;
+		$.each( emails, function() {
+			if(!emailValido($.trim(this))) {
+				emailInvalido = true;
+				return false;
+			}
+		});
+		if (emailInvalido) {
+			alert("Por favor, informe email(s) válido(s).");
+			$("#usr_email_alternativo").focus();
+			return false;
+		}
+	}
+}
+
+function validaNucleo(){
+	if (!emailValido($("#nuc_email").val())) {
+		alert("Por favor, informe um email válido.");
+		$("#nuc_email").focus();
+		return false;
+	}
+}
+
+function validaProduto(){
+	if ($("#prod_prodt").val() == -1) {
+		alert("Por favor, selecione um Tipo antes de salvar suas alterações.");
+		$("#prod_prodt").focus();
+		return false;
+	}
+	if ($("#prod_forn").val() == -1) {
+		alert("Por favor, selecione um Produtor antes de salvar suas alterações.");
+		$("#prod_forn").focus();
+		return false;
+	}
+}
+
+function validaNumero(){
+	if ($(this).val() == "") {
+		return
+	}
+	var valorInformado = $(this).val().replace(",",".");
+	if (!$.isNumeric(valorInformado)){
+		alert("Por favor, informe um valor válido.");
+		$(this).focus();
+		return;
+	}
+}
+
+function verificaSenha(e) {
+	$("input[type=password]").each(function(){
+		if ($(this).val().length < 4 || $(this).val().length > 8) {
+			alert("Por favor, informe a senha com no mínimo 4 e no máximo 8 dígitos.");
+			e.preventDefault();
+			$(this).focus();
+			return false;
+		}
+		if ($("input[type=password]").eq(0).val() != $("input[type=password]").eq(1).val()) {
+			alert("As senhas não coincidem. Por favor, informe novamente.");
+			e.preventDefault();
+			$("input[type=password]").eq(0).focus();
+			return false;
+		}
+	});
+}
+
+$(function() {
+	$('.btn-enviando')
+	  .click(function () {
+		var btn = $(this);
+		btn.button('loading');
+	  });
+	  
+	  
+   $('.btn-popover').popover();
+});
+
+

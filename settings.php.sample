@@ -1,0 +1,21 @@
+<?php
+
+
+define('DB_HOST',"localhost");
+define('DB_USER',"root");
+define('DB_PASS',"");
+define('DB_NAME',"redeeco");
+
+
+define('MAIL_HOST',"smtp.gmail.com");
+define('MAIL_PORT',"465");
+define('MAIL_SECURE',"ssl");
+define('MAIL_USER',"comissaopedidos@gmail.com");
+define('MAIL_PASS',"");
+define('MAIL_FROM',"comissaopedidos@gmail.com");
+define('MAIL_SENDER',"comissaopedidos@gmail.com");
+define('MAIL_FROM_NAME',"Comissão de Pedidos da Rede Ecológica");
+
+
+?>
+ 
