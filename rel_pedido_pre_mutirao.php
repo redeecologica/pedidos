@@ -107,7 +107,7 @@ $res = executa_sql($sql);
 								   {
 									   	echo("<th>Pedido</th> <th>Distribuído</th>");									   
 								   }                                           
-								   echo("<th>Estoque Pré-Mutirão Esperado</th> <th>Estoque Pré-Mutirão Real (confirmar)</th> <th>Pedido pelos Núcleos</th> <th>Pedido ao Fornecedor</th> <th>Entregue pelo Fornecedor</th> <th>Distribuído</th><th>Estoque Pós-Mutirão Esperado</th><th>Estoque Pós-Mutirão Real (confirmar)</th>"); 
+								   echo("<th>Estoque Pré-Mutirão Esperado</th> <th>Estoque Pré-Mutirão Real (sempre confirmar)</th> <th>Pedido pelos Núcleos</th> <th>Pedido ao Fornecedor</th> <th>Entregue pelo Fornecedor</th> <th>Distribuído</th><th>Estoque Pós-Mutirão Esperado</th><th>Estoque Pós-Mutirão Real (sempre confirmar)</th>"); 
         	                       ?>            
                         </tr>                        
                      </thead>           		   
@@ -137,7 +137,7 @@ $res = executa_sql($sql);
                 <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_anterior_depois"])));?></td>
                 <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_antes"])));?></td>
                 <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($total_qtde_produto)));?></td>
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque_atual_antes"]))));?></td>
+                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque_anterior_depois"]))));?></td>
                 <td>&nbsp;</td>  <!-- o que de fato chegou do produtor -->
                 <td>&nbsp;</td> <!-- somatório do que foi distribuído -->
                 <td>&nbsp;</td> <!-- estoque atual depois (esperado) -->
