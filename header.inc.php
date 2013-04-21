@@ -38,6 +38,6 @@
 
 <?php
 
-escreve_mensagem_status();
+if( function_exists('escreve_mensagem_status')) escreve_mensagem_status();
 
 ?>

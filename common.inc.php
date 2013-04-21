@@ -44,10 +44,9 @@ $conn_link = @mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME );
 
 if (mysqli_connect_errno()) 
 {
-	adiciona_mensagem_status(MSG_TIPO_ERRO,"Não foi possível estabelecer uma conexão com a base de dados. Favor contactar a Comissão de Informática e informar o seguinte número de erro:" & mysqli_connect_error() );
-	escreve_mensagem_status();
-    exit();
+	redireciona("bd_fora.php");
 }
+
 mysqli_set_charset($conn_link,'utf8');
 
 
