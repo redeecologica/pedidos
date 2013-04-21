@@ -37,7 +37,7 @@ if($res)
 	}		
 }
 
-$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) total_nucleo ";
+$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) cha_id, FORMAT(sum(est_prod_qtde_depois),1) estoque ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -45,6 +45,7 @@ $sql.="LEFT JOIN pedidos ON ped_cha = cha_id ";
 $sql.="LEFT JOIN nucleos ON ped_nuc = nuc_id ";
 $sql.="LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";
 $sql.="LEFT JOIN fornecedores on prod_forn = forn_id ";
+$sql.="LEFT JOIN estoque ON est_prod = chaprod_prod AND est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";
 $sql.="WHERE ped_cha= " . prep_para_bd($cha_id) . " ";
 $sql.="AND ped_fechado = '1' ";
 $sql.="AND chaprod_disponibilidade <> '0' ";
@@ -60,7 +61,7 @@ $res = executa_sql($sql);
 		   $ultimo_forn = "";
 		   $total_valor_fornecedor=0;
 		   $total_qtde_produto=0;		   
-		   $num_colunas=count($nucleos)+5;
+		   $num_colunas=count($nucleos)+7;
 		   
 		   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		   {
@@ -97,7 +98,9 @@ $res = executa_sql($sql);
 									   	echo("<th>$nucleo</th>");									   
 								   }                                            
         	                       ?>            
-                                  <th>Total</th>
+                                  <th>Demanda dos Núcleos</th>
+                                  <th>Estoque Local</th>
+                                  <th>Total Pedido</th>
                                   <th>Total (R$)</th>                                            
                         </tr>
                      </thead>           		   
@@ -119,14 +122,15 @@ $res = executa_sql($sql);
                    for ($i = 0; $i < count($nucleos); $i++)
                    {
 						if($i>0) $row = mysqli_fetch_array($res,MYSQLI_ASSOC);																	
-                        echo("<td>" . formata_numero_de_mysql($row["total_nucleo"]) .  "</td>");	
-						$total_qtde_produto+=$row["total_nucleo"];
+                        echo("<td>" . formata_numero_de_mysql($row["cha_id"]) .  "</td>");	
+						$total_qtde_produto+=$row["cha_id"];
                    }                                            
                    ?> 
                 
                 <td><?php echo(formata_numero_de_mysql($total_qtde_produto));?></td>
-                    
-				<td><?php echo (formata_moeda($total_qtde_produto * $row["prod_valor_compra"])); ?></td>
+                <td><?php echo(formata_numero_de_mysql(get_hifen_se_zero($row["estoque"])));?></td>
+                <td><?php echo(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque"]) ));?></td>                
+				<td><?php echo (formata_moeda((max(0,$total_qtde_produto - $row["estoque"])) * $row["prod_valor_compra"])); ?></td>
 			
 				</tr>
 				 

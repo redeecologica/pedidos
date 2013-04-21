@@ -27,7 +27,7 @@
 			  ?>	  
                 <li>
                     Para encaminhar ao Produtor: 
-                    <a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada Produto por Núcleo</a>
+                    <a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a>
                 </li>
 <!--
                 <li>
@@ -37,7 +37,7 @@
 -->
                 <li>
                     Para o responsável pela Entrega:
-                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada Cestante do Núcleo</a>
+                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
                 </li>
                 
 			  <?php
@@ -47,15 +47,15 @@
 			  ?>	  
                 <li>
                     Para encaminhar ao Produtor: 
-                    <a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada Produto por Núcleo</a>
+                    <a href="rel_pedido_por_produtor_considera_estoque.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a> (considerando estoque informado pelo mutirão)
                 </li>
                 <li>
 	                Para o Mutirão: 
-                    <a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de Cada Núcleo</a> 
+                    <a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos para distribuição</a> 
                 </li>
                 <li>
                     Para o responsável pela Entrega:
-                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada Cestante do Núcleo</a>
+                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
                 </li>
 			  <?php
 			  }			  
