@@ -7,8 +7,6 @@ session_start();
 
 define('PAGINAPRINCIPAL', "inicio.php");
 
-define('PASSWORD_SALT',"inhame"); // salt para o hash
-
 //nome dos papéis tal como na tabela papeis
 define('PAP_ADM',"Administrador");
 define('PAP_RESP_NUCLEO',"Responsável por Núcleo");

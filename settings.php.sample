@@ -16,6 +16,8 @@ define('MAIL_FROM',"comissaopedidos@gmail.com");
 define('MAIL_SENDER',"comissaopedidos@gmail.com");
 define('MAIL_FROM_NAME',"Comissão de Pedidos da Rede Ecológica");
 
+define('PASSWORD_SALT',"tempero"); // salt para o hash
+
 
 ?>
  
