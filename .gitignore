@@ -164,4 +164,5 @@ pip-log.txt
 
 # Configuração Sistema
 settings.php
-_notes/
+*_notes/*
+
