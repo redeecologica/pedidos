@@ -49,7 +49,7 @@ $sql.="WHERE ped_cha= " . prep_para_bd($cha_id) . " ";
 $sql.="AND ped_fechado = '1' ";
 $sql.="AND chaprod_disponibilidade <> '0' ";
 $sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
-$sql.="GROUP BY  forn_id,prod_id, nuc_id ";
+$sql.="GROUP BY  forn_id,prod_id, prod_unidade, nuc_id ";
 $sql.="ORDER BY forn_nome_curto,prod_nome, nuc_nome_curto";
 
 

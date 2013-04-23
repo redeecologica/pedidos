@@ -37,7 +37,7 @@ if($res)
 	}		
 }
 
-$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) cha_id, FORMAT(sum(est_prod_qtde_depois),1) estoque ";
+$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) quantidade, FORMAT(est_prod_qtde_depois,1) estoque ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -51,8 +51,7 @@ $sql.="AND ped_fechado = '1' ";
 $sql.="AND chaprod_disponibilidade <> '0' ";
 $sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
 $sql.="GROUP BY  forn_id,prod_id, nuc_id ";
-$sql.="ORDER BY forn_nome_curto,prod_nome, nuc_nome_curto";
-
+$sql.="ORDER BY forn_nome_curto,prod_nome, prod_unidade, nuc_nome_curto";
 
 $res = executa_sql($sql);
 
@@ -122,8 +121,8 @@ $res = executa_sql($sql);
                    for ($i = 0; $i < count($nucleos); $i++)
                    {
 						if($i>0) $row = mysqli_fetch_array($res,MYSQLI_ASSOC);																	
-                        echo("<td>" . formata_numero_de_mysql($row["cha_id"]) .  "</td>");	
-						$total_qtde_produto+=$row["cha_id"];
+                        echo("<td>" . formata_numero_de_mysql($row["quantidade"]) .  "</td>");	
+						$total_qtde_produto+=$row["quantidade"];
                    }                                            
                    ?> 
                 

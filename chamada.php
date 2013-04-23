@@ -260,7 +260,7 @@
                     $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome ";
+                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);					
 				
 					  

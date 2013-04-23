@@ -98,7 +98,7 @@
 					$sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
 					if($prod_prodt!=-1) $sql.= "  AND  prodt_id = " . prep_para_bd($prod_prodt) .  " ";
 					if($prod_forn!=-1) 	 $sql.= " AND forn_id = " . prep_para_bd($prod_forn) .  " ";						
-					$sql.= "ORDER BY prodt_nome, forn_nome_curto, prod_nome ";
+					$sql.= "ORDER BY prodt_nome, forn_nome_curto, prod_nome, prod_unidade ";
 								
 					$res = executa_sql($sql);
 

@@ -83,7 +83,7 @@ $sql.="AND ped_nuc = " . prep_para_bd($nuc_id) . " ";
 
 $sql.="AND chaprod_disponibilidade <> '0' ";
 $sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
-$sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, usr_nome_curto ";
+$sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, prod_unidade, usr_nome_curto ";
 
 
 

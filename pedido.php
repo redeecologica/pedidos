@@ -213,7 +213,7 @@
 		$sql.= "AND pedprod_ped = " . prep_para_bd($ped_id) . " ";
 		$sql.= "AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
 
-		$sql.= "ORDER BY forn_nome_curto, prod_nome ";
+		$sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
 		$res = executa_sql($sql);
 				
 		
@@ -381,7 +381,7 @@
 					$sql.= "AND chaprod_cha = " . prep_para_bd($ped_cha) . " ";
 					$sql.= "AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
 
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome ";
+                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
 														
                     if($res)
