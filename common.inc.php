@@ -427,8 +427,10 @@ function importar_estoque_anterior($cha_id)
 	if($cha_id_anterior!="")
 	{
 		$sql = " INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes) ";
-		$sql.= " SELECT " . prep_para_bd($cha_id) . ", est_prod, est_prod_qtde_depois FROM estoque WHERE est_cha = " . prep_para_bd($cha_id_anterior)  . " AND est_prod_qtde_depois > 0;  ";
-		$res = executa_sql($sql);
+		$sql.= " SELECT " . prep_para_bd($cha_id) . ", est_prod, est_prod_qtde_depois ";
+		$sql.= " FROM estoque estoque_anterior WHERE estoque_anterior.est_cha = " . prep_para_bd($cha_id_anterior);
+		$sql.= " ON DUPLICATE KEY UPDATE est_prod_qtde_antes = estoque_anterior.est_prod_qtde_depois ";
+		$res = executa_sql($sql);		
 		if($res) return true;
 	}
 	

@@ -28,7 +28,7 @@
 			$cha_dt_entrega = $row["cha_dt_entrega"];
 			$cha_prodt = $row["cha_prodt"];
 			$prodt_nome = $row["prodt_nome"];
-			
+			 
 		   }
 		}	
 		
@@ -42,8 +42,8 @@
 			for($i=0;$i<$n;$i++)
 			{
 				$est_cha_bd = prep_para_bd($est_cha);
-				$qtde_antes_bd = prep_para_bd(formata_numero_para_mysql($_REQUEST['est_prod_qtde_antes'][$i]));
-				$qtde_depois_bd = prep_para_bd(formata_numero_para_mysql($_REQUEST['est_prod_qtde_depois'][$i]));
+				$qtde_antes_bd = $_REQUEST['est_prod_qtde_antes'][$i] <>"" ? prep_para_bd(formata_numero_para_mysql($_REQUEST['est_prod_qtde_antes'][$i])) : 'NULL';
+				$qtde_depois_bd = $_REQUEST['est_prod_qtde_depois'][$i] <> "" ? prep_para_bd(formata_numero_para_mysql($_REQUEST['est_prod_qtde_depois'][$i])) : 'NULL';
 				
 				$sql = "INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois ) ";
 				$sql.= "VALUES ( " . $est_cha_bd . " ," . prep_para_bd($_REQUEST['est_prod'][$i]) . ", ";
@@ -97,7 +97,7 @@
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() ";
 					$sql.= "AND est_cha = " . prep_para_bd($est_cha) . " AND (est_prod_qtde_antes>0 OR est_prod_qtde_depois > 0)  ";
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome ";
+                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
 						
 					  
@@ -143,9 +143,9 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>
-                           <?php echo($row["est_prod_qtde_antes"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):"0,0"); ?>                            </td>                            							
+                           <?php echo($row["est_prod_qtde_antes"]?get_hifen_se_zero(formata_numero_de_mysql($row["est_prod_qtde_antes"])):"&nbsp;"); ?>                            </td>                            							
 							<td>                            
-                           <?php echo($row["est_prod_qtde_depois"]?formata_numero_de_mysql($row["est_prod_qtde_depois"]):"0,0"); ?>
+                           <?php echo($row["est_prod_qtde_depois"]?get_hifen_se_zero(formata_numero_de_mysql($row["est_prod_qtde_depois"])):"&nbsp;"); ?>
                            </td> 
                             </tr>
                              
@@ -188,12 +188,12 @@
 					$sql.= "FORMAT(est_prod_qtde_depois,1) est_prod_qtde_depois, prod_unidade, ";
 					$sql.= "chaprod_prod, forn_nome_curto, forn_nome_completo, forn_id FROM chamadaprodutos ";
                     $sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
-                    $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
+                    $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id ";  
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
 					$sql.= "LEFT JOIN estoque on est_cha = cha_id AND est_prod = chaprod_prod ";
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() ";
 					$sql.= "AND chaprod_cha = " . prep_para_bd($est_cha) . " AND chaprod_disponibilidade > 0 ";
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome ";
+                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
 					
 				
@@ -232,10 +232,10 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_antes"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):"0,0"); ?>" name="est_prod_qtde_antes[]" id="est_prod_qtde_antes_<?php echo($row["prod_id"]); ?>"/>
+                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_antes"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):""); ?>" name="est_prod_qtde_antes[]" id="est_prod_qtde_antes_<?php echo($row["prod_id"]); ?>"/>
                             </td>                            							
 							<td>                            
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_depois"]?formata_numero_de_mysql($row["est_prod_qtde_depois"]):"0,0"); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo($row["prod_id"]); ?>"/>
+                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_depois"]?formata_numero_de_mysql($row["est_prod_qtde_depois"]):""); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo($row["prod_id"]); ?>"/>
                                                         
                             </td> 
                             </tr>
