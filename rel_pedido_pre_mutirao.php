@@ -40,8 +40,11 @@ if($res)
 }
 
 $sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, ";
-$sql.="estoque_anterior.est_prod_qtde_depois estoque_anterior_depois, estoque_anterior.est_prod_qtde_antes estoque_anterior_antes, ";
-$sql.="estoque_atual.est_prod_qtde_depois estoque_atual_depois, estoque_atual.est_prod_qtde_antes estoque_atual_antes, ";
+$sql.=" FORMAT(chaprod_recebido,1) chaprod_recebido, ";
+$sql.=" FORMAT(estoque_anterior.est_prod_qtde_depois,1) estoque_anterior_depois, ";
+$sql.=" FORMAT(estoque_anterior.est_prod_qtde_antes,1) estoque_anterior_antes, ";
+$sql.=" FORMAT(estoque_atual.est_prod_qtde_depois,1) estoque_atual_depois, ";
+$sql.=" FORMAT(estoque_atual.est_prod_qtde_antes,1) estoque_atual_antes, ";
 $sql.=" FORMAT(sum(pedprod_quantidade),1) total_nucleo ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
@@ -57,7 +60,7 @@ $sql.="AND ped_fechado = '1' ";
 $sql.="AND chaprod_disponibilidade <> '0' ";
 $sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
 $sql.="GROUP BY  forn_id,prod_id, nuc_id ";
-$sql.="ORDER BY forn_nome_curto,prod_nome, nuc_nome_curto";
+$sql.="ORDER BY forn_nome_curto,prod_nome, prod_unidade, nuc_nome_curto";
 
 $res = executa_sql($sql);
 
@@ -134,14 +137,14 @@ $res = executa_sql($sql);
                    }                                            
                    ?> 
                 
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_anterior_depois"])));?></td>
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_antes"])));?></td>
+                <td><?php echo($row["estoque_anterior_depois"] ? get_hifen_se_zero(formata_numero_de_mysql($row["estoque_anterior_depois"])) : "&nbsp;");?></td>
+                <td><?php echo($row["estoque_atual_antes"] ? get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_antes"])) : "&nbsp;");?></td>
                 <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($total_qtde_produto)));?></td>
                 <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque_anterior_depois"]))));?></td>
-                <td>&nbsp;</td>  <!-- o que de fato chegou do produtor -->
+                <td><?php echo($row["chaprod_recebido"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido"])) : "&nbsp;" );?></td>  <!-- o que de fato chegou do produtor -->
                 <td>&nbsp;</td> <!-- somatório do que foi distribuído -->
                 <td>&nbsp;</td> <!-- estoque atual depois (esperado) -->
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_depois"])));?></td>                
+                <td><?php echo($row["estoque_atual_depois"] ? get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_depois"])) : "&nbsp;");?></td>                
                 
 				</tr>
 				 

@@ -26,7 +26,7 @@
 			$cha_prodt = $row["cha_prodt"];
 			$prodt_nome = $row["prodt_nome"];
 			
-		   }
+		  }
 		}	
 		
 				
@@ -39,11 +39,9 @@
 										
 			for($i=0;$i<$n;$i++)
 			{
-
-				
-				
+				$qtde_salvar = $_REQUEST['chaprod_recebido'][$i]=="" ? 'NULL' : prep_para_bd(formata_numero_para_mysql($_REQUEST['chaprod_recebido'][$i]));
 				$sql = "UPDATE chamadaprodutos SET  ";
-				$sql.= " chaprod_recebido = " . prep_para_bd(formata_numero_para_mysql($_REQUEST['chaprod_recebido'][$i])) ;
+				$sql.= " chaprod_recebido = " . $qtde_salvar ;
 				$sql.= " WHERE chaprod_cha = " . $cha_id_bd;
 				$sql.= " AND chaprod_prod = " . prep_para_bd($_REQUEST['chaprod_prod'][$i]) ;
 				$res = executa_sql($sql);
@@ -144,13 +142,13 @@
                           		<?php 
 									if($row["chaprod_recebido"]) 
 									{
-										echo(get_hifen_se_zero($row["chaprod_recebido"])); 
+										echo(get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido"]))); 
 									}
 									else
 									{
 										echo("&nbsp;");
 									}
-								
+								 
 								?> 
                              </td>               
                                  
@@ -223,9 +221,9 @@
                              
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
-                            <td><?php echo($row["total_pedido"]);?></td>
+                            <td><?php echo(formata_numero_de_mysql($row["total_pedido"]));?></td>
                             <td>
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):""); ?>" name="chaprod_recebido[]" id="chaprod_recebido"/>
+                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>" name="chaprod_recebido[]" id="chaprod_recebido"/>
                             </td>
                                                      
                             </tr>
