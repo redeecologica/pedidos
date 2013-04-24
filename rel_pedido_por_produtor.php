@@ -32,10 +32,12 @@ if($res)
 {
 	$nucleos = array();
 	$total_valor_nucleos = array();
+	$total_geral_valor_nucleos = array();	
     while ($nucleo = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 	{
 		$nucleos[] = $nucleo['nuc_nome_curto'];
-		$total_valor_nucleos[] = 0;		
+		$total_valor_nucleos[] = 0;	
+		$total_geral_valor_nucleos[] = 0;		
 	}		
 }
 
@@ -131,6 +133,7 @@ $res = executa_sql($sql);
                         echo("<td>" . formata_numero_de_mysql($row["total_qtde_nucleo"]) .  "</td>");	
 						$total_qtde_produto+=$row["total_qtde_nucleo"];
 						$total_valor_nucleos[$i]+=$row["total_qtde_nucleo"]*$row["prod_valor_compra"];
+						$total_geral_valor_nucleos[$i]+=$row["total_qtde_nucleo"]*$row["prod_valor_compra"];
                    }                                            
                    ?> 
                 
@@ -160,10 +163,42 @@ $res = executa_sql($sql);
                     <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
                    </tr>
                    
+                 
+                   
          
           </tbody>
 		   </table>
-		   
+           
+           
+           
+            <table class="table table-striped table-bordered table-condensed">
+                <thead>
+                    <tr>
+                          <th style="text-align:right">Somatório Geral: </th>
+                          
+						  <?php
+                           foreach ($nucleos as $nucleo)
+                           {
+                                echo("<th>$nucleo</th>");									   
+                           }                                            
+                           ?>
+                           <th>Total Rede Ecológica</th>
+                      </tr>                   
+                 </thead>	   
+                <tbody>                               
+                      <tr>
+                    	<th>Total Pedido</th>                                              
+                          <?php
+						   $total_geral_rede = 0;
+                            for ($i = 0; $i < count($total_valor_nucleos); $i++)
+                           {
+                                echo("<th style='text-align:center'>R$ ". formata_moeda($total_geral_valor_nucleos[$i]) . "</th>");	
+                                $total_geral_rede+=	$total_geral_valor_nucleos[$i];  
+                           }                                            
+                           ?>                                  
+                        <th style="text-align:center">R$ <?php echo(formata_moeda($total_geral_rede));?></th                  
+               </tbody>
+		   </table>
 		   <?php
 		} 
  
