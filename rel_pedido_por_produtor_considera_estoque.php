@@ -31,13 +31,15 @@ $res = executa_sql($sql); // lista de núcleos com pedido para esta chamada
 if($res) 
 {
 	$nucleos = array();
+	$total_valor_nucleos = array();
     while ($nucleo = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 	{
 		$nucleos[] = $nucleo['nuc_nome_curto'];
-	}		
+		$total_valor_nucleos[] = 0;		
+	}	
 }
 
-$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) quantidade, FORMAT(est_prod_qtde_depois,1) estoque ";
+$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) total_qtde_nucleo, FORMAT(est_prod_qtde_depois,1) estoque ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -71,9 +73,19 @@ $res = executa_sql($sql);
 					{
 						?>
                            <tr>
-				         	<th colspan="<?php echo($num_colunas - 1);?>">TOTAL: </th>
-				            <th>R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
+				         	<th colspan="3" style="text-align:right">TOTAL a pagar: </th>
+							  <?php
+                                for ($i = 0; $i < count($total_valor_nucleos); $i++)
+                               {
+                                    echo("<th style='text-align:center'>R$ ". formata_moeda($total_valor_nucleos[$i]) . "</th>");	
+									$total_valor_nucleos[$i]=0;	
+                               }                                            
+                               ?>     
+                             <th colspan="2">&nbsp;</th>                           
+				            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
 				           </tr>
+                           
+                           
                           	</tbody>
 							</table>		
 						<?php
@@ -121,8 +133,9 @@ $res = executa_sql($sql);
                    for ($i = 0; $i < count($nucleos); $i++)
                    {
 						if($i>0) $row = mysqli_fetch_array($res,MYSQLI_ASSOC);																	
-                        echo("<td>" . formata_numero_de_mysql($row["quantidade"]) .  "</td>");	
-						$total_qtde_produto+=$row["quantidade"];
+                        echo("<td>" . formata_numero_de_mysql($row["total_qtde_nucleo"]) .  "</td>");	
+						$total_qtde_produto+=$row["total_qtde_nucleo"];
+						$total_valor_nucleos[$i]+=$row["total_qtde_nucleo"]*$row["prod_valor_compra"];										   				
                    }                                            
                    ?> 
                 
@@ -141,10 +154,18 @@ $res = executa_sql($sql);
 		   
 		  ?>  
           
-           <tr>
-            <th colspan="<?php echo($num_colunas - 1);?>">TOTAL: </th>
-            <th>R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
-           </tr>
+                           <tr>
+				         	<th colspan="3" style="text-align:right">TOTAL a pagar: </th>
+							  <?php
+                                for ($i = 0; $i < count($total_valor_nucleos); $i++)
+                               {
+                                    echo("<th style='text-align:center'>R$ ". formata_moeda($total_valor_nucleos[$i]) . "</th>");	
+									$total_valor_nucleos[$i]=0;		   
+                               }                                            
+                               ?>     
+                             <th colspan="2">&nbsp;</th>                           
+				            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
+				           </tr>
          
           </tbody>
 		   </table>
