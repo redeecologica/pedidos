@@ -232,6 +232,16 @@ function verificaSenha(e) {
 	});
 }
 
+function colaDistribuindo(colecaoDestino, primeiroItem, pastedText){
+	var splitedText = pastedText.split("\n");
+	var proxDestino = primeiroItem;
+	for(var i=0; i< splitedText.length; i++) {
+		proxDestino.val(splitedText[i]); 
+		proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
+		if(!proxDestino) break;
+	}
+}
+
 $(function() {
 	$('.btn-enviando')
 	  .click(function () {
@@ -240,7 +250,16 @@ $(function() {
 	  });
 	  
 	  
-   $('.btn-popover').popover();
+	$('.btn-popover').popover();
+
+	$(".propaga-colar").on("paste", function(e){
+		var pastedText = undefined;
+		if (window.clipboardData && window.clipboardData.getData) { // IE
+			pastedText = window.clipboardData.getData('Text');
+		} else if (e.originalEvent.clipboardData && e.originalEvent.clipboardData.getData) {
+			pastedText = e.originalEvent.clipboardData.getData('text/plain');
+		}
+		colaDistribuindo($(".propaga-colar"), $(this), pastedText);
+		return false; // Prevent the default handler from running.
+	});
 });
-
-
