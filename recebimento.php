@@ -75,19 +75,22 @@
 
 <?php 
 
-	$sql = "SELECT prod_id, prod_nome, FORMAT(chaprod_recebido,1) chaprod_recebido, ";
-	$sql.= " prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, FORMAT(sum(pedprod_quantidade),1) total_pedido ";
+	$sql = "SELECT prod_id, prod_nome, FORMAT(chaprod_recebido,1) chaprod_recebido, SUM(pedprod_quantidade) total_demanda, ";
+	$sql.= " prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, ";
+	$sql.= " FORMAT( GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))), 1) total_pedido ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
 	$sql.= "LEFT JOIN fornecedores on prod_forn  = forn_id ";
 	$sql.= "LEFT JOIN pedidos ON ped_cha = cha_id "; 
 	$sql.= "LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";					
-	$sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() ";
+	$sql.= "LEFT JOIN estoque ON est_prod = chaprod_prod AND est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";	
+	$sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND ped_fechado = '1' ";
 	$sql.= "AND chaprod_cha = " . prep_para_bd($cha_id) . " AND chaprod_disponibilidade > 0  ";
 	$sql.= "GROUP BY forn_id, prod_id ";
-	$sql.= "ORDER BY forn_nome_curto, prod_nome ";
+	$sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
 	$res = executa_sql($sql);	
+	
 
    echo("<legend>Informações de Recebimento relacionado à chamada de " . $prodt_nome . " - " . $cha_dt_entrega . "</legend>");
 
@@ -223,7 +226,7 @@
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td><?php echo(formata_numero_de_mysql($row["total_pedido"]));?></td>
                             <td>
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>" name="chaprod_recebido[]" id="chaprod_recebido"/>
+                            <input type="text" class="input-mini propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>" name="chaprod_recebido[]"/>
                             </td>
                                                      
                             </tr>

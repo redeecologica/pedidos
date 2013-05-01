@@ -162,7 +162,12 @@ pip-log.txt
 # Mac crap
 .DS_Store
 
+#Editor
+*_notes/*
+*sync.xml
+
 # Configuração Sistema
 settings.php
-*_notes/*
+
+
 

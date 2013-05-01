@@ -10,9 +10,9 @@
 	<link href="css/complemento.css" rel="stylesheet" media="screen" /> <!-- Bootstrap -->
 	<link href="css/datepicker.css" rel="stylesheet" media="screen">
      
-   	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-	<script src="js/bootstrap-2.3.1.min.js"></script> 
-	<script src="js/pedido.js?ver=1.6"></script>   
+  	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	<script src="js/bootstrap-2.3.1.min.js"></script>
+	<script src="js/pedido.js?ver=1.7"></script>
 	<script src="js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="js/locales/bootstrap-datepicker.pt-BR.js" charset="UTF-8"></script>
     <script src="js/jquery.maskedinput.min.js" charset="UTF-8"></script>

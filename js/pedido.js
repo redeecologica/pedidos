@@ -236,9 +236,17 @@ function colaDistribuindo(colecaoDestino, primeiroItem, pastedText){
 	var splitedText = pastedText.split("\n");
 	var proxDestino = primeiroItem;
 	for(var i=0; i< splitedText.length; i++) {
-		proxDestino.val(splitedText[i]); 
-		proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
+		
+		if(splitedText[i][0]=='-') splitedText[i] = "0";
+		
+		if($.isNumeric(splitedText[i].replace(",",".")))
+		{
+			proxDestino.val(splitedText[i]); 
+			proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
+		}
+		
 		if(!proxDestino) break;
+		else proxDestino.focus();
 	}
 }
 
