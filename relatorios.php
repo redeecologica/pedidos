@@ -27,7 +27,11 @@
 			  ?>	  
                 <li>
                     Para encaminhar ao Produtor: 
-                    <a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a>
+                    <ul>
+                   	 	<li>
+           				<a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a>
+                	    </li>
+                    </ul>
                 </li>
 <!--
                 <li>
@@ -37,26 +41,59 @@
 -->
                 <li>
                     Para o responsável pela Entrega:
-                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
-                </li>
+                    <ul>
+                   	 	<li>
+							<a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
+                	    </li>
+                        <!--
+                        <li>
+                    <a href="rel_pedido_contato_cestantes.php?cha_id=<?php echo($row['cha_id']);?>">Contato de todos os cestantes que enviaram pedido</a>
+                	    </li>
+                        -->                
+                        </ul>
+ 				</li>
+   
                 
 			  <?php
 			  }
 			  else
 			  {
 			  ?>	  
+
                 <li>
                     Para encaminhar ao Produtor: 
-                    <a href="rel_pedido_por_produtor_considera_estoque.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a> (considerando estoque informado pelo mutirão)
+                    <ul>
+                   	 	<li>
+           				<a href="rel_pedido_por_produtor_considera_estoque.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos</a> (considerando estoque informado pelo mutirão)
+                	    </li>
+                    </ul>
                 </li>
+
                 <li>
-	                Para o Mutirão: 
-                    <a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos para distribuição</a> 
+                  Para o Mutirão:
+                    <ul>
+                   	 	<li>
+           				<a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">Pedido consolidado dos núcleos para distribuição</a> 
+                	    </li>
+                    </ul>
                 </li>
+
                 <li>
                     Para o responsável pela Entrega:
-                    <a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
-                </li>
+                    <ul>
+                   	 	<li>
+							<a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">Pedido de cada cestante</a> (1 relatório para cada núcleo)
+                	    </li>
+                        <!--
+                        <li>
+                    <a href="rel_pedido_contato_cestantes.php?cha_id=<?php echo($row['cha_id']);?>">Contato de todos os cestantes que enviaram pedido</a>
+                	    </li>
+                        -->                
+                        </ul>
+ 				</li>
+
+
+
 			  <?php
 			  }			  
 			  ?>

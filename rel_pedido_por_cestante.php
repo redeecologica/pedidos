@@ -40,10 +40,11 @@ if($res)
 	while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 	
 	{
 		?>
-        	<?php echo($row["nuc_nome_completo"]);?> - 
-             <a href="rel_pedido_por_cestante_nucleo.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>">pedidos: <?php echo($row["total_pedidos"]);?></a> &nbsp;
-             <!--
-             <a class="btn btn-small" href="rel_pedido_por_cestante_nucleo.php?baixar=1&cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>"><i class="icon-download"></i>baixar</a>-->
+        	<strong><?php echo($row["nuc_nome_completo"]);?></strong> (total de <?php echo($row["total_pedidos"]);?> pedidos): 
+            &nbsp;
+             <a href="rel_pedido_por_cestante_nucleo.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>">Relatório de Pedidos</a> &nbsp; &nbsp;
+
+             <a href="rel_pedido_contato_cestantes.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>">Contato dos Cestantes</a>
              
             <br />            <br />
         <?php 

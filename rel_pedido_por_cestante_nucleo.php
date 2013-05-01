@@ -97,50 +97,15 @@ echo("</div>");
 			$total=0;
 								   
 			?>
+         
             <br>
+
             
 			<table class="table table-striped table-bordered table-condensed">
-			
-
-            
             <thead> 
              <tr>
-               <th colspan="2" rowspan="3" style="text-align:center;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>
-               <th style='text-align:right' colspan="2">cestante</th>
-            <?php   
-                           for ($i = 0; $i < count($cestante_nome); $i++)
-                           {	                                                                                            
-                                echo("<th colspan='2' style='text-align:center'> ");
-								echo($cestante_nome[$i]); 
-								echo("</th>");			               
-							}                                            
-                ?> 
- 				<th colspan="2" rowspan="3"></th>           
-            
+               <th colspan="<?php echo($num_colunas); ?>" style="text-align:center;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
              </tr>			
-			<tr>
-               <th style='text-align:right'  colspan="2">associado</th>
-		          <?php   
-				   for ($i = 0; $i < count($cestante_nome); $i++)
-				   {	                                                                                            
-						echo("<th colspan='2' style='text-align:center'> ");
-						echo($cestante_associado[$i]==0 ? "Não" : "Sim");
-						echo("</th>");
-				   }                                            
-				   ?> 
-            </tr>
-			<tr>
-               <th style='text-align:right'  colspan="2">contato</th>
-		          <?php   
-				   for ($i = 0; $i < count($cestante_nome); $i++)
-				   {	                                                                                            
-						echo("<th colspan='2' style='text-align:center'> ");
-						echo($cestante_contato[$i]);
-						echo("</th>");
-				   }                                            
-				   ?> 
-            </tr>
-
 
             </thead>           		   
             
