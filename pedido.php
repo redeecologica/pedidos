@@ -476,9 +476,8 @@
             <div class="controls" align="right">
                    <button class="btn" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="icon-off"></i> descartar alterações</button>
                    &nbsp;&nbsp;
-                   <button class="btn btn-primary btn-large" type="submit"><i class="icon-ok icon-white"></i> salvar pedido</button>
-                   
-                  
+                   <button class="btn btn-primary btn-large btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="icon-ok icon-white"></i> salvar pedido</button>
+                                     
                                  
             </div>
           </div>
