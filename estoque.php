@@ -180,7 +180,6 @@
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
             
             <div class="control-group">
-               <label class="control-label" for="est_prod">Estoque dos Produtos</label>
                  <div class="container">
 
 				<?php
@@ -232,10 +231,10 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_antes"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):""); ?>" name="est_prod_qtde_antes[]" id="est_prod_qtde_antes_<?php echo($row["prod_id"]); ?>"/>
+                            <input type="text" class="input-mini propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_antes"]?formata_numero_de_mysql($row["est_prod_qtde_antes"]):""); ?>" name="est_prod_qtde_antes[]" id="est_prod_qtde_antes_<?php echo($row["prod_id"]); ?>"/>
                             </td>                            							
 							<td>                            
-                            <input type="text" class="input-mini " style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_depois"]?formata_numero_de_mysql($row["est_prod_qtde_depois"]):""); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo($row["prod_id"]); ?>"/>
+                            <input type="text" class="input-mini propaga-colar-2" style="font-size:18px; text-align:center;" value="<?php echo($row["est_prod_qtde_depois"]?formata_numero_de_mysql($row["est_prod_qtde_depois"]):""); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo($row["prod_id"]); ?>"/>
                                                         
                             </td> 
                             </tr>
