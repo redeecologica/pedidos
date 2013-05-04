@@ -18,7 +18,9 @@
         		<th>Data de Entrega</th>
 				<th>1) Estoque</th>
 				<th>2) Recebimento</th>                
-				<th>3) Distribuição</th>                
+				<th>3) Distribuição</th>  
+				<th>Relatório Consolidado</th>                  
+                              
 			</tr>
 		</thead>
 		<tbody>
@@ -42,8 +44,9 @@
 					 <td><?php echo($row['prodt_nome']);?></td>               
 					 <td><?php echo($row['cha_dt_entrega']);?></td>
                      <td><a href="estoque.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&est_cha=<?php echo($row['cha_id']);?>">estoque</a></td> 
-                     <td><a href="recebimento.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">recebimento</a></td> 
-                     <td><a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">distribuicao</a></td>                      
+                     <td><a href="recebimento.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">recebimento</a></td>  
+                     <td><a href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">distribuicao</a></td>                      
+                     <td><a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">relatório</a></td>                      
 				  </tr>
 				<?php 
 				     }
