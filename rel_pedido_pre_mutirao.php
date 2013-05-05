@@ -3,7 +3,7 @@
   verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO]);
   top();
   
- $cha_id=request_get("cha_id",8);
+ $cha_id=request_get("cha_id","");
                       
  $sql = "SELECT prodt_nome, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
@@ -18,7 +18,10 @@
 
 ?>
 
-<legend>Relatorio para o Mutirão - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?></legend>
+<legend>Relatorio para o Mutirão - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?>
+</legend>
+
+<a class="btn" href="arquivos/modelo_relatorio_mutirao.xlsx"><i class="icon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
 
 </div>
 <br>
