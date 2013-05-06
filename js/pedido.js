@@ -257,7 +257,6 @@ $(function() {
 		btn.button('loading');
 	  });
 	  
-	  
 	$('.btn-popover').popover();
 
 	$(".propaga-colar").on("paste", function(e){
@@ -271,14 +270,20 @@ $(function() {
 		return false; // Prevent the default handler from running.
 	});
 	
-	$(".propaga-colar-2").on("paste", function(e){
-		var pastedText = undefined;
-		if (window.clipboardData && window.clipboardData.getData) { // IE
-			pastedText = window.clipboardData.getData('Text');
-		} else if (e.originalEvent.clipboardData && e.originalEvent.clipboardData.getData) {
-			pastedText = e.originalEvent.clipboardData.getData('text/plain');
+	$(".seleciona_produtos_fornecedor").change(function(){
+		var produtos = null;
+		if(this.checked){
+			produtos = $('input[id^="chaprod_prod_disponibilidade"][value='+$(this).val()+'][data-fornecedor='+$(this).attr("data-fornecedor")+']');
+			produtos.each(function(){
+				this.checked = true;
+			});
 		}
-		colaDistribuindo($(".propaga-colar-2"), $(this), pastedText);
-		return false; // Prevent the default handler from running.
-	});	
+	});
+	
+	$("#marca_todos_nucleos").change(function(){
+		var marcado = this.checked;
+		$(".nucleos").each(function(){
+			this.checked = marcado;
+		});
+	});
 });
