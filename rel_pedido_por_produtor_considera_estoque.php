@@ -74,16 +74,19 @@ $res = executa_sql($sql);
 					if($ultimo_forn!="")
 					{
 						?>
-                           <tr>
+              		       <tr>
 				         	<th colspan="3" style="text-align:right">TOTAL a pagar: </th>
 							  <?php
+								  $somatorio_nucleos=0;
                                 for ($i = 0; $i < count($total_valor_nucleos); $i++)
                                {
+								    $somatorio_nucleos+=$total_valor_nucleos[$i];
                                     echo("<th style='text-align:center'>R$ ". formata_moeda($total_valor_nucleos[$i]) . "</th>");	
-									$total_valor_nucleos[$i]=0;	
+									$total_valor_nucleos[$i]=0;		   
+									
                                }                                            
                                ?>     
-                             <th colspan="2">&nbsp;</th>                           
+                            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($somatorio_nucleos));?></th>
 				            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
 				           </tr>
                            
@@ -139,18 +142,19 @@ $res = executa_sql($sql);
 						$total_qtde_produto+=$row["total_qtde_nucleo"];
 						$total_valor_nucleos[$i]+=$row["total_qtde_nucleo"]*$row["prod_valor_compra"];
 						$total_geral_valor_nucleos[$i]+=$row["total_qtde_nucleo"]*$row["prod_valor_compra"];										
-                   }                                            
+                   }                            
+				   $pedido_produtor = max(0,$total_qtde_produto - $row["estoque"]);                
                    ?> 
                 
                 <td><?php echo(formata_numero_de_mysql($total_qtde_produto));?></td>
                 <td><?php echo(formata_numero_de_mysql(get_hifen_se_zero($row["estoque"])));?></td>
-                <td><?php echo(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque"]) ));?></td>                
-				<td><?php echo (formata_moeda((max(0,$total_qtde_produto - $row["estoque"])) * $row["prod_valor_compra"])); ?></td>
+                <td><?php echo(formata_numero_de_mysql($pedido_produtor ));?></td>                
+				<td><?php echo (formata_moeda($pedido_produtor * $row["prod_valor_compra"])); ?></td>
 			
 				</tr>
-				 
+				  
 				<?php
-				$total_valor_fornecedor+=$total_qtde_produto * $row["prod_valor_compra"];
+				$total_valor_fornecedor+=$pedido_produtor * $row["prod_valor_compra"];
 
 
 		   }
@@ -160,13 +164,16 @@ $res = executa_sql($sql);
                            <tr>
 				         	<th colspan="3" style="text-align:right">TOTAL a pagar: </th>
 							  <?php
+								  $somatorio_nucleos=0;
                                 for ($i = 0; $i < count($total_valor_nucleos); $i++)
                                {
+								    $somatorio_nucleos+=$total_valor_nucleos[$i];
                                     echo("<th style='text-align:center'>R$ ". formata_moeda($total_valor_nucleos[$i]) . "</th>");	
 									$total_valor_nucleos[$i]=0;		   
+									
                                }                                            
                                ?>     
-                             <th colspan="2">&nbsp;</th>                           
+                            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($somatorio_nucleos));?></th>
 				            <th colspan="2"  style="text-align:center">R$ <?php echo(formata_moeda($total_valor_fornecedor));?></th>
 				           </tr>
          
@@ -202,7 +209,7 @@ $res = executa_sql($sql);
                            }                                            
                            ?>                                  
                         <th style="text-align:center">R$ <?php echo(formata_moeda($total_geral_rede));?></th                  
-               </tbody>
+               ></tbody>
 		   </table>
            
            

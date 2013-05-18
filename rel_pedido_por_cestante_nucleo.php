@@ -86,7 +86,6 @@ $sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entre
 $sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, prod_unidade, usr_nome_curto ";
 
 
-
 $res = executa_sql($sql);
 
 echo("</div>");
@@ -105,7 +104,24 @@ echo("</div>");
             <thead> 
              <tr>
                <th colspan="<?php echo($num_colunas); ?>" style="text-align:center;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
-             </tr>			
+             </tr>		
+             
+               <tr>
+               	<th colspan="2">&nbsp;</th>
+                
+                <th style='text-align:right'  colspan="2">associado</th>
+                     <?php   
+                  for ($i = 0; $i < count($cestante_nome); $i++)
+                  {                                                                                              
+                   echo("<th colspan='2' style='text-align:center'> ");
+                   echo($cestante_associado[$i]==0 ? "Não" : "Sim");
+                   echo("</th>");
+                  }                                            
+                  ?> 
+                  
+               	<th colspan="3">&nbsp;</th>
+              </tr>
+                       	
 
             </thead>           		   
             
