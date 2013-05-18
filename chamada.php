@@ -205,7 +205,11 @@
             </div>    
                 
             <div class="control-group">
-             <label class="control-label" for="chanuc_nuc">Núcleos Atendidos</label>
+             <label class="control-label" for="chanuc_nuc">
+             	Núcleos Atendidos  <br>
+                <input id='marca_todos_nucleos' type='checkbox' value='*'> Marcar Todos</span>
+             </label>
+             
              <div class="controls">
 				<?php
 					$sql =  "SELECT nuc_id, nuc_nome_curto, chanuc_nuc FROM nucleos ";
@@ -218,7 +222,6 @@
 					   $por_coluna = floor($total / 3);
 					   $resto = fmod($total , 3);
 					   $cont=0; $coluna=0;
-					   $inicio=true;
 					   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				       {	
 							$cont++;						
@@ -226,11 +229,6 @@
 							{
 								$coluna++;
 								echo("<div class='span2'>");
-								if($inicio){
-									echo("<label class='checkbox'><input id='marca_todos_nucleos' type='checkbox' value='*'>Todos</label>");
-									$cont++;
-									$inicio=false;
-								}
 							}		
 							echo("<label class='checkbox'><input name='chanuc_nuc[]' type='checkbox' class='nucleos'");
 							if($row["chanuc_nuc"]) 
