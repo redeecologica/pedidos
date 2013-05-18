@@ -270,6 +270,18 @@ $(function() {
 		return false; // Prevent the default handler from running.
 	});
 	
+	$(".propaga-colar-2").on("paste", function(e){
+		var pastedText = undefined;
+		if (window.clipboardData && window.clipboardData.getData) { // IE
+			pastedText = window.clipboardData.getData('Text');
+		} else if (e.originalEvent.clipboardData && e.originalEvent.clipboardData.getData) {
+			pastedText = e.originalEvent.clipboardData.getData('text/plain');
+		}
+		colaDistribuindo($(".propaga-colar-2"), $(this), pastedText);
+		return false; // Prevent the default handler from running.
+	});
+		
+	
 	$(".seleciona_produtos_fornecedor").change(function(){
 		var produtos = null;
 		if(this.checked){
