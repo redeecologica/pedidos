@@ -1,0 +1,9 @@
+1) criar estrutura do bd mysql a partir do arquivo bd_estrutura.sql
+
+2) editar o arquivo  bd_dados_iniciais.sql e substituir 'admin@mudar.com' pelo seu email
+
+3) inserir dados iniciais no bd a partir do arquivo bd_dados_iniciais.sql (outras alterações em relação à carga inicial podem ser feitas, de acordo com a necessidade)
+
+4) entrar no sistema e, ao ser solicitado pelo login e senha, clicar em 'esqueci a senha' e informar o seu email cadastrado (aquele mesmo que foi informado no passo 2)
+
+5) você receberá no email o link para criar senha para esta conta, que possui perfil de administrador
