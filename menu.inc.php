@@ -6,7 +6,7 @@
         <div class="nav-collapse">
           <ul class="nav nav-pills pull-left">
             <li><a href="index.php"><i class="icon-home"></i> Início</a></li>
-            <li><a href="meuspedidos.php"><i class="icon-shopping-cart"></i> Meus Pedidos</a></li>
+            <li><a href="meuspedidos.php"><i class="icon-pedidos-shopping-bag"></i> Meus Pedidos</a></li>
             		  
 		  <?php 
 		  

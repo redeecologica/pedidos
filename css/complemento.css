@@ -5,6 +5,18 @@
 .container {max-width:940px;}
 /* fim ajeita configuração BOOTSTRAP */
 
+/* inclusão de ícone fora do pacote do bootstrap */
+.icon-pedidos-shopping-bag {
+  background-position: 0      0;
+ background-image: url("../img/icon-pedidos-shopping-bag.png");  
+  width: 16px;
+  height: 16px;
+  *margin-right: .1em;
+   margin-top: 0px;   
+}
+/* FIM inclusão de ícone fora do pacote do bootstrap */
+
+
 
 /* capricho na tabela de pedido para fonte ficar maior e etc. */
 .table-pedido th, td {
