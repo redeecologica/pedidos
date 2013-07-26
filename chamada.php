@@ -257,17 +257,19 @@
                  <div class="container">
 
 				<?php
-                    $sql = "SELECT prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, ";
-					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, ";
-					$sql.= "chaprod_prod, chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, forn_id, forn_contatos, prod_prodt FROM produtos ";
+                    $sql = "SELECT prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
+					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, FORMAT(prod_valor_venda,2) prod_valor_venda, ";
+					$sql.= "chaprod_prod, chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, ";
+					$sql.= "forn_id, forn_contatos, prod_prodt, FORMAT(est_prod_qtde_depois,1) em_estoque FROM produtos ";
                     $sql.= "LEFT JOIN chamadaprodutos on chaprod_prod = prod_id AND chaprod_cha = " . prep_para_bd($cha_id) . " ";
                     $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
+			        $sql.="LEFT JOIN estoque ON est_prod = prod_id AND est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";							
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
                     $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);					
 				
-					  
+					   
                     if($res)
                     {
 						echo("<table class='table table-striped table-bordered table-condensed table-hover'>");
@@ -287,7 +289,7 @@
 											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_contatos"]);
 											  ?>
                                             </th>
-											<th>Disponível<br>
+											<th style="width:180px">Disponível<br>
 												<label class="radio inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
 												  <strong>SIM</strong>
@@ -295,15 +297,16 @@
 																												
 												<label class="radio inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <strong>parcial</strong>
+												  <strong>parc.</strong>
 												</label>
 												<label class="radio inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
 												  <strong>não</strong>
 												</label>
 											</th>
-											<th>Unidade</th>
-											<th>Valor (R$)</th>
+											<th>Unid.</th>
+											<th>Compra (R$)</th>
+											<th>Venda (R$)</th>                                            
 											<th>C/ Margem (R$)</th>
 										</tr>
 								<?php
@@ -312,7 +315,12 @@
 							
 							?>
 							<tr> 
-                            <td><?php echo($row["prod_nome"]);?></td>
+                            <td><?php 
+								echo($row["prod_nome"]); 
+								adiciona_popover_descricao("Descrição", $row["prod_descricao"]); 
+								if($row["em_estoque"]>0) echo("&nbsp;&nbsp;<span class='label label-info'>" . formata_numero_de_mysql($row["em_estoque"]) .  " em estoque</span>");
+							
+							?></td>
 							<td>
                                 <label class="radio inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo($row["forn_id"]);?>">
@@ -321,7 +329,7 @@
                                                                                                 
                                 <label class="radio inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  parcial
+                                  parc.
                                 </label>
                                 <label class="radio inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"])?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo($row["forn_id"]);?>">
@@ -330,6 +338,7 @@
                             </td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
 							<td><?php echo(formata_moeda($row["prod_valor_compra"])); ?></td>                            							
+							<td><?php echo(formata_moeda($row["prod_valor_venda"])); ?></td> 
 							<td><?php echo(formata_moeda($row["prod_valor_venda_margem"]));?></td> 
                             </tr>
                              

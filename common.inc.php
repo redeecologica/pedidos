@@ -111,7 +111,8 @@ function adiciona_popover_descricao($titulo,$texto)
 	}	
 }
 
-									
+	
+				
 
 
 function formata_numero_para_mysql($numero)
