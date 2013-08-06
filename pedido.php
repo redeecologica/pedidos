@@ -186,7 +186,7 @@
        	<div class="span5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
         <div class="span4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
      	<div class="span3"><strong>Associado:</strong> <?php echo($usr_associado==1 ? "Sim" : "Não")?></div>
-	    <div class="span6"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-important") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
+	    <div class="span8"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-important") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
         
      
      </div>
@@ -316,7 +316,7 @@
 	  else if($ped_fechado)
 	  {
 			?>
-            <div class="span6 text-info">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
+            <div class="span8 text-info">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
 		    <div>    
 			<a class="btn btn-danger" href="pedido.php?action=<?php echo(ACAO_CANCELAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>"><i class="icon-remove icon-white"></i> cancelar pedido</a>
 			&nbsp;&nbsp;
@@ -329,7 +329,7 @@
 		{
 			?>
 
-      		<div class="span6 text-warning">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
+      		<div class="span8 text-warning">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
 		    <div>                            		
 			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
 			&nbsp;&nbsp;
