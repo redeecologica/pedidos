@@ -87,8 +87,8 @@
 			  		if($_SESSION[PAP_ADM])			  
 					{
 			   ?>
-					 <li><a href="permissoes.php"><i class="icon-lock"></i> Permissões</a></li>  
-                 	<li class="divider"></li>
+  					 <li><a href="administracao.php"><i class="icon-lock"></i> Administração</a></li>  
+
               <?php 
 			  		} 			  
 			  ?>

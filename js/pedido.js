@@ -142,14 +142,10 @@ function verificaDatas(){
 	}
 }
 
-function confirmaExclusao( deleteObj ) {
-    return confirm('Tem certeza que deseja excluir ' + deleteObj + '?');
-} 
-
 $(function() {
         // Add Confirmation dialogs for all Deletes
         $("a.confirm-delete").on('click', function(event) {
-            return confirmaExclusao('o registro');
+            return confirm('Confirma a operação ?');
         });
 });
 

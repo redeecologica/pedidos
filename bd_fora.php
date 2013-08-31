@@ -7,11 +7,11 @@
 
 <legend>Erro ao tentar acessar a base de dados</legend>
 
-Infelizmente houve um erro ao tentar acessar a base de dados do sistema de pedidos da Rede Ecológica :( <br>
+Infelizmente houve um erro ao tentar acessar a base de dados do <?php echo(NOME_SISTEMA); ?> :( <br>
 Favor tentar novamente mais tarde acessando o endereço: <br>
 <a href="<?php echo($url_abs); ?>"><?php echo($url_abs); ?></a><br><br>
 
-Contato para dúvidas: comissaopedidos@gmail.com
+Contato para dúvidas:  <?php echo(EMAIL_SUPORTE_SISTEMA); ?>
 
 
 <?php 

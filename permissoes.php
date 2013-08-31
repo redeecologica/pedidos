@@ -4,9 +4,6 @@
   top();
 ?>
 
-<strong>Manutenção:</strong><br>
-<a href="cestantes_sem_senha.php">Listar cestantes sem senha de acesso criada</a><br>
-
 <form class="form-inline" action="permissoes.php" method="post" name="frm_filtro" id="frm_filtro">
 	<legend>Permissões</legend>
 	<?php  

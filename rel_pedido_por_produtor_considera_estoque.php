@@ -194,7 +194,7 @@ $res = executa_sql($sql);
                                 echo("<th>$nucleo</th>");									   
                            }                                            
                            ?>
-                           <th>Total Rede Ecológica</th>
+                           <th>Total Núcleos</th>
                       </tr>                   
                  </thead>	   
                 <tbody>                               

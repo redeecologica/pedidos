@@ -30,8 +30,8 @@
 			$mensagem="Oi, $usr_nome_curto." . "\n\n";			
 			$mensagem.="Segue o link para poder criar sua nova senha de acesso ao sistema de pedidos:" . "\n";		
 			$mensagem.= URL_ABSOLUTA . "/senha_zera.php?ui=$usr_id&temp=" . urlencode($codigo_temp) . "\n\n";			
-			$mensagem.= "Saudações e até o futuro,\n";		
-			$mensagem.= "Comissão de Pedidos da Rede Ecológica\n";		
+
+			$mensagem.=get_texto_interno("txt_email_final_info_conta");	
 			
 			$sucesso = envia_email_cestante($usr_id,'Informações para criar nova senha',"",$mensagem);	
 	
@@ -72,10 +72,10 @@
         <label for="login_usr_email">Email:</label> 
   		<div class="input-prepend"><span class="add-on"><i class="icon-user"></i></span>
         	<input type="text" class="input-xlarge" placeholder="endereço de email" name="login_usr_email" value="<?php echo($usr_email); ?>">  </div>
-	<span class="help-block">Após preencher seu endereço de email e clicar no botão abaixo, você receberá um email com um link para criação de nova senha de acesso à sua conta na Rede Ecológica.</span>	
+	<span class="help-block">Após preencher seu endereço de email e clicar no botão abaixo, você receberá um email com um link para criação de nova senha de acesso à sua conta no <?php echo(NOME_SISTEMA); ?>.</span>	
 		        
         
-        <input class="btn btn-large btn-primary" type="submit" value="Criar nova senha" name="Solicitar">
+        <input class="btn btn-large btn-primary btn-enviando" data-loading-text="aguarde..." type="submit" value="Criar nova senha" name="Solicitar">
        </fieldset>
        <br>
 			<div class="clear"></div>

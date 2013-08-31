@@ -5,8 +5,10 @@
 
 <div class="container" align="right">
     <hr>
-    Copyright © 2013 - <a href="http://redeecologicario.org">Rede Ecológica</a> 
-</div>  
+    <a href="<?php echo(URL_GRUPO_CONSUMO); ?>" target="_blank"><?php echo(NOME_GRUPO_CONSUMO); ?></a>
+ utiliza este sistema que é <a href="https://github.com/redeecologica/pedidos" target="_blank"> software livre disponibilizado na plataforma GitHub - 2013 <img src="img/copyleft-icon.png" width="12px" height="12px"/></a> 
+
+</div>  <br />
   
      
    

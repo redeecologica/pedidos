@@ -182,7 +182,7 @@ $res = executa_sql($sql);
                                 echo("<th>$nucleo</th>");									   
                            }                                            
                            ?>
-                           <th>Total Rede Ecológica</th>
+                           <th>Total Núcleos</th>
                       </tr>                   
                  </thead>	   
                 <tbody>                               
@@ -197,7 +197,7 @@ $res = executa_sql($sql);
                            }                                            
                            ?>                                  
                         <th style="text-align:center">R$ <?php echo(formata_moeda($total_geral_rede));?></th                  
-               </tbody>
+               ></tbody>
 		   </table>
 		   <?php
 		} 

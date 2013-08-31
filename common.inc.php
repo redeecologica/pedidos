@@ -37,9 +37,6 @@ $msg_tipo_erros = array(MSG_TIPO_SUCESSO => "success", MSG_TIPO_INFO => "info", 
 
 date_default_timezone_set ('America/Sao_Paulo');
 
-
-//$conn_link = @mysqli_connect("localhost", $dbusuario,$dbsenha, $dbnome);
-
 $conn_link = @mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME );
 
 if (mysqli_connect_errno()) 
@@ -118,7 +115,6 @@ function adiciona_popover_descricao($titulo,$texto)
 function formata_numero_para_mysql($numero)
 {
 	return str_replace('_',',',str_replace(',','.',str_replace('.','_',$numero)));
-	//return number_format($numero,"2",".",",");  não aceita pois não reconhece como número
 }
 
 function formata_numero_de_mysql($numero)
@@ -197,12 +193,8 @@ function request_get($parametro, $valor_padrao)
 	else if(isset($_GET["$parametro"])) $retorno = $_GET["$parametro"];
 	return $retorno;
 }
-/*
-function eco($texto)
-{
-	if(isset($texto)) echo(htmlspecialchars($texto));
-}
-*/
+
+
 function id_inserido()
 {
 	global $conn_link;
@@ -377,22 +369,19 @@ function gera_primeira_senha_acesso($usr_id)
 
 	if($sucesso)
 	{		
-		$mensagem = "Sua conta foi criada no Sistema de Pedidos da Rede Ecológica. Seja bem-vindo(a). \n\n";
+		$mensagem = "Sua conta foi criada no " . NOME_SISTEMA . ". Seja bem-vindo(a). \n\n";
 		
 		$mensagem.= "Para entrar no sistema, acesse o endereço " . URL_ABSOLUTA . " e, ao ser solicitado(a) pelo login e senha, informe:\n\n";
 		$mensagem.= "login: $usr_email\n";
 		$mensagem.="senha: $senha_gerada\n\n";
 				
 		$mensagem.="Esta é uma senha gerada automaticamente para que você possa realizar o primeiro acesso.\n";
-		$mensagem.="A qualquer momento você poderá alterá-la: após fazer login no sistema, vá na opção 'Minha Conta' e depois 'Alterar Senha'.\n\n";
-				
+		$mensagem.="A qualquer momento você poderá alterá-la: após fazer login no sistema, vá na opção 'Minha Conta' e depois 'Alterar Senha'.\n\n";			
 		
-		$mensagem.="Saudações e até o futuro,\n";
-		$mensagem.="Comissão de Pedidos da Rede Ecológica\n";
-		$mensagem.="comissaopedidos@gmail.com";				
+		$mensagem.=get_texto_interno("txt_email_final_info_conta");
 		
 		
-		return envia_email_cestante($usr_id,'Informações para Acesso ao Sistema de Pedidos da Rede Ecológica',"",$mensagem);
+		return envia_email_cestante($usr_id,"Informações para Acesso ao " . NOME_SISTEMA ,"",$mensagem);
 	}
 	
 	return false;
@@ -436,10 +425,20 @@ function importar_estoque_anterior($cha_id)
 	}
 	
 	return false;
-	
+		
+}
 
+function get_texto_interno($nome_interno)
+{
 	
-	
+	$sql="SELECT txt_conteudo_publicado FROM textos where txt_nome_curto = " . prep_para_bd($nome_interno);		
+	$res = executa_sql($sql);
+	if($res && mysqli_num_rows($res))
+	{
+		$row = mysqli_fetch_array($res,MYSQLI_ASSOC);
+		return $row['txt_conteudo_publicado'];
+	}
+	return "";
 }
 
 

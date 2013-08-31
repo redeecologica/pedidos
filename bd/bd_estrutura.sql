@@ -2,7 +2,6 @@
 -- version 3.5.7
 -- http://www.phpmyadmin.net
 --
--- Generation Time: Jun 01, 2013 at 03:23 PM
 -- Server version: 5.1.54-rel12.6-log
 -- PHP Version: 5.3.14
 
@@ -26,7 +25,6 @@ DROP TABLE IF EXISTS `chamadas`;
 DROP TABLE IF EXISTS `distribuicao`;
 DROP TABLE IF EXISTS `estoque`;
 DROP TABLE IF EXISTS `fornecedores`;
-DROP TABLE IF EXISTS `noticia`;
 DROP TABLE IF EXISTS `nucleos`;
 DROP TABLE IF EXISTS `papeis`;
 DROP TABLE IF EXISTS `pedidoprodutos`;
@@ -86,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `chamadas` (
   `cha_dt_max` datetime DEFAULT NULL,
   PRIMARY KEY (`cha_id`),
   KEY `fk_chamada_tipo_idx` (`cha_prodt`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=13 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -136,23 +134,26 @@ CREATE TABLE IF NOT EXISTS `fornecedores` (
   `forn_contatos` varchar(400) DEFAULT NULL,
   `forn_archive` tinyint(2) DEFAULT '0',
   PRIMARY KEY (`forn_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=29 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `noticia`
+-- Estrutura da tabela `textos`
 --
 
-CREATE TABLE IF NOT EXISTS `noticia` (
-  `not_id` mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
-  `not_rascunho` text COLLATE latin1_general_ci NOT NULL,
-  `not_publicado` text COLLATE latin1_general_ci NOT NULL,
-  `dt_atualizacao` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`not_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci AUTO_INCREMENT=2 ;
+CREATE TABLE IF NOT EXISTS `textos` (
+  `txt_id` mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
+  `txt_modo_html` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT '0 se for texto puro, 1 se for HTML',
+  `txt_nome_curto` varchar(40) NOT NULL,
+  `txt_nome_completo` varchar(200) DEFAULT NULL,
+  `txt_conteudo_rascunho` text NOT NULL,
+  `txt_conteudo_publicado` text NOT NULL,
+  `txt_usr_atualizacao` mediumint(6) unsigned NOT NULL,
+  `txt_dt_atualizacao` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`txt_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
 
 --
 -- Table structure for table `nucleos`
@@ -169,7 +170,7 @@ CREATE TABLE IF NOT EXISTS `nucleos` (
   PRIMARY KEY (`nuc_id`),
   KEY `nuc_id` (`nuc_id`),
   KEY `nuc_id_2` (`nuc_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=12 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -181,7 +182,7 @@ CREATE TABLE IF NOT EXISTS `papeis` (
   `pap_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
   `pap_nome` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`pap_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -216,7 +217,7 @@ CREATE TABLE IF NOT EXISTS `pedidos` (
   KEY `fk_pedido_usuario_idx` (`ped_usr`),
   KEY `fk_pedido_nucleo_idx` (`ped_nuc`),
   KEY `fk_pedido_chamada_idx` (`ped_cha`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=947 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -242,7 +243,7 @@ CREATE TABLE IF NOT EXISTS `produtos` (
   KEY `fk_produto_tipo_idx` (`prod_prodt`),
   KEY `fk_produto_fornecedor_idx` (`prod_forn`),
   KEY `prod_id` (`prod_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=558 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -254,7 +255,7 @@ CREATE TABLE IF NOT EXISTS `produtotipos` (
   `prodt_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
   `prodt_nome` varchar(50) NOT NULL,
   PRIMARY KEY (`prodt_id`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -266,7 +267,7 @@ CREATE TABLE IF NOT EXISTS `temp_senhas` (
   `pass_id` mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
   `pass_nome` varchar(8) COLLATE latin1_general_ci NOT NULL,
   PRIMARY KEY (`pass_id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci AUTO_INCREMENT=179 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci;
 
 -- --------------------------------------------------------
 
@@ -298,7 +299,7 @@ CREATE TABLE IF NOT EXISTS `usuarioreiniciasenha` (
   `pass_codigo` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`pass_id`),
   KEY `fk_pass_usr_idx` (`pass_usr`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=97 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -323,7 +324,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   PRIMARY KEY (`usr_id`),
   KEY `usr.nuc` (`usr_nuc`),
   KEY `fk_usuario_nucleo_idx` (`usr_nuc`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=243 ;
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 --
 -- Constraints for dumped tables

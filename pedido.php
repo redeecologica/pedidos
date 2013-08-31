@@ -520,16 +520,8 @@
 			$msg_confirmacao.="Horário: " . $row["nuc_entrega_horario"] . "\n\n";
 //			$msg_confirmacao.="Email: " . $row["nuc_email"] . "\n\n";					
 		}
+		$msg_confirmacao.=get_texto_interno("txt_email_final_confirmacao");
 		
-		
-		$msg_confirmacao.="Vale Lembrar:\n";
-		$msg_confirmacao.="Se as encomendas não forem buscadas, o consumidor pagará pelos produtos encomendados. ";
-		$msg_confirmacao.="Haverá tentativa de repasse a outros cestantes.\n\n";
-		
-		$msg_confirmacao.="Por favor leve suas bolsas, sacolas de pano, caixas de papelão, caixas de ovos e dinheiro ";
-		$msg_confirmacao.="trocado ou cheque para facilitar na entrega dos produtos.\n\n";
-		
-		$msg_confirmacao.="Um abraço!\nRede Ecológica";
 		
 		envia_email_cestante($ped_usr,"Confirmação do Pedido de " . $prodt_nome . " - " . $cha_dt_entrega,"",$msg_confirmacao);
 	}

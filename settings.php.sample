@@ -4,7 +4,7 @@
 define('DB_HOST',"localhost");
 define('DB_USER',"root");
 define('DB_PASS',"");
-define('DB_NAME',"redeeco");
+define('DB_NAME',"nome_base_dados");
 
 
 define('MAIL_HOST',"smtp.gmail.com");
@@ -16,7 +16,26 @@ define('MAIL_FROM',"comissaopedidos@gmail.com");
 define('MAIL_SENDER',"comissaopedidos@gmail.com");
 define('MAIL_FROM_NAME',"Comissão de Pedidos da Rede Ecológica");
 
-define('PASSWORD_SALT',"tempero"); // salt para o hash
+// configuração do salt para o hash
+define('PASSWORD_SALT',"tempero"); 
+
+define('NOME_SISTEMA',"Sistema de Pedidos da Rede Ecológica");
+
+// Nome do grupo de consumo associado
+define('NOME_GRUPO_CONSUMO',"Rede Ecológica");
+// URL do grupo de consumo associado
+define('URL_GRUPO_CONSUMO',"http://redeecologicario.org");
+
+
+define('EMAIL_SUPORTE_SISTEMA',"comissaopedidos@gmail.com");  // em caso de detecção que o banco de dados está fora do ar, por exemplo, o sistema vai informar ao usuário que contacte neste endereço de email
+
+
+// configuração para registro de visita no Google Analytics; deixar o valor de GA_ACCOUNT em branco caso não deseje que o registro de visita seja acionado nas páginas do sistema
+define('GA_ACCOUNT',"");  // código informado pelo google analytics, algo como: UA-XXXXXX-X
+define('GA_DOMAIN',"redeecologicario.org");  // exemplo: redeecologicario.org
+
+
+
 
 
 ?>
