@@ -12,9 +12,9 @@
 		$filtro_disponiveis="RIGHT JOIN chamadanucleos ON chanuc_nuc = usr_nuc AND chanuc_cha = cha_id ";
 		$filtro_disponiveis.="WHERE cha_dt_min <= now() AND NOW()<= cha_dt_max ORDER BY cha_dt_max_original DESC ";
 		
-		$filtro_anteriores="WHERE NOW() > cha_dt_max AND cha_id <> '5'  ORDER BY cha_dt_max_original DESC "; // chmada_id = 5 é uma chamada fake criada na implantação do sistema, para ter o estoque associado de secos do mês anterior
-		
-        $sql = "SELECT cha_id, cha_prodt, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
+		$filtro_anteriores="WHERE NOW() > cha_dt_max  ORDER BY cha_dt_entrega_original DESC LIMIT 10"; 	
+			
+        $sql = "SELECT cha_id, cha_prodt,  cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
         $sql.= "date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, ";
         $sql.= "date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, prodt_nome, ped_fechado, ped_id ";
         $sql.= "FROM chamadas ";
@@ -42,10 +42,9 @@
                 </thead>
                 <tbody>		    
             <?php
-
+			$contador = 0;
 			while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 			{				
-					$contador = 0;
 				
 					?>
 				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
@@ -93,7 +92,7 @@
         if($res && mysqli_num_rows($res))
         {			
 			?>
-		    <legend>Pedidos Anteriores (últimos dois meses)</legend>
+		    <legend>Pedidos Anteriores (últimos dez pedidos)</legend>
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -106,11 +105,9 @@
                 </thead>
                 <tbody>		    
             <?php
-
+			$contador=0;
 			while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 			{				
-					$contador=0;
-				
 					?>
 				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                   	 <td><?php echo(++$contador); ?></td>               
