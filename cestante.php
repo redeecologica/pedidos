@@ -42,6 +42,7 @@
 			$usr_archive = "";		
 			$nuc_nome_curto = "";		
 			$usr_associado=0;
+			$usr_desde="";			
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{			
@@ -76,9 +77,21 @@
 				 $campos = array('usr_nome_completo','usr_nome_curto','usr_contatos','usr_endereco','usr_email','usr_email_alternativo','usr_nuc','usr_archive','usr_associado');  			
 				 $sql=prepara_sql_atualizacao("usr_id",$campos,"usuarios");				 
 				 $res = executa_sql($sql);				 
-				 if($usr_id=="") $usr_id = id_inserido();					 
-				 if($res) $sucesso = true;
-				 else
+				 if($usr_id=="") $usr_id = id_inserido();	
+				 if($res)
+				 {
+					  $sucesso = true;
+					  $usr_desde = request_get("usr_desde","");
+					  
+					  if ($usr_desde=="") $bd_usr_desde = 'Null';
+					  else $bd_usr_desde = prep_para_bd(formata_data_para_mysql($usr_desde));
+					  
+ 					  $sql = "UPDATE usuarios SET usr_desde = " . $bd_usr_desde;
+ 					  $sql.= " WHERE usr_id=". prep_para_bd($usr_id) . " ";	
+					  $res = executa_sql($sql);			 		 						 						 
+					  if(!$res) $sucesso=false;					 
+				 }
+				 if(!$sucesso)
 				 {
 					adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações do(a) cestante " . $_REQUEST["usr_nome_curto"] . ".");								 
 				 }
@@ -101,7 +114,9 @@
 				$usr_nuc = request_get('usr_nuc',"");
 				$usr_archive = request_get('usr_archive',"");		
 				$nuc_nome_curto = "";		
-				$usr_associado=request_get('usr_associado',0);				
+				$usr_associado=request_get('usr_associado',0);	
+				$usr_associado=request_get('usr_desde',"");	
+							
 				
 			 }
 			escreve_mensagem_status();
@@ -112,7 +127,7 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT usuarios.*, usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id WHERE usr_id=". prep_para_bd($usr_id);
+		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, usr_associado, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id WHERE usr_id=". prep_para_bd($usr_id);
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		  {		  
@@ -127,6 +142,7 @@
 			$usr_associado = $row["usr_associado"];			
 			$nuc_nome_curto = $row['nuc_nome_curto'];
 			$usr_sem_senha_acesso = $row['usr_sem_senha_acesso'];
+			$usr_desde = $row['usr_desde'];
 
 		   }
 		}		
@@ -159,7 +175,11 @@
 			</tr>        
     		<tr>
 				<th align="right">Endereço:</th> <td><?php echo($usr_endereco); ?></td>
-			</tr>     
+			</tr>    
+	   		<tr>
+				<th align="right">Data de Entrada:</th> <td><?php echo($usr_desde); ?></td>
+			</tr>                   
+             
     		<tr>
 				<th align="right">Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
 			</tr> 
@@ -261,7 +281,7 @@
              <div class="control-group">
                 <label class="control-label" for="usr_contatos">Contatos</label>
                   <div class="controls">
-                    <textarea name="usr_contatos" rows="3" required="required"  class="input-xlarge" placeholder="ex.: 8888-9999/2333-4567"><?php echo($usr_contatos); ?></textarea>
+                    <textarea name="usr_contatos" rows="2" required="required"  class="input-xlarge" placeholder="ex.: 8888-9999/2333-4567"><?php echo($usr_contatos); ?></textarea>
                     <br>
                     <span class="help-inline">Contatos (telefone celular, fixo,...). Ex.: 8888-9999 / 2333-4567</span>
                   </div>
@@ -274,6 +294,13 @@
                     <textarea name="usr_endereco" rows="4"  class="input-xlarge" placeholder="Endereço"><?php echo($usr_endereco); ?></textarea>
                   </div>
             </div>  
+            
+            <div class="control-group">
+                <label class="control-label" for="usr_desde">Data de Entrada</label>
+                  <div class="controls">
+                  	<input type="text"  value="<?php echo($usr_desde); ?>" class="data input-small" name="usr_desde" id="usr_desde"/ >                    Ex.: 01/09/2010
+                  </div>
+            </div>             
 
 
 			<?php 
@@ -331,7 +358,7 @@
 
 
             <?php    
-				  } // fim do if tem permisao
+				  } // fim do if tem permissão edição
 				  else
 				  {
 					 ?> 
@@ -394,8 +421,17 @@
     
 <script type="text/javascript">
 	$(function() {
+		$(".data").datepicker({
+			format: 'dd/mm/yyyy',
+			language: 'pt-BR',
+			autoclose: true
+		});
+
 		$("#form_cestante").submit(validaCestante);
 	}); 
+	
+			
+</script> 
 
 	  
 
