@@ -51,6 +51,8 @@
 						
 			session_write_close();	
 			header("Location:" . PAGINAPRINCIPAL);
+			redireciona(PAGINAPRINCIPAL);
+			exit();
 
 		}
 	}
