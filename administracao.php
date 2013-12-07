@@ -24,6 +24,12 @@
 
 <hr/>
 
+<h4>Produtos</h4>
+
+<a href="rel_produtos_ao_longo_do_ano.php">Consultar produtos disponíveis / pedidos ao longo do ano</a>
+
+<hr/>
+
 
 <?php 
  

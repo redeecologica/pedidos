@@ -33,6 +33,8 @@ define('TAXA_ASSOCIADO',0.03);
 
 define('URL_ABSOLUTA', "http://" . $_SERVER["SERVER_NAME"]. substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));	
 
+$meses = array("","janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro");
+
 $msg_tipo_erros = array(MSG_TIPO_SUCESSO => "success", MSG_TIPO_INFO => "info", MSG_TIPO_AVISO => "warning", MSG_TIPO_ERRO => "error");
 
 date_default_timezone_set ('America/Sao_Paulo');
