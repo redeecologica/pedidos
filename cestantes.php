@@ -7,6 +7,13 @@
 
 
 <form class="form-inline" action="cestantes.php" method="post" name="frm_filtro" id="frm_filtro">
+
+	<!--Adiciono boton na parte superior-->
+	<div align="right">
+	<a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
+	</div> 
+
+
 	<legend>Lista de Cestantes </legend> 
 	<?php  
   		$usr_archive = request_get("usr_archive",0);  		
