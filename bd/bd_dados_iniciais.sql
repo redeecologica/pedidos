@@ -1,7 +1,6 @@
-INSERT INTO `produtotipos` (`prodt_id`, `prodt_nome`) VALUES
-(1, 'Frescos'),
-(2, 'Secos'),
-(3, 'Sementes');
+INSERT INTO `produtotipos` (`prodt_id`, `prodt_nome`, `prodt_mutirao`) VALUES
+(1, 'Frescos', '0'),
+(2, 'Secos', '1');
 
 INSERT INTO `papeis` (`pap_id`, `pap_nome`) VALUES
 (1, 'Administrador'),

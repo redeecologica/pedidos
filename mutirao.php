@@ -6,7 +6,7 @@
 ?>
 
 
-	<legend>Lista de Secos para o Mutirão</legend>
+	<legend>Lista de Chamadas para o Mutirão</legend>
     
 <div class="well">Atenção: módulo em desenvolvimento</div>
         
@@ -28,7 +28,7 @@
 					$sql = "SELECT cha_id, cha_prodt, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, prodt_nome ";
 					$sql.= "FROM chamadas ";
 					$sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";	
-					$sql.= "WHERE prodt_nome = 'Secos' ";
+					$sql.= "WHERE prodt_mutirao = '1' ";
 					$sql.= "ORDER BY cha_dt_entrega_original DESC ";
 					$sql.= "LIMIT 10 ";
 													

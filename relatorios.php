@@ -7,7 +7,7 @@
 <ul>
 <?php 
                       
-    $sql = "SELECT cha_id, prodt_nome, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
+    $sql = "SELECT cha_id, prodt_nome, prodt_mutirao, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
     $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
     $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 10 ";
     $res = executa_sql($sql);
@@ -22,7 +22,7 @@
          </strong> 
              <ul>
               <?php
-			  if($row['prodt_nome']=="Frescos")
+			  if($row['prodt_mutirao']== 0)
 			  {
 			  ?>	  
                 <li>
