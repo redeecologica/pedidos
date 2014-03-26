@@ -8,6 +8,10 @@
 
 <form class="form-inline" action="nucleos.php" method="post" name="frm_filtro" id="frm_filtro">
 	<legend>Lista de Núcleos</legend>
+	<!--Adiciono boton na parte superior-->
+	<div align="right">
+		<a href="nucleo.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
+	</div>
 	<?php  
   		$nuc_archive = isset($_REQUEST['nuc_archive']) ? mysqli_real_escape_string($conn_link,$_REQUEST['nuc_archive']) : 0 ;
 	?>
