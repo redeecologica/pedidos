@@ -8,13 +8,14 @@
 
 <form class="form-inline" action="cestantes.php" method="post" name="frm_filtro" id="frm_filtro">
 
+
+	<legend>Lista de Cestantes </legend> 
+    
 	<!--Adiciono boton na parte superior-->
 	<div align="right">
 	<a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
 	</div> 
-
-
-	<legend>Lista de Cestantes </legend> 
+    
 	<?php  
   		$usr_archive = request_get("usr_archive",0);  		
 		$usr_nuc = request_get("usr_nuc",($_SESSION[PAP_RESP_NUCLEO]? $_SESSION['usr.nuc'] : -1)) ;
