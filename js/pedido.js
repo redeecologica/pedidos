@@ -156,6 +156,10 @@ function validaCestante(){
 		$("#usr_nuc").focus();
 		return false;
 	}
+	
+	$("#usr_email").val($.trim($("#usr_email").val()));
+	
+	
 	if (!emailValido($("#usr_email").val())) {
 		alert("Por favor, informe um email válido.");
 		$("#usr_email").focus();
@@ -179,6 +183,9 @@ function validaCestante(){
 }
 
 function validaNucleo(){
+	
+	$("#nuc_email").val($.trim($("#nuc_email").val()));
+		
 	if (!emailValido($("#nuc_email").val())) {
 		alert("Por favor, informe um email válido.");
 		$("#nuc_email").focus();
