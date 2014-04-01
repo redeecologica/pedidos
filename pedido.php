@@ -488,6 +488,7 @@
 <script type="text/javascript">
 	$(function() {
 		$(".total_prod").formataValor();
+		$(".qtdeprod").formataInput();
 		$(".qtdeprod").bind('keydown', keyCheck);
 		$(".qtdeprod").on('blur', calculaTotalPedido);
 	}); 

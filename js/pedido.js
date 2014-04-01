@@ -1,6 +1,7 @@
 function calculaTotalPedido(e){
+	$(this).formataInput();
 	var valorInformado = $(this).val().replace(",",".");
-	var item = $(this).attr('id').substring($(this).attr('id').indexOf('_')+1);
+	var item = $(this).getItemNumber();
 	if (valorInformado == "") {
 		$('#totalprod_'+item).text("0,00");
 		formataTotalProdEPedido(0, item);
@@ -56,6 +57,39 @@ function formataTotalProdEPedido(valorInformado, item) {
 })(jQuery);	
 
 (function($) {
+  $.fn.formataInput = function() {
+	return this.each(function() {
+		var item = $(this).getItemNumber();
+		if ($('#multiploprod_'+item).val() % 1 == 0){
+			if ($(this).val().indexOf(',')!=-1) {
+				$(this).val($(this).val().substring(0,$(this).val().indexOf(',')));
+			}
+		} else {
+			if ($(this).val().indexOf(',')!=-1) {
+				$(this).val($(this).val().substring(0,$(this).val().indexOf(',')+3));
+				while ($(this).val().substring($(this).val().indexOf(',')+1).length < 2)
+					$(this).val($(this).val()+'0');
+			} else {
+				$(this).val($(this).val()+',00');
+			}
+		}
+	});
+  }
+})(jQuery);	
+
+(function($) {
+  $.fn.getItemNumber = function() {
+	return $(this).attr('id').substring($(this).attr('id').indexOf('_')+1);
+  }
+})(jQuery);	
+
+(function($) {
+  $.fn.multiplicadorInteiroItem = function() {
+	return ($('#multiploprod_'+$(this).getItemNumber()).val() % 1 == 0);
+
+  }
+})(jQuery);	
+(function($) {
   $.fn.verificaEnterSetas = function(e){
 	e.stopImmediatePropagation();
 	if( e.which == 13 || e.which == 38 || e.which == 40 )	{
@@ -73,8 +107,7 @@ function formataTotalProdEPedido(valorInformado, item) {
   }
 })(jQuery);	
 
-
-function enforceNumeric (e) {
+function enforceNumeric (e,enforceInt) {
 	var code = (e.keyCode ? e.keyCode : e.which);
 	var functional = false;
 
@@ -82,7 +115,7 @@ function enforceNumeric (e) {
 	if((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) functional = true;
 
 	// vírgula
-	if (code ==  188) functional = true;
+	if (code ==  188 && !enforceInt) functional = true;
 
 	// Backspace, Tab, Enter, Delete, up/down/left/right arrows
 	if (code ==  8) functional = true;
@@ -102,7 +135,7 @@ function enforceNumeric (e) {
 }
 
 function keyCheck(e){
-	enforceNumeric(e);
+	enforceNumeric(e,$(this).multiplicadorInteiroItem());
 	$(this).verificaEnterSetas(e);
 }
 
