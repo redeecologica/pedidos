@@ -440,7 +440,21 @@
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"])); ?></td> 
 							<td>
                             <input type="hidden" name="pedprod_quantidade_prod[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <?php 
+								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
+								{								
+							?>
                             <input type="text" class="input-mini  qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <?php 
+								}
+								else
+								{								
+							?>
+                            <input type="text" class="input-mini  qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <?php 
+								}								
+							?>
+
                             </td>    
                     		<td>
                             <input type="hidden" name="valorprod_<?php echo($row["prod_id"]);?>" value="<?php echo($ped_usr_associado)==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"] ?>" id="valorprod_<?php echo($row["prod_id"]);?>"/>

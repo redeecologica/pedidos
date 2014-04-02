@@ -3,14 +3,14 @@ function calculaTotalPedido(e){
 	var valorInformado = $(this).val().replace(",",".");
 	var item = $(this).getItemNumber();
 	if (valorInformado == "") {
-		$('#totalprod_'+item).text("0,00");
+		$('#totalprod_'+item).text("0,0");
 		formataTotalProdEPedido(0, item);
 		return;
 	}
 	if (!$.isNumeric(valorInformado)){
 		alert("Por favor, informe uma quantidade válida para o pedido.");
 		$(this).focus();
-		$('#totalprod_'+item).text("0,00");
+		$('#totalprod_'+item).text("0,0");
 		formataTotalProdEPedido(0, item);
 		return;
 	}
@@ -18,7 +18,7 @@ function calculaTotalPedido(e){
 	if(	(valorInformado*100)%(multiploValido*100)!=0){
 		alert('A quantidade informada deve ser um múltiplo de '+multiploValido.replace(".",",")+".");
 		$(this).focus();
-		$('#totalprod_'+item).text("0,00");
+		$('#totalprod_'+item).text("0,0");
 		formataTotalProdEPedido(0, item);
 		return;
 	}
@@ -67,10 +67,10 @@ function formataTotalProdEPedido(valorInformado, item) {
 		} else {
 			if ($(this).val().indexOf(',')!=-1) {
 				$(this).val($(this).val().substring(0,$(this).val().indexOf(',')+3));
-				while ($(this).val().substring($(this).val().indexOf(',')+1).length < 2)
+				while ($(this).val().substring($(this).val().indexOf(',')+1).length < 1	)
 					$(this).val($(this).val()+'0');
 			} else {
-				$(this).val($(this).val()+',00');
+				$(this).val($(this).val()+',0');
 			}
 		}
 	});
