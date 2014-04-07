@@ -65,7 +65,7 @@
 							if($row['ped_fechado']==1) echo("Seu pedido foi enviado. ");
 							else echo("Pedido em elaboração. Você ainda precisa enviá-lo.");
 														
-							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=0");
+							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
 							echo("&amp;ped_id=" . $row['ped_id'] . "\">");
 							echo("<i class=\"icon-search\"></i> ver pedido</a>");						
                         }
@@ -92,15 +92,16 @@
         if($res && mysqli_num_rows($res))
         {			
 			?>
-		    <legend>Pedidos Anteriores (últimos dez pedidos)</legend>
+		    <legend>Chamadas Anteriores (últimas dez chamadas)</legend>
             <table class="table table-bordered">
                 <thead>
                     <tr>
                         <th class="span1">#</th>
                         <th>Tipo</th>
-                        <th>Data de Entrega</th>
-                        <th>Prazo para enviar o Pedido</th>
-                        <th>Status</th>
+                        <th>Entrega</th>
+                        <th>Prazo envio do Pedido</th>
+                        <th>Chamada</th>
+                        <th>Seu Pedido</th>
                     </tr>
                 </thead>
                 <tbody>		    
@@ -113,7 +114,9 @@
                   	 <td><?php echo(++$contador); ?></td>               
 					 <td><?php echo($row['prodt_nome']); ?></td>               
 					 <td><?php echo($row['cha_dt_entrega']); ?></td>
-					 <td><?php echo($row['cha_dt_max']); ?> </td>                     
+					 <td><?php echo($row['cha_dt_max']); ?> </td>  
+					 <td> <?php echo("<a class=\"btn btn-small btn-enviando\" data-loading-text=\"aguarde...\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"icon-leaf\"></i> ver produtos</a>");?></td>
+                                                                                  
 					 <td>
                      <?php
                      	if(!$row['ped_id'])
@@ -124,7 +127,7 @@
                         {
 							if($row['ped_fechado']==1) echo("Você enviou pedido para esta chamada.");
 							else echo("Você criou o pedido mas não enviou.");														
-							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=0");
+							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
 							echo("&amp;ped_id=" . $row['ped_id'] . "\">");
 							echo("<i class=\"icon-search\"></i> ver pedido</a>");						
                         }
