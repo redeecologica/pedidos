@@ -281,9 +281,10 @@
 							{
 								
 								$ultimo_forn = $row["forn_nome_curto"];
-								
+								$contador=0;
 								?>
 										<tr>
+                                        	<th>&nbsp;</th>
 											<th>
 											  <?php echo($row["forn_nome_curto"]);
 											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_contatos"]);
@@ -315,6 +316,7 @@
 							
 							?>
 							<tr> 
+                            <td><?php echo(++$contador); ?></td>
                             <td><?php 
 								echo($row["prod_nome"]); 
 								adiciona_popover_descricao("Descrição", $row["prod_descricao"]); 
