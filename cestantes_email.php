@@ -63,7 +63,7 @@
 </form>
 
 
-    Lista de Destinatários:<br>
+    Lista de Destinatários (contém email principal e emails adicionais do cadastro do cestante):<br>
        <form>
   
 				<?php

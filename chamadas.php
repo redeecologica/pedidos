@@ -84,8 +84,6 @@
 				?>
 		</tbody>
 	</table>
-    
-    <a href="cestantes_email.php" class="btn">Ver email dos cestantes</a>
 
 <!--<a href="chamada.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar nova</a> </br>    
 -->

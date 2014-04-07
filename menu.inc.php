@@ -39,6 +39,16 @@
 			   ?>
                     <li><a href="nucleos.php"><i class="icon-th"></i> Núcleos</a></li>                
                     <li><a href="cestantes.php"><i class="icon-user"></i> Cestantes</a></li>
+                    
+					  <?php 
+                            if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] )			  
+                            {
+                       ?>
+                            <li><a href="cestantes_email.php"><i class="icon-envelope"></i> Emails</a></li> 
+                      <?php 
+                            } 			  
+                      ?>
+                                  
                     <li class="divider"></li>
               <?php 
 			  		} 			  
