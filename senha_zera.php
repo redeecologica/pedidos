@@ -78,15 +78,15 @@
         <h2 class="form-signin-heading"><?php echo($usr_nome); ?>, favor informar a nova senha</h2>
 	
         <label for="login_usr_senha">Nova senha: (até 8 digitos)</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-lock"></i></span>
+  		<div class="input-group"><span class="add-on"><i class="glyphicon glyphicon-lock"></i></span>
         	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha" value="">       </div> 
 
         <label for="login_usr_senha_conf">Confirmar nova senha:</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-lock"></i></span>
+  		<div class="input-group"><span class="add-on"><i class="glyphicon glyphicon-lock"></i></span>
         	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha_conf" value="">       </div> 
 
         
-        <input class="btn btn-large btn-primary" type="submit" value="Salvar senha" name="salvar_senha">
+        <input class="btn btn-lg btn-primary" type="submit" value="Salvar senha" name="salvar_senha">
        </fieldset>
        <br>
 			<div class="clear"></div>

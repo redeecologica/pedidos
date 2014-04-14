@@ -127,34 +127,38 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações da Chamada</legend>
- <table class="table-condensed">
+ <div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações da Chamada</strong>
+  </div>
+ <div class="panel-body">
+ <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right" class="span3">Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
 			</tr>	    
 
     		<tr>
-				<th align="right" class="span3">Data da Entrega:</th> <td><?php echo($cha_dt_entrega); ?></td>
+				<th>Data da Entrega:</th> <td><?php echo($cha_dt_entrega); ?></td>
 			</tr>	    
     		<tr>
-				<th align="right">Início Pedido:</th> <td><?php echo( ($cha_dt_min) . " " . ($cha_hh_min) ) ; ?></td>
+				<th>Início Pedido:</th> <td><?php echo( ($cha_dt_min) . " " . ($cha_hh_min) ) ; ?></td>
 			</tr>            
     		<tr>
-				<th align="right">Término Pedido:</th>	<td><?php echo( ($cha_dt_max)  . " " . ($cha_hh_max)); ?></td>
+				<th>Término Pedido:</th>	<td><?php echo( ($cha_dt_max)  . " " . ($cha_hh_max)); ?></td>
 			</tr>
-    	
-            <tr><td colspan="2"></td></tr>
-            <tr> 
-              <th>&nbsp;</th>  
-              <td> 
-         	 	<a class="btn btn-primary" href="chamada.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+        </tbody>    
+  </table>
+  </div>  
+  
+        <div class="panel-footer">
+      		<div class="col-sm-offset-2">
+         	 	<a class="btn btn-primary" href="chamada.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
-         		<a class="btn" href="chamadas.php"><i class="icon-list"></i> listar chamadas</a>          </td>            
-            </tr>
-        </tbody>
-    
-</table>
+         		<a class="btn btn-default" href="chamadas.php"><i class="glyphicon glyphicon-list"></i> listar chamadas</a>             </div>
+       </div>
+       
+  </div>       
   
    
 	
@@ -166,51 +170,66 @@
  {
 
 ?>
-    <form class="form-horizontal" action="chamada.php" method="post">
-     <legend>Atualização de Informações da Chamada</legend>    
-        <fieldset>
+ <form class="form-horizontal" action="chamada.php" method="post">
+
+    <fieldset>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Atualização de Informações da Chamada</strong>
+      </div>
+    
+    
+     <div class="panel-body">
+             
           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />
           <input type="hidden" name="cha_prodt" value="<?php echo($cha_prodt); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
 
-            <div class="control-group">
-               <label class="control-label" for="prodt_nome">Tipo</label>
-                 <div class="controls">
-                   <span class="well well-small"><?php echo($prodt_nome); ?></span>
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="prodt_nome">Tipo</label>
+                 <div class="col-sm-2">
+                   <span class="well well-sm"><?php echo($prodt_nome); ?></span>
                   </div>
             </div>
 
 
-            <div class="control-group">
-               <label class="control-label" for="cha_dt_entrega">Data da Entrega</label>
-                 <div class="controls">
-                   <input type="text" class="data input-small" id="cha_dt_entrega" name="cha_dt_entrega" required="required" value="<?php echo($cha_dt_entrega); ?>"/>
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="cha_dt_entrega">Data da Entrega</label>
+                 <div class="col-sm-2">
+                   <input type="text" class="data form-control" id="cha_dt_entrega" name="cha_dt_entrega" required="required" value="<?php echo($cha_dt_entrega); ?>"/>
                   </div>
             </div>
             
-            <div class="control-group">
-               <label class="control-label" for="cha_dt_min">Início do Pedido</label>
-                 <div class="controls">
-                   Data: <input type="text" class="data input-small" id="cha_dt_min" name="cha_dt_min"  required="required" value="<?php echo($cha_dt_min); ?>"/>
-                   Hora: <input type="text" id="cha_hh_min" name="cha_hh_min"  required="required" class="hora input-mini"  value="<?php echo($cha_hh_min); ?>"/>
-                 </div>  
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="cha_dt_min">Início do Pedido</label>
+                 <div class="col-sm-2"> 
+                   Data: <input type="text" class="data form-control" id="cha_dt_min" name="cha_dt_min"  required="required" value="<?php echo($cha_dt_min); ?>"/>
+                   </div>
+                   <div class="col-sm-2"> 
+                   Hora: <input type="text" id="cha_hh_min" name="cha_hh_min"  required="required" class="hora form-control"  value="<?php echo($cha_hh_min); ?>"/>
+                   </div>
             </div>
             
-             <div class="control-group">
-                   <label class="control-label" for="cha_dt_max">Término do Pedido</label>
-                   <div class="controls">   
-                   Data: <input type="text" class="data input-small" id="cha_dt_max" name="cha_dt_max" required="required" value="<?php echo($cha_dt_max); ?>"/>
-                   Hora: <input type="text" id="cha_hh_max" name="cha_hh_max"  required="required" class="hora input-mini" value="<?php echo($cha_hh_max); ?>"/>
+             <div class="form-group">
+                   <label class="control-label col-sm-2" for="cha_dt_max">Término do Pedido</label>
+                   <div class="col-sm-2">   
+                   Data: <input type="text" class="data form-control" id="cha_dt_max" name="cha_dt_max" required="required" value="<?php echo($cha_dt_max); ?>"/>
+                   </div>
+                   <div class="col-sm-2">                      
+                   Hora: <input type="text" id="cha_hh_max" name="cha_hh_max"  required="required" class="hora form-control" value="<?php echo($cha_hh_max); ?>"/>
     			   </div>
             </div>    
                 
-            <div class="control-group">
-             <label class="control-label" for="chanuc_nuc">
-             	Núcleos Atendidos  <br>
-                <input id='marca_todos_nucleos' type='checkbox' value='*'> Marcar Todos</span>
+            <div class="form-group">
+             <label class="control-label col-sm-2" for="chanuc_nuc">
+             	Núcleos Atendidos<br>
+                     <label class="checkbox">
+                        <input id="marca_todos_nucleos" type="checkbox" value="*"> Marcar Todos
+                    </label>                
              </label>
              
-             <div class="controls">
+             
+             <div class="col-sm-9">
 				<?php
 					$sql =  "SELECT nuc_id, nuc_nome_curto, chanuc_nuc FROM nucleos ";
 					$sql.= "LEFT JOIN chamadanucleos on chanuc_nuc =  nuc_id AND chanuc_cha = " . prep_para_bd($cha_id) . " ";
@@ -228,7 +247,7 @@
 							if($cont == 1)
 							{
 								$coluna++;
-								echo("<div class='span2'>");
+								echo("<div class='col-sm-3'>");
 							}		
 							echo("<label class='checkbox'><input name='chanuc_nuc[]' type='checkbox' class='nucleos'");
 							if($row["chanuc_nuc"]) 
@@ -247,14 +266,13 @@
 	 			    }
 					 
 				   ?> 
-                   
               </div>              
-            </div>     
+            </div>    
+
             
+       </div>  <!-- div panel body-->
             
-            <div class="control-group">
-               <label class="control-label" for="chaprod_prod">Produtos Disponíveis</label>
-                 <div class="container">
+ 
 
 				<?php
                     $sql = "SELECT prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
@@ -291,16 +309,16 @@
 											  ?>
                                             </th>
 											<th style="width:180px">Disponível<br>
-												<label class="radio inline">
+												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <strong>SIM</strong>
+												  <strong>sim</strong>
 												</label>
 																												
-												<label class="radio inline">
+												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
 												  <strong>parc.</strong>
 												</label>
-												<label class="radio inline">
+												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
 												  <strong>não</strong>
 												</label>
@@ -316,7 +334,7 @@
 							
 							?>
 							<tr> 
-                            <td><?php echo(++$contador); ?></td>
+                            <td><?php echo(++$contador); ?></td> 
                             <td><?php 
 								echo($row["prod_nome"]); 
 								adiciona_popover_descricao("Descrição", $row["prod_descricao"]); 
@@ -324,16 +342,16 @@
 							
 							?></td>
 							<td>
-                                <label class="radio inline">
+                                <label class="radio-inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  SIM
+                                  sim
                                 </label>
                                                                                                 
-                                <label class="radio inline">
+                                <label class="radio-inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo($row["forn_id"]);?>">
                                   parc.
                                 </label>
-                                <label class="radio inline">
+                                <label class="radio-inline">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"])?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo($row["forn_id"]);?>">
                                   não
                                 </label>
@@ -352,19 +370,21 @@
                     } 
                
 			      ?>             
-                       
-                 </div>  
-            </div>
-            
-            
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> salvar alterações</button>
+
+		  <div class="panel-footer">        
+              <div class="form-group">
+                  <div class="col-sm-offset-2">
+<button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
-                   <button class="btn" type="button" onclick="javascript:location.href='chamadas.php'"><i class="icon-off"></i> descartar alterações</button>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='chamadas.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                  </div>
+              </div> 
+          </div> <!-- div panel footer-->
+          
                                  
-            </div>
-          </div>
+        </div> <!-- div panel --> 
+          
+            
       </fieldset> 
     </form>
     

@@ -4,8 +4,12 @@
   top();
 ?>
 
-<hr/>
-
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Funções de Administração do Sistema</strong>
+  </div>
+ <div class="panel-body">
+ 
 <h4>Permissões</h4>
 
 <a href="permissoes.php">Administrar permissões</a>
@@ -30,8 +34,9 @@
 <br><br>
 <a href="produtotipos.php">Administrar tipos de produto/chamada</a>
 
-<hr/>
 
+
+</div>
 
 <?php 
  

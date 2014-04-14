@@ -92,8 +92,15 @@
 	$res = executa_sql($sql);	
 	
 
-   echo("<legend>Informações de Recebimento relacionado à chamada de " . $prodt_nome . " - " . $cha_dt_entrega . "</legend>");
+?>
 
+  
+  <div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações de Recebimento relacionado à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
+  </div>
+
+<?php
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
@@ -164,11 +171,12 @@
 					   echo("</table>");
                     } 
                
-			      ?>             
+			      ?>       
+                  </div>      
 
-         	 	<a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+         	 	<a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
-         		<a class="btn" href="mutirao.php"><i class="icon-list"></i> voltar para mutirão</a>        
+         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
   
    
 	
@@ -186,8 +194,6 @@
           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
             
-            <div class="control-group">
-                 <div class="container">
 
 				<?php
  										  
@@ -240,23 +246,17 @@
                
 			      ?>             
                        
-                 </div>  
-            </div>
+               </div>
             
-            
-		  <div class="control-group">
-            <div class="controls">                 
-                   <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="icon-ok icon-white"></i> salvar alterações</button>
+	               <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    
                    &nbsp;&nbsp;
                    
                    
                    
-                   <button class="btn" type="button" onclick="javascript:location.href='mutirao.php'"><i class="icon-off"></i> descartar alterações</button>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='mutirao.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                  
-            </div>
-          </div>
       </fieldset> 
     </form>
  

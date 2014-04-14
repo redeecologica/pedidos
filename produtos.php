@@ -4,22 +4,26 @@
   top();
 ?>
 
-<form class="form-inline" action="produtos.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Lista de Produtos</legend>
-<div align="right">
-<a href="produto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-</div>
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Produtos</strong>
+       <span class="pull-right">
+		<a href="produto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+  </div>
+ <div class="panel-body">
+ 
 
+<form class="form-inline" action="produtos.php" method="post" name="frm_filtro" id="frm_filtro">
 
 	<?php  
   		$prod_prodt = request_get("prod_prodt",-1) ;
 		$prod_forn = request_get("prod_forn",-1) ;
 	?>
-     <fieldset>
-     
-     
+     <fieldset>     
+     	<div class="form-group">
   				<label for="prod_prodt">Tipo: </label>            
-                 <select name="prod_prodt" id="prod_prodt" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                 <select name="prod_prodt" id="prod_prodt" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo(($prod_prodt==-1)?" selected" : ""); ?> >TODOS</option>
 						<?php
                             
@@ -38,11 +42,11 @@
                             }
                         ?>  
                  </select>    
-                 
+         </div>        
                  &nbsp;
-                    
+        <div class="form-group">            
   				<label for="prod_forn">Produtor: </label>            
-                <select name="prod_forn" id="prod_forn" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                <select name="prod_forn" id="prod_forn" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo( ($prod_forn==-1)?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                    
                     <?php
@@ -72,15 +76,16 @@
                     ?>                        
                 </select>                           
                     
-                                           
+         </div>                                  
                     
-     </fieldset>
-</form>
+      </fieldset>
+  </form>
+ </div>
         
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Tipo</th>                
                 <th>Produtor</th>                
         		<th>Nome</th>
@@ -125,10 +130,11 @@
 		</tbody>
 	</table>
 
-<div align="right">
-<a href="produto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
 </div>
 
+       <span class="pull-right">
+		<a href="produto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
 
 <?php 
  

@@ -93,20 +93,29 @@
 	$sql.= " ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
 	$res = executa_sql($sql);	
 	
+  ?>	
+  
+  <div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações de Distribuição relacionada à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
 
-   echo("<legend>Informações de Distribuição relacionada à chamada de " . $prodt_nome . " - " . $cha_dt_entrega . "</legend>");
-    
+  </div>
+  
+  <?php   
 
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
+ <div class="panel-body">
+ 
                 <form class="form-inline" action="distribuicao.php" method="post" name="frm_filtro" id="frm_filtro">
                     
                      <fieldset>
                            <input type="hidden" name="action" value="<?php echo(ACAO_EXIBIR_LEITURA); ?>" /> 
                            <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />                     
+						   <div class="form-group">
                              <label for="nuc_id">Núcleo: </label>            
-                                <select name="nuc_id" id="nuc_id" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                                <select name="nuc_id" id="nuc_id" onchange="javascript:frm_filtro.submit();" class="form-control">
                                     <option value="-1" <?php echo( ($nuc_id)==-1?" selected" : ""); ?> >SELECIONE</option>
                                     <?php
                                         
@@ -125,10 +134,12 @@
                                           }
                                         }
                                     ?>                        
-                                </select>                           
+                                </select> 
+                              </div>                          
                      </fieldset>
                 </form>						
                 
+                </div>
             <?php     
                 
 
@@ -143,7 +154,7 @@
                         	<tr>
                             	<th colspan="2">Relatório do que foi distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
                                 <th>
-                                  <a class="btn btn-primary" href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+                                  <a class="btn btn-primary" href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
                                 </th>
                             </tr>
                         </thead>
@@ -202,8 +213,9 @@
                     }  // nuc_id != -1
                
 			      ?>             
-
-         		<a class="btn" href="mutirao.php"><i class="icon-list"></i> voltar para mutirão</a>        
+				</div>
+                
+         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
 	
 <?php 
 
@@ -222,9 +234,8 @@
           <input type="hidden" name="nuc_id" value="<?php echo($nuc_id); ?>" />          
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
             
-            <div class="control-group">
-                 <div class="container">
-                 
+
+                
                  
                  <table class='table table-striped table-bordered table-condensed table-hover'>                 
                   <thead>
@@ -282,23 +293,21 @@
                
 			      ?>             
                        </tbody></table>
-                 </div>  
-            </div>
             
-            
-		  <div class="control-group">
-            <div class="controls">                 
+           </div> 
+
+                
                    <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="icon-ok icon-white"></i> salvar alterações</button>
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    
                    &nbsp;&nbsp;
                    
                    
                    
-                   <button class="btn" type="button" onclick="javascript:location.href='mutirao.php'"><i class="icon-off"></i> descartar alterações</button>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='mutirao.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                  
-            </div>
-          </div>
+    
+
       </fieldset> 
     </form>
  

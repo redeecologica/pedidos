@@ -5,15 +5,18 @@
 
 ?>
 
-
-	<legend>Lista de Chamadas para o Mutirão</legend>
-    
-<div class="well">Atenção: módulo em desenvolvimento</div>
-        
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Chamadas para o Mutirão</strong>
+  </div>
+ <div class="panel-body">   
+     <div class="well">Atenção: módulo em desenvolvimento</div>
+ </div>   
+ 
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>            
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Tipo</th>
         		<th>Data de Entrega</th>
 				<th>1) Estoque</th>
@@ -54,7 +57,7 @@
 				?>
 		</tbody>
 	</table>
-    
+ </div>   
  
 
 <?php 

@@ -83,45 +83,52 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações do Texto</legend>
-<table class="table-condensed">
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações do Texto</strong>
+  </div>
+ <div class="panel-body">
+<table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right">Nome Interno:</th> <td><?php echo($txt_nome_curto); ?></td>
+				<th>Nome Interno:</th> <td><?php echo($txt_nome_curto); ?></td>
 			</tr>            
     		<tr>
-				<th align="right" class="span3">Utilização:</th> <td><?php echo($txt_nome_completo); ?></td>
+				<th>Utilização:</th> <td><?php echo($txt_nome_completo); ?></td>
 			</tr>	    
     		<tr>
-				<th align="right" class="span3">Formato:</th> <td><?php echo($txt_modo_html ? "HTML" : "Texto Puro"); ?></td>
+				<th>Formato:</th> <td><?php echo($txt_modo_html ? "HTML" : "Texto Puro"); ?></td>
 			</tr>   
-             <tr> 
-              <th>&nbsp;</th>  
-              <td> 
-         	 	<a class="btn btn-primary" href="texto.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&txt_id=<?php echo($txt_id); ?>"><i class="icon-edit icon-white"></i> editar conteúdo</a>        
+        </tbody>
+    
+</table>
+
+  </div>  
+  
+        <div class="panel-footer">
+      		<div class="col-sm-offset-2">
+
+         	 	<a class="btn btn-primary" href="texto.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&txt_id=<?php echo($txt_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar conteúdo</a>        
                 <?php 
 				if($txt_conteudo_rascunho!=$txt_conteudo_publicado)
 				{
 					?>
                     &nbsp;&nbsp;
               	 	<a class="btn btn-warning confirm-delete" href="texto.php?action=<?php echo(ACAO_CONFIRMAR_PEDIDO); ?>&txt_id=<?php echo($txt_id); ?>">
-                    <i class="icon-thumbs-up icon-white"></i> ativar rascunho
-                    </a>
-
-                    
+                    <i class="glyphicon glyphicon-thumbs-up glyphicon-white"></i> ativar rascunho
+                    </a>                    
                     <?php
 				}
 
 				?>
          	&nbsp;&nbsp;
-         		<a class="btn" href="textos.php"><i class="icon-list"></i> listar outros textos</a>  
-                                
-               </td>            
-            </tr>
-        </tbody>
-    
-</table>
-
+         		<a class="btn btn-default" href="textos.php"><i class="glyphicon glyphicon-list"></i> listar outros textos</a>
+             </div>
+       </div>
+       
+  </div>       
+  
+  
 
 <hr />
 <h4>Conteúdo Rascunho: </h4>
@@ -145,9 +152,15 @@
 ?>
 <script src="ckeditor/ckeditor.js"></script>
 
-    <form id="form_texto" class="form-horizontal" action="texto.php" method="post">
-     <legend>Atualização de Informações do Texto</legend>    
-        <fieldset>
+<form id="form_texto" class="form-horizontal" action="texto.php" method="post">
+    <fieldset>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Atualização de Informações do Texto</strong>
+      </div>    
+    
+     <div class="panel-body">
+         
           <input type="hidden" name="txt_id" value="<?php echo($txt_id); ?>" />
           <input type="hidden" name="txt_usr_atualizacao" value="<?php echo($_SESSION["usr.id"]); ?>" /> 
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" /> 
@@ -157,24 +170,24 @@
 		   	 if($_SESSION[PAP_ADM]) 
 			 {
 			  ?>
-            <div class="control-group">
-               <label class="control-label" for="txt_nome_curto">Nome Interno (cuidado ao alterar)</label>
-                 <div class="controls">
-                   <input type="text" name="txt_nome_curto"  required="required" value="<?php echo($txt_nome_curto); ?>" placeholder="Nome Interno" />
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_nome_curto">Nome Interno (cuidado ao alterar)</label>
+                 <div class="col-sm-4">
+                   <input type="text" name="txt_nome_curto" class="form-control" required="required" value="<?php echo($txt_nome_curto); ?>" placeholder="Nome Interno" />
                  </div>  
             </div>
             
-            <div class="control-group">
-               <label class="control-label" for="txt_nome_completo">Utilização (cuidado ao alterar)</label>
-                 <div class="controls">
-                   <input type="text" name="txt_nome_completo" class="input-xxlarge" required="required" value="<?php echo($txt_nome_completo); ?>" placeholder="Utilização"/>
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_nome_completo">Utilização (cuidado ao alterar)</label>
+                 <div class="col-sm-9">
+                   <input type="text" name="txt_nome_completo" class="form-control" required="required" value="<?php echo($txt_nome_completo); ?>" placeholder="Utilização"/>
                   </div>
             </div>
             
-            <div class="control-group">
-               <label class="control-label" for="txt_modo_html">Formato (cuidado ao alterar)</label>
-                 <div class="controls">            
-                    <select name="txt_modo_html" id="txt_modo_html" class="input-medium">
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_modo_html">Formato (cuidado ao alterar)</label>
+                 <div class="col-sm-4">            
+                    <select name="txt_modo_html" id="txt_modo_html" class="form-control">
                         <option value="0"  <?php echo( $txt_modo_html ? "" : " selected"); ?> >Texto Puro</option>
                         <option value="1"  <?php echo( $txt_modo_html ? " selected" : ""); ?> >HTML</option>            
                     </select>      
@@ -190,27 +203,27 @@
 			 {
 			  ?>
               
-            <div class="control-group">
-               <label class="control-label" for="txt_nome_curto">Nome Interno</label>
-                 <div class="controls">
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_nome_curto">Nome Interno</label>
+                 <div class="col-sm-4">
                    <input type="hidden" name="txt_nome_curto"  value="<?php echo($txt_nome_curto); ?>"/>
-                   <span class="well well-small"><?php echo($txt_nome_curto); ?></span>
+                   <span class="well well-sm"><?php echo($txt_nome_curto); ?></span>
                  </div>  
             </div>
 
-            <div class="control-group">
-               <label class="control-label" for="txt_nome_completo">Utilização</label>
-                 <div class="controls">
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_nome_completo">Utilização</label>
+                 <div class="col-sm-6">
                    <input type="hidden" name="txt_nome_completo"  value="<?php echo($txt_nome_completo); ?>"/>
-                   <span class="well well-small"><?php echo($txt_nome_completo); ?></span>
+                   <span class="well well-sm"><?php echo($txt_nome_completo); ?></span>
                  </div>  
             </div>
 
-            <div class="control-group">
-               <label class="control-label" for="txt_modo_html">Formato</label>
-                 <div class="controls">
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="txt_modo_html">Formato</label>
+                 <div class="col-sm-4">
                    <input type="hidden" name="txt_modo_html"  value="<?php echo($txt_modo_html); ?>"/>
-                   <span class="well well-small"><?php echo($txt_modo_html ? "HTML" : "Texto Puro"); ?></span>
+                   <span class="well well-sm"><?php echo($txt_modo_html ? "HTML" : "Texto Puro"); ?></span>
                  </div>  
             </div>
             
@@ -219,29 +232,27 @@
 			 }
 		   
 		   ?>
-           
- 
             
-            <div class="control-group">
-                <label class="control-label" for="txt_conteudo_rascunho">Conteúdo Rascunho</label>
-                  <div class="controls">
-                    <textarea class="<?php echo($txt_modo_html ? "ckeditor" : "input-xxlarge"); ?>" id="txt_conteudo_rascunho" name="txt_conteudo_rascunho" rows="30"><?php echo($txt_conteudo_rascunho); ?></textarea>
+            <div class="form-group">
+                <label class="control-label col-sm-3" for="txt_conteudo_rascunho">Conteúdo Rascunho</label>
+                  <div class="col-sm-9">
+                    <textarea class="form-control <?php echo($txt_modo_html ? "ckeditor" : "input-xxlarge"); ?>" id="txt_conteudo_rascunho" name="txt_conteudo_rascunho" rows="30"><?php echo($txt_conteudo_rascunho); ?></textarea>
                   </div>
             </div>  
-            
-            
-                   
-      
-            
-           <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> salvar alterações</button>
+
+	</div>  <!-- div panel-body --> 
+
+   		<div class="panel-footer">          
+		  <div class="form-group">
+	          <div class="col-sm-offset-2">
+                   <button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
-                   <button class="btn" type="button" onclick="javascript:location.href='textos.php'"><i class="icon-off"></i> descartar alterações</button>
-                                 
-            </div>
-          </div>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='textos.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>              </div>
+          </div>   
+        </div>   <!-- div panel-footer -->        
+     
+  </div>  <!-- div panel -->     
+            
       </fieldset> 
     </form>
 

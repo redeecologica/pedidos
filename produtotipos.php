@@ -5,15 +5,18 @@
   
 ?>
 
-	<legend>Lista de Tipos de Produto/Chamada</legend>
-<div align="right">
-<a href="produtotipo.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-</div>
-        
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Tipos de Produto/Chamada</strong>
+       <span class="pull-right">
+		<a href="produtotipo.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+  </div>
+
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Nome</th>                
                 <th>Associado à funcionalidade Mutirão?</th>                
 			</tr>
@@ -46,11 +49,13 @@
 		</tbody>
 	</table>
 
-<div align="right">
-<a href="produtotipo.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
 </div>
 
-
+       <span class="pull-right">
+		<a href="produtotipo.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+    
+    
 <?php 
  
 	footer();

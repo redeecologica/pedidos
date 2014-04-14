@@ -4,12 +4,14 @@
   top();
 ?>
 
-	<legend>Usuários sem senha de acesso criada</legend>
-
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Usuários sem senha de acesso criada</strong>
+  </div>
     <table class="table table-striped table-bordered">
         <thead>
             <tr>
-                <th class="span1">#</th>
+                <th>#</th>
                 <th>Núcleo</th>
                 <th>Associado</th>              
                 <th>Nome Completo</th>
@@ -59,7 +61,7 @@
 		 }
 		}
 
-	echo("	</tbody></table>");
+	echo("	</tbody></table> </div>");
  
 	footer();
 ?>

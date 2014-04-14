@@ -58,7 +58,6 @@
 	}
 	
 	if(!$sucesso_login) adiciona_mensagem_status(MSG_TIPO_ERRO,"O email informado não está cadastrado ou a senha fornecida está incorreta.");
-	
 
 	 	 
   }
@@ -81,26 +80,24 @@
 ?>
 
 
-     <form class="form-signin" action="login.php" method="POST">
-
-     
-		<fieldset>
-        <h2 class="form-signin-heading">Login</h2>
-		
-        <label for="login_usr_email">Login:</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-user"></i></span>
-        	<input type="text" class="input-xlarge" placeholder="endereço de email" name="login_usr_email" value="<?php echo($usr_email); ?>">
-        </div>
-        
-       	<label for="login_usr_senha">Senha:</label>
-        <div class="input-prepend"><span class="add-on"><i class="icon-lock"></i></span>
-	        <input type="password" class="input-xlarge" name="login_usr_senha">
-        </div>
-        
-        <!--<label class="checkbox">
-          <input type="checkbox" value="remember-me"> Remember me
-        </label> -->
-        <input class="btn btn-large btn-primary" type="submit" value="Entrar" name="Entrar">
+     <form class="form-signin" action="login.php" method="POST" role="form">     
+		<fieldset>        
+        <h2 class="form-signin-heading" align="center">Entrar no Sistema</h2>			
+            <br>
+            <label for="login_usr_email">Login</label> (seu email principal cadastrado)
+            <div class="input-group">
+            <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+  	   	 	<input type="text" class="form-control" placeholder="endereço de email"  name="login_usr_email" required="required" autofocus value="<?php echo($usr_email); ?>">
+            </div>
+            <br>
+             <label for="login_usr_senha">Senha</label>
+	         <div class="input-group">
+              <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+    	    <input type="password" class="form-control" required="required"  name="login_usr_senha">
+            </div> 
+            <br><br>
+        	<input class="btn btn-lg btn-primary btn-block"  type="submit" name="Entrar" value="Entrar">
+  
        </fieldset>
        <br>
 			<div class="clear"></div>

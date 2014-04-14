@@ -61,25 +61,27 @@ else
      <form class="form-signin"  action="senha_altera.php" method="POST">
   
 		<fieldset>
-        <h2 class="form-signin-heading">Informar a nova senha</h2>
-	
-        <label for="login_usr_senha_nova">Nova senha: (até 8 digitos)</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-lock"></i></span>
-        	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value=""> 
-            </div> 
+        <h2 class="form-signin-heading" align="center">Informar a nova senha</h2>
+		<br>
+        <label for="login_usr_senha_nova">Nova senha</label> (até 8 digitos)
+        <div class="input-group">
+  			<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+        	<input type="password" class="form-control" maxlength="8" max="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value="" required="required"> 
+         </div> 
+		<br />
 
+        <label for="login_usr_senha_nova_conf">Confirmar nova senha</label> 
+  		<div class="input-group">
+        	<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+        	<input type="password" class="form-control" maxlength="8" max="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value="" required="required"> 
+         </div> 
 
-        <label for="login_usr_senha_nova_conf">Confirmar nova senha:</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-lock"></i></span>
-        	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value=""> 
-            </div> 
-
-        
-        <input class="btn btn-large btn-primary" type="submit" value="Salvar senha" name="salvar_senha">
+        <br><br>
+        <input class="btn btn-lg btn-primary btn-block" type="submit" value="Salvar senha" name="salvar_senha">
        </fieldset>
 
       </form>
-          
+      
        
   <script type="text/javascript">
 	$(function() {

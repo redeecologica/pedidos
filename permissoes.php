@@ -4,8 +4,17 @@
   top();
 ?>
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Permissões</strong>
+       <span class="pull-right">
+		<a href="permissao.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> conceder permissão</a>
+	</span>
+  </div>
+ <div class="panel-body">
+
 <form class="form-inline" action="permissoes.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Permissões</legend>
+
 	<?php  
 		$usr_nuc = request_get("usr_nuc",-1) ;
 		$pap_id = request_get("pap_id",-1) ;		
@@ -13,9 +22,9 @@
 	?>
 
   <fieldset>
-                       
+	  <div class="form-group">
   				<label for="usr_nuc">Núcleo: </label>            
-                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo(($usr_nuc==-1)?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                     
                     <?php
@@ -44,12 +53,12 @@
                         }
                     ?>                        
                 </select>                           
-                 
+       </div>          
                  &nbsp;   
 
-                   
+      <div class="form-group">            
   				<label for="pap_id">Papel: </label>            
-                <select name="pap_id" id="pap_id" onchange="javascript:frm_filtro.submit();">
+                <select name="pap_id" id="pap_id" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo( ($pap_id==-1)?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                     
                     <?php
@@ -72,7 +81,7 @@
                     
      </fieldset>
 </form>
-       
+       </div>
 	<table class="table table-striped table-bordered table-hover">
 		<thead>
 			<tr>
@@ -106,7 +115,7 @@
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
                      <td><?php echo($row['pap_nome']);?></td> 
-		 <td><a href="permissao.php?action=<?php echo(ACAO_EXCLUIR);?>&amp;usr_id=<?php echo($row['usr_id']);?>&amp;pap_id=<?php echo($row['pap_id']);?>" class="confirm-delete"><i class="icon-remove"></i></a></td>
+		 <td><a href="permissao.php?action=<?php echo(ACAO_EXCLUIR);?>&amp;usr_id=<?php echo($row['usr_id']);?>&amp;pap_id=<?php echo($row['pap_id']);?>" class="confirm-delete btn btn-default"><i class="glyphicon glyphicon-remove"></i> remover</a></td>
 					 <td><a href="cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&amp;usr_id=<?php echo($row['usr_id']);?>"><?php echo($row['usr_nome_completo']);?></a></td>
 					 <td><?php echo($row['usr_email']);?> </td>                     
 					 <td><?php echo($row['nuc_nome_curto'])?></td>               
@@ -117,11 +126,13 @@
 				?>
 		</tbody>
 	</table>
-    <div align="right"><a href="permissao.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn">
-        <i class="icon-plus"></i> conceder permissao</a>
+    
     </div>
     
-        
+       <span class="pull-right">
+		<a href="permissao.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> conceder permissão</a>
+	</span>
+                
 
 <?php 
  

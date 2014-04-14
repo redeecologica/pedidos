@@ -183,10 +183,10 @@
  
 	<legend>Pedido de <?php echo(($prodt_nome) . " - " . ($cha_dt_entrega)); ?></legend>
       <div class="row">
-       	<div class="span5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
-        <div class="span4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
-     	<div class="span3"><strong>Associado:</strong> <?php echo($usr_associado==1 ? "Sim" : "Não")?></div>
-	    <div class="span8"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-important") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
+       	<div class="col-md-5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
+        <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
+     	<div class="col-md-3"><strong>Associado:</strong> <?php echo($usr_associado==1 ? "Sim" : "Não")?></div>
+	    <div class="col-md-8"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-danger") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
         
      
      </div>
@@ -303,7 +303,7 @@
    
 	  ?> 
       
-    <div class="container" align="right">
+    <div class="form-group" align="right">
    	<a name="botao_editar"></a>
 	  <?php 
 	  if($ped_somente_leitura && (!($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_ADM] )  ) )
@@ -316,12 +316,12 @@
 	  else if($ped_fechado)
 	  {
 			?>
-            <div class="span8 text-info">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
+            <div class="col-sm-8 text-info">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
 		    <div>    
-			<a class="btn btn-danger" href="pedido.php?action=<?php echo(ACAO_CANCELAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>"><i class="icon-remove icon-white"></i> cancelar pedido</a>
+			<a class="btn btn-danger" href="pedido.php?action=<?php echo(ACAO_CANCELAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-remove glyphicon-white"></i> cancelar pedido</a>
 			&nbsp;&nbsp;
 
-			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
             </div>
 			<?php	
 		}
@@ -329,14 +329,13 @@
 		{
 			?>
 
-      		<div class="span8 text-warning">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
+      		<div class="col-sm-8 text-warning">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
 		    <div>                            		
-			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
 			&nbsp;&nbsp;
-			<button type="button" class="btn btn-success btn-large btn-enviando" data-loading-text="enviando..." onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_CONFIRMAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>'">
-            <i class="icon-ok icon-white"></i> enviar pedido
+			<button type="button" class="btn btn-success btn-lg btn-enviando" data-loading-text="enviando..." onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_CONFIRMAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>'">
+            <i class="glyphicon glyphicon-send glyphicon-white"></i> enviar pedido
             </button>
-            <!--<i class="icon-ok icon-white"></i> enviar pedido-->
             
             </div>			
 			<?php		
@@ -356,9 +355,7 @@
 
 ?>
 
-
-<form action="pedido.php" method="post">
-<!--       <legend>Produtos</legend>  -->
+<form action="pedido.php" method="post" class="form-horizontal">
   <fieldset>
           <input type="hidden" name="ped_id" value="<?php echo($ped_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
@@ -397,11 +394,11 @@
                               <th>Unidade</th>
                               <th>Preço para<br>Associado (R$)</th>
                               <th>Preço para<br>Não-Associado (R$)</th>
-                              <th>Pedido</th>
+                              <th class="coluna-pedido">Pedido</th>
                               <th>Total (R$)</th>                                            
                             </tr>
 					   </thead>
-                       <tbody>
+                       <tbody> 
 					   <?php
 					   
 					   $total_pedido=0;
@@ -444,13 +441,13 @@
 								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
 								{								
 							?>
-                            <input type="text" class="input-mini  qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}
 								else
 								{								
 							?>
-                            <input type="text" class="input-mini  qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}								
 							?>
@@ -484,17 +481,13 @@
                
 			      ?>    
             
-             
-    <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls" align="right">
-                   <button class="btn" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="icon-off"></i> descartar alterações</button>
-                   &nbsp;&nbsp;
-                   <button class="btn btn-primary btn-large btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="icon-ok icon-white"></i> salvar pedido</button>
-                                     
-                                 
+      		<div align="right">
+               <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                               &nbsp;&nbsp;
+                               <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar pedido</button>            
             </div>
-          </div>
+
+		
       </fieldset> 
     </form>
     

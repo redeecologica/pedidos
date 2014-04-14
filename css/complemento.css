@@ -2,25 +2,37 @@
 
 /* ajeita configuração BOOTSTRAP */
 /* original: .navbar .container{width:auto;}*/
-.container {max-width:940px;}
+ .container {max-width:940px; } 
 /* fim ajeita configuração BOOTSTRAP */
 
 /* inclusão de ícone fora do pacote do bootstrap */
 .icon-pedidos-shopping-bag {
-  background-position: 0      0;
- background-image: url("../img/icon-pedidos-shopping-bag.png");  
+  display: inline-block;
   width: 16px;
   height: 16px;
+  margin-top: -1px;
   *margin-right: .1em;
-   margin-top: 0px;   
+  line-height: 14px;
+  vertical-align: text-top;
+  background-image: url("../img/icon-pedidos-shopping-bag.png");
+  background-position: 0	0;
+  background-repeat: no-repeat;
 }
-/* FIM inclusão de ícone fora do pacote do bootstrap */
 
+
+/* tabela para visualização de informações de cadastro */
+.table-info-cadastro th {
+	text-align:right;
+}
 
 
 /* capricho na tabela de pedido para fonte ficar maior e etc. */
 .table-pedido th, td {
 	vertical-align:middle;	
+}
+
+.table-pedido .coluna-pedido {
+	width:80px;
 }
 
 .table-pedido thead th {
@@ -43,8 +55,8 @@
 /* capricho no formulário de login */
 
   .form-signin {
-	max-width: 350px;
-	padding: 19px 29px 29px;
+	max-width: 380px;
+	padding: 10px 20px 20px;
 	margin: 0 auto 20px;
 	background-color: #fff;
 	border: 1px solid #e5e5e5;
@@ -54,17 +66,6 @@
 	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
 	   -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
 			box-shadow: 0 1px 2px rgba(0,0,0,.05);
-  }
-  .form-signin .form-signin-heading,
-  .form-signin .checkbox {
-	margin-bottom: 10px;
-  }
-  .form-signin input[type="text"],
-  .form-signin input[type="password"] {
-	font-size: 16px;
-	height: auto;
-	margin-bottom: 15px;
-	padding: 4px 6px;
   }
 
 /* fim capricho no formulário de login */

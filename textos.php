@@ -4,14 +4,23 @@
   top();
 ?>
 
-
-
-	<legend>Configuração de Textos Internos</legend>
-        
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Configuração de Textos Internos</strong>
+       <span class="pull-right">
+		<a href="texto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+  </div>
+  
+  <div class="panel-body">
+     Atualização de textos que são utilizados internamente pelo sistema.
+  </div>
+  
+           
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Nome interno</th>
 				<th>Utilização</th>
 				<th>Data Última Atualização</th>
@@ -43,11 +52,15 @@
 				   }
 				?>
 		</tbody>
-	</table>
+	</table>     
+   </div>
+      <span class="pull-right">
+        <a href="texto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default">
+        	<i class="glyphicon glyphicon-plus"></i> adicionar novo</a>	
+       </span>   
 
-<div align="right">
-<a href="texto.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-</div>
+      
+
 <?php 
  
 	footer();

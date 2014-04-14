@@ -51,29 +51,38 @@
 ?>
 
 
-	<legend>Informações da Chamada</legend>
- <table class="table-condensed">
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações da Chamada</strong>
+  </div>
+ <div class="panel-body">
+ 
+ 
+ <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right" class="span3">Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
 			</tr>	    
 
     		<tr>
-				<th align="right" class="span3">Data da Entrega:</th> <td><?php echo($cha_dt_entrega); ?></td>
+				<th>Data da Entrega:</th> <td><?php echo($cha_dt_entrega); ?></td>
 			</tr>	    
     		<tr>
-				<th align="right">Início Pedido:</th> <td><?php echo( ($cha_dt_min) . " " . ($cha_hh_min) ) ; ?></td>
+				<th>Início Pedido:</th> <td><?php echo( ($cha_dt_min) . " " . ($cha_hh_min) ) ; ?></td>
 			</tr>            
     		<tr>
-				<th align="right">Término Pedido:</th>	<td><?php echo( ($cha_dt_max)  . " " . ($cha_hh_max)); ?></td>
+				<th>Término Pedido:</th>	<td><?php echo( ($cha_dt_max)  . " " . ($cha_hh_max)); ?></td>
 			</tr>
             <tr>            				 
-				<th align="right">Núcleos Atendidos:</th>	<td><?php echo( $cha_nucleos); ?></td>
+				<th>Núcleos Atendidos:</th>	<td><?php echo( $cha_nucleos); ?></td>
             </tr>
         </tbody>    
 </table>
+<hr />
+	<strong>Produtos que estavam disponíveis para esta chamada:</strong>
+</div>
 
-	<h5>Produtos que estavam disponíveis para esta chamada:</h5>
+
     
 <?php
   
@@ -159,7 +168,7 @@
 			   }
             ?>
             
-  
+  	</div>
     
     <?php   
 

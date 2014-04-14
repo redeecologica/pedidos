@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]);
+  verifica_seguranca($_SESSION[PAP_ADM]);
   top();
 ?>
 
@@ -55,29 +55,37 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações do Tipo de Produto / Chamada</legend>
-<table class="table-condensed">
+ <div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações do Tipo de Produto / Chamada</strong>
+  </div>
+ <div class="panel-body"> 
+
+<table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right">Nome: </th> <td><?php echo($prodt_nome); ?></td>
+				<th>Nome: </th> <td><?php echo($prodt_nome); ?></td>
 			</tr>	    
  
     		<tr>
-				<th align="right">Associado à funcionalidade Mutirão?</th> <td><?php echo( ($prodt_mutirao==1)?"Sim":"Não"); ?></td>
+				<th>Associado à funcionalidade Mutirão?</th> <td><?php echo( ($prodt_mutirao==1)?"Sim":"Não"); ?></td>
 			</tr>                                    
-            <tr><td colspan="2"></td></tr>
-            <tr> 
-              <th>&nbsp;</th>  
-              <td> 
-         	 	<a class="btn btn-primary" href="produtotipo.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&prodt_id=<?php echo($prodt_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
-         	&nbsp;&nbsp;
-         		<a class="btn" href="produtotipos.php"><i class="icon-list"></i> listar tipos</a>          </td>            
-            </tr>
         </tbody>
     
 </table>
   
-   
+   </div>  
+  
+        <div class="panel-footer">
+      		<div class="col-sm-offset-2">
+         	 	<a class="btn btn-primary" href="produtotipo.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&prodt_id=<?php echo($prodt_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+         	&nbsp;&nbsp;
+         		<a class="btn btn-default" href="produtotipos.php"><i class="glyphicon glyphicon-list"></i> listar tipos</a>
+             </div>
+       </div>
+       
+  </div>       
+    
 	
 <?php 
 
@@ -87,24 +95,29 @@
  {
 
 ?>
-    <form id="form_nucleo" class="form-horizontal" action="produtotipo.php" method="post">
-     <legend>Atualização de Informações do Tipo de Produto/Chamada</legend>    
-        <fieldset>
+<form id="form_nucleo" class="form-horizontal" action="produtotipo.php" method="post">
+    <fieldset>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Atualização de Informações do Tipo de Produto/Chamada</strong>
+      </div>
+    
+     <div class="panel-body">        
           <input type="hidden" name="prodt_id" value="<?php echo($prodt_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
-            <div class="control-group">
-               <label class="control-label" for="prodt_nome">Nome</label>
-                 <div class="controls">
-                   <input type="text" name="prodt_nome" required="required" value="<?php echo($prodt_nome); ?>"/>
+            <div class="form-group">
+               <label class="control-label col-sm-3" for="prodt_nome">Nome</label>
+                 <div class="col-sm-4">
+                   <input type="text" name="prodt_nome" class="form-control" required="required" value="<?php echo($prodt_nome); ?>"/>
                   </div>
             </div>
       
        
-                   <div class="control-group">
-                <label class="control-label" for="nuc_archive">Tem funcionalidade Mutirão? </label>
-                  <div class="controls">
+                   <div class="form-group">
+                <label class="control-label col-sm-3" for="nuc_archive">Tem funcionalidade Mutirão? </label>
+                  <div class="col-sm-2">
                 
-                    <select name="prodt_mutirao" id="prodt_mutirao">
+                    <select name="prodt_mutirao" id="prodt_mutirao" class="form-control">
                         <option value="0" <?php echo(($prodt_mutirao==0)?" selected" : ""); ?> >Não</option>
                         <option value="1" <?php echo(($prodt_mutirao==1)?" selected" : ""); ?> >Sim</option>            
                     </select>   
@@ -112,15 +125,18 @@
                   </div>
             </div>  
             
-           <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> salvar alterações</button>
+          
+        </div>  <!-- div panel-body --> 
+    
+            <div class="panel-footer">          
+              <div class="form-group">
+                  <div class="col-sm-offset-2">
+                   <button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
-                   <button class="btn" type="button" onclick="javascript:location.href='produtotipos.php'"><i class="icon-off"></i> descartar alterações</button>
-                                 
-            </div>
-          </div>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='produtotipos.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>              </div>   
+            </div>   <!-- div panel-footer -->        
+         
+      </div>  <!-- div panel -->            
       </fieldset> 
     </form>
 

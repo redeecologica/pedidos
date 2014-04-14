@@ -33,7 +33,7 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th class="span1">#</th>
+                        <th>#</th>
                         <th>Tipo</th>
                         <th>Data de Entrega</th>
                         <th>Prazo para enviar o Pedido</th>
@@ -56,18 +56,18 @@
                      <?php
                      	if(!$row['ped_id'])
 						{
-							echo("Você ainda não enviou pedido para esta chamada. <a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_INCLUIR . "&amp;ped_cha=" . $row['cha_id']);
+							echo("Você ainda não enviou pedido para esta chamada. <a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_INCLUIR . "&amp;ped_cha=" . $row['cha_id']);
 							echo("&amp;ped_usr=" . $_SESSION['usr.id'] . "\">");
-							echo("<i class=\"icon-plus\"></i> criar pedido</a>");						
+							echo("<i class=\"glyphicon glyphicon-plus\"></i> criar pedido</a>");						
 						}
                         else
                         {
 							if($row['ped_fechado']==1) echo("Seu pedido foi enviado. ");
 							else echo("Pedido em elaboração. Você ainda precisa enviá-lo.");
 														
-							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
+							echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
 							echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-							echo("<i class=\"icon-search\"></i> ver pedido</a>");						
+							echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
                         }
 					 ?>
 					 
@@ -92,11 +92,11 @@
         if($res && mysqli_num_rows($res))
         {			
 			?>
-		    <legend>Chamadas Anteriores (últimas dez chamadas)</legend>
+		    <legend>Chamadas anteriores (últimas dez chamadas)</legend>
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th class="span1">#</th>
+                        <th>#</th>
                         <th>Tipo</th>
                         <th>Entrega</th>
                         <th>Prazo envio do Pedido</th>
@@ -115,7 +115,7 @@
 					 <td><?php echo($row['prodt_nome']); ?></td>               
 					 <td><?php echo($row['cha_dt_entrega']); ?></td>
 					 <td><?php echo($row['cha_dt_max']); ?> </td>  
-					 <td> <?php echo("<a class=\"btn btn-small btn-enviando\" data-loading-text=\"aguarde...\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"icon-leaf\"></i> ver produtos</a>");?></td>
+					 <td> <?php echo("<a class=\"btn btn-default btn-sm btn-enviando\" data-loading-text=\"aguarde...\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver produtos</a>");?></td>
                                                                                   
 					 <td>
                      <?php
@@ -127,9 +127,9 @@
                         {
 							if($row['ped_fechado']==1) echo("Você enviou pedido para esta chamada.");
 							else echo("Você criou o pedido mas não enviou.");														
-							echo("<a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
+							echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
 							echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-							echo("<i class=\"icon-search\"></i> ver pedido</a>");						
+							echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
                         }
 					 ?>
 					 

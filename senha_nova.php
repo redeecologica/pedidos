@@ -65,17 +65,19 @@
 
      
 		<fieldset>
-        <h2 class="form-signin-heading">Criar nova senha</h2>
+        <h2 class="form-signin-heading" align="center">Criar nova senha</h2>
 
-
-	
-        <label for="login_usr_email">Email:</label> 
-  		<div class="input-prepend"><span class="add-on"><i class="icon-user"></i></span>
-        	<input type="text" class="input-xlarge" placeholder="endereço de email" name="login_usr_email" value="<?php echo($usr_email); ?>">  </div>
+		<br />	
+        <label for="login_usr_email">Email</label> 
+  		<div class="input-group">
+        	<span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+        	<input type="text" class="form-control" placeholder="endereço de email" name="login_usr_email" value="<?php echo($usr_email); ?>">
+           </div>
+           
 	<span class="help-block">Após preencher seu endereço de email e clicar no botão abaixo, você receberá um email com um link para criação de nova senha de acesso à sua conta no <?php echo(NOME_SISTEMA); ?>.</span>	
 		        
         
-        <input class="btn btn-large btn-primary btn-enviando" data-loading-text="aguarde..." type="submit" value="Criar nova senha" name="Solicitar">
+        <input class="btn btn-lg btn-primary btn-block btn-enviando" data-loading-text="aguarde..." type="submit" value="Criar nova senha" name="Solicitar">
        </fieldset>
        <br>
 			<div class="clear"></div>

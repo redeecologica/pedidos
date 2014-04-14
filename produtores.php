@@ -4,33 +4,40 @@
   top();
 ?>
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Produtores</strong>
+       <span class="pull-right">
+		<a href="produtor.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+  </div>
+  <div class="panel-body">
 
 
 <form class="form-inline" action="produtores.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Lista de Produtores</legend>
-    
-    <div align="right">
-    <a href="produtor.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-    </div>
     
 	<?php  
   		$forn_archive = isset($_REQUEST['forn_archive']) ? mysqli_real_escape_string($conn_link,$_REQUEST['forn_archive']) : 0 ;
 	?>
      <fieldset>
-  		<label for="forn_archive">Situação: </label>
+     	  <div class="form-group">
+  		<label for="forn_archive">Situação: </label>&nbsp;
             
-                    <select name="forn_archive" id="forn_archive" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                    <select name="forn_archive" id="forn_archive" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo( ($forn_archive)==-1?" selected" : ""); ?> >TODOS</option>
                         <option value="0"  <?php echo( ($forn_archive)==0?" selected" : ""); ?> >Ativos</option>
                         <option value="1"  <?php echo( ($forn_archive)==1?" selected" : ""); ?> >Inativos</option>            
-                    </select>                           
+                    </select>     
+                    
+            </div>                      
      </fieldset>
 </form>
+  </div>
         
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Nome Completo</th>
 				<th>Nome Curto</th>
 				<th>Email</th>
@@ -56,14 +63,14 @@
 					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				     {
 						$classe_arquivado = ($row['forn_archive'] == 0) ? "": " class='warning'";
-						$icone_arquivado = ($row['forn_archive'] == 0) ? "": " <i class='icon-inbox'></i> ";
+						$icone_arquivado = ($row['forn_archive'] == 0) ? "": " <i class='glyphicon glyphicon-inbox'></i> ";
 				?>				 
 				  <tr <?php echo($classe_arquivado); ?>>
                   	 <td><?php echo(++$contador); ?></td>
 					 <td><a href="produtor.php?action=0&amp;forn_id=<?php echo($row['forn_id']);?>"><?php echo($icone_arquivado);?><?php echo($row['forn_nome_completo']);?></a></td>
                      <td><?php echo($row['forn_nome_curto']);?></td> 
 					 <td><?php echo($row['forn_email']);?> </td>                     
-					 <td>&nbsp;<?php echo($row['forn_qtde_produtos']);?> &nbsp; <a class="btn btn-mini" href="produtos.php?prod_forn=<?php echo($row['forn_id']);?>"><i class="icon-search"></i> consultar</a></td>                     
+					 <td>&nbsp;<?php echo($row['forn_qtde_produtos']);?> &nbsp; <a class="btn btn-default btn-xs" href="produtos.php?prod_forn=<?php echo($row['forn_id']);?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>                     
 				  </tr>
 				<?php 
 				     }
@@ -71,10 +78,12 @@
 				?>
 		</tbody>
 	</table>
+    
+  </div>  
 
-<div align="right">
-<a href="produtor.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-</div>
+       <span class="pull-right">
+		<a href="produtor.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
 
 
 <?php 

@@ -4,40 +4,37 @@
   top();
 ?>
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Cestantes</strong>
+       <span class="pull-right">
+		<a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a>
+	</span>
+  </div>
+ <div class="panel-body">
 
-
-<form class="form-inline" action="cestantes.php" method="post" name="frm_filtro" id="frm_filtro">
-
-
-	<legend>Lista de Cestantes </legend> 
-    
-	<!--Adiciono boton na parte superior-->
-	<div align="right">
-	<a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a>
-	</div> 
-    
 	<?php  
   		$usr_archive = request_get("usr_archive",0);  		
 		$usr_nuc = request_get("usr_nuc",($_SESSION[PAP_RESP_NUCLEO]? $_SESSION['usr.nuc'] : -1)) ;
 	
-		
 	?>
-
-    
+    <form class="form-inline" action="cestantes.php" method="post" name="frm_filtro" id="frm_filtro" role="form">    
      <fieldset>
+
+	  <div class="form-group">
   
      
-  				<label for="usr_archive">Situação: </label>            
-                 <select name="usr_archive" id="usr_archive" onchange="javascript:frm_filtro.submit();" class="input-medium">
+  				<label for="usr_archive">Situação: </label>&nbsp;      
+                 <select name="usr_archive" id="usr_archive" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo( ($usr_archive)==-1?" selected" : ""); ?> >TODOS</option>
                         <option value="0"  <?php echo( ($usr_archive)==0?" selected" : ""); ?> >Ativos</option>
                         <option value="1"  <?php echo( ($usr_archive)==1?" selected" : ""); ?> >Inativos</option>            
                  </select>    
                  
-                 &nbsp;
-                    
-  				<label for="usr_nuc">Núcleo: </label>            
-                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="input-medium">
+	  </div>&nbsp;&nbsp;
+       <div class="form-group">                
+  				<label for="usr_nuc">Núcleo: </label>&nbsp;            
+                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo( ($usr_nuc)==-1?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                     
                     <?php
@@ -66,18 +63,17 @@
                         }
                     ?>                        
                 </select>                           
-                  
-<!--<div align="right"><a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a></div>-->
+             </div>     
                     
      </fieldset>
 </form>
 
-
+   </div>
        
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Núcleo</th>
 				<th>Associado</th>                
         		<th>Nome Completo</th>
@@ -103,7 +99,7 @@
 					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				     {
 						$classe_arquivado = ($row['usr_archive'] == 0) ? "": " class='warning'";
-						$icone_arquivado = ($row['usr_archive'] == 0) ? "": " <i class='icon-inbox'></i> ";
+						$icone_arquivado = ($row['usr_archive'] == 0) ? "": " <i class='glyphicon glyphicon-inbox'></i> ";
 				?>				 
 				  <tr <?php echo( $classe_arquivado); ?>>
                   	 <td><?php echo(++$contador);?></td>               
@@ -120,8 +116,10 @@
 				?>
 		</tbody>
 	</table>
+    
+    </div>
 
-<div align="right"><a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a></div> 
+ <span class="pull-right"><a href="cestante.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn btn-default"><i class="glyphicon glyphicon-plus"></i> adicionar novo</a></span> 
 
 <?php 
  

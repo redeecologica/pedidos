@@ -85,9 +85,13 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações de Estoque relacionado à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></legend>
+ 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações de Estoque relacionado à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
 
-
+  </div>
+   
 				<?php
                     $sql = "SELECT prod_id, prod_nome, FORMAT(est_prod_qtde_antes,1) est_prod_qtde_antes, ";
 					$sql.= "FORMAT(est_prod_qtde_depois,1) est_prod_qtde_depois, prod_unidade, ";
@@ -104,10 +108,12 @@
                     if($res && mysqli_num_rows($res)==0)
 					{
 					?>	
-					<button type="button" class="btn btn-enviando" data-loading-text="importando..." onclick="javascript:location.href='estoque.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&est_cha=<?php echo($est_cha); ?>&importar=sim'">
-            <i class="icon icon-resize-small"></i> importar estoque do último mutirão
+                    <div class="panel-body">
+					<button type="button" class="btn btn-default btn-enviando" data-loading-text="importando..." onclick="javascript:location.href='estoque.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&est_cha=<?php echo($est_cha); ?>&importar=sim'">
+            <i class="icon glyphicon glyphicon-resize-small"></i> importar estoque do último mutirão
             </button>
             <br /><br /><br /><div class='well'> Sem produtos em estoque. Se de fato houver, clique em editar para registrar. </div><br />
+            </div>
 					
 					<?php
 					}
@@ -156,11 +162,13 @@
 					   echo("</table>");
                     } 
                
-			      ?>             
+			      ?>   
+                  
+                  </div>          
 
-         	 	<a class="btn btn-primary" href="estoque.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&est_cha=<?php echo($est_cha); ?>"><i class="icon-edit icon-white"></i> editar</a>
+         	 	<a class="btn btn-primary" href="estoque.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&est_cha=<?php echo($est_cha); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
-         		<a class="btn" href="mutirao.php"><i class="icon-list"></i> voltar para mutirão</a>        
+         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
   
    
 	
@@ -179,7 +187,7 @@
           <input type="hidden" name="est_cha" value="<?php echo($est_cha); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
             
-            <div class="control-group">
+            <div class="form-group">
                  <div class="container">
 
 				<?php
@@ -252,16 +260,16 @@
             </div>
             
             
-		  <div class="control-group">
+		  <div class="form-group">
             <div class="controls">                 
                    <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="icon-ok icon-white"></i> salvar alterações</button>
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    
                    &nbsp;&nbsp;
                    
                    
                    
-                   <button class="btn" type="button" onclick="javascript:location.href='mutirao.php'"><i class="icon-off"></i> descartar alterações</button>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='mutirao.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                  
             </div>
           </div>

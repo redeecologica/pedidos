@@ -5,9 +5,13 @@
 ?>
 
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Pedidos</strong>
+  </div>
+ <div class="panel-body">
 
 <form class="form-inline" action="pedidos.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Lista de Pedidos</legend>
 	<?php  
   		$ped_cha = request_get("ped_cha",-1) ;
 		$ped_nuc = request_get("ped_nuc",-1) ;
@@ -15,9 +19,9 @@
 	?>
      <fieldset>
      
-     
+     	<div class="form-group">
   				<label for="ped_cha">Chamada: </label>            
-                 <select name="ped_cha" id="ped_cha" onchange="javascript:frm_filtro.submit();" class="input-large">
+                 <select name="ped_cha" id="ped_cha" onchange="javascript:frm_filtro.submit();" class="form-control">
                  	<option value="-1">SELECIONE</option>
                     <?php
                         
@@ -36,13 +40,13 @@
                           }
                         }
                     ?>                        
-
                  </select>    
+		</div>                 
                  
-                 &nbsp;
-                    
+                 &nbsp;&nbsp;
+          <div class="form-group">          
   				<label for="ped_nuc">Núcleo: </label>            
-                <select name="ped_nuc" id="ped_nuc" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                <select name="ped_nuc" id="ped_nuc" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo(($ped_nuc==-1)?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                     
                     <?php
@@ -71,19 +75,21 @@
                         }
                     ?>                        
                 </select>                           
-                    
-                    &nbsp;
+           </div>
+             &nbsp;&nbsp;
+           <div class="form-group">         
   				<label for="ped_status">Status Pedido: </label>            
-                 <select name="ped_status" id="ped_status" onchange="javascript:frm_filtro.submit();">
+                 <select name="ped_status" id="ped_status" onchange="javascript:frm_filtro.submit();" class="form-control">
                  	<option value="*" <?php if($ped_status=="*") echo("selected"); ?>>TODOS</option>
                  	<option value="-1"  <?php if($ped_status=="-1") echo("selected"); ?>>Sem Pedido</option>
                  	<option value="0"  <?php if($ped_status=="0") echo("selected"); ?>>Em elaboração</option>
                  	<option value="1"  <?php if($ped_status=="1") echo("selected"); ?>>Enviado</option>
                  </select>  
                                                             
-                    
-     </fieldset>
-</form>
+           </div>
+         </fieldset>
+    </form>
+    </div>
         
 
 				<?php
@@ -114,7 +120,7 @@
                 <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
-                            <th class="span1">#</th>
+                            <th>#</th>
                             <th>Núcleo</th>
                             <th>Cestante</th>
                             <th>Email</th>
@@ -143,24 +149,24 @@
 							 <?php
                                 if(!$row['ped_id'])
                                 {
-                                    echo("Sem pedido <a class=\"btn btn-small\" href=\"pedido.php?action=" . ACAO_INCLUIR . "&amp;ped_cha=" . $ped_cha);
+                                    echo("Sem pedido <a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_INCLUIR . "&amp;ped_cha=" . $ped_cha);
                                     echo("&amp;ped_usr=" . $row['usr_id'] . "\">");
-                                    echo("<i class=\"icon-plus\"></i> criar pedido</a>");						
+                                    echo("<i class=\"glyphicon glyphicon-plus\"></i> criar pedido</a>");						
                                 }
                                 else
                                 {
                                     if($row['ped_fechado']==1) echo("Pedido enviado ");
                                     else echo("Pedido em elaboração ");
                                                                 
-                                    echo("<a class=\"btn btn-small\" href=\"pedido.php?action=0");
+                                    echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=0");
                                     echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-                                    echo("<i class=\"icon-search\"></i> ver pedido</a>");						
+                                    echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
         
                                     if($row['ped_fechado']!=1)
                                     {
-                                        echo("&nbsp;<a class=\"btn btn-small\" href=\"pedido.php?action=1");
+                                        echo("&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=1");
                                         echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-                                        echo("<i class=\"icon-edit\"></i> editar pedido</a>");
+                                        echo("<i class=\"glyphicon glyphicon-edit\"></i> editar pedido</a>");
                                     }
                                 }
                              ?>
@@ -175,17 +181,17 @@
 				</tbody>
 			</table>
 
-    		<div class="row">
-            	<div class="offset4 span2">Em aberto: <?php echo($abertos);?></div>
-            	<div class="span2">Enviado: <?php echo($fechados);?></div>
-              </div>
-    
+		 <div class="panel-footer" align="center">
+              Em aberto: <?php echo($abertos);?> &nbsp;&nbsp;
+              Enviado: <?php echo($fechados);?>
+         </div>
+
+	  </div>
+      
 		<?php 
 				   }
 				?>
 
-
-<!--<a href="pedido.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar novo</a> </br>    -->
 
 <?php 
  

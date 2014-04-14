@@ -6,12 +6,13 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title><?php echo(NOME_SISTEMA); ?></title>
-	<link href="css/bootstrap-2.3.2.min.css" rel="stylesheet" media="screen" />
-	<link href="css/complemento.css?ver=1.1" rel="stylesheet" media="screen" /> 
+	<link href="css/bootstrap-3.1.1.min.css" rel="stylesheet" media="screen" />
+	<link href="css/bootstrap-theme.min.css" rel="stylesheet" media="screen" />
+	<link href="css/complemento.css?ver=1.2" rel="stylesheet" media="screen" /> 
 	<link href="css/datepicker.css" rel="stylesheet" media="screen">
-     
+    
   	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-	<script src="js/bootstrap-2.3.2.min.js"></script>
+	<script src="js/bootstrap-3.1.1.min.js"></script>
 	<script src="js/pedido.js?ver=1.7.6"></script>
 	<script src="js/bootstrap-datepicker.js" charset="UTF-8"></script>
     <script src="js/locales/bootstrap-datepicker.pt-BR.js" charset="UTF-8"></script>
@@ -22,7 +23,7 @@
 
 <body >
  <div class="container">
-<img src="img/logo_sistema.gif" />
+<img src="img/logo_sistema.gif"  class="img-responsive"  />
 
 <?php
  if(isset($_SESSION['usr.id']) && $_SESSION['usr.id']!="")

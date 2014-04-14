@@ -21,7 +21,7 @@
 <legend>Relatorio para o Mutirão - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?>
 </legend>
 
-<a class="btn" href="arquivos/modelo_relatorio_mutirao.xlsx"><i class="icon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
+<a class="btn btn-default" href="arquivos/modelo_relatorio_mutirao.xlsx"><i class="glyphicon glyphicon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
 
 </div>
 <br>

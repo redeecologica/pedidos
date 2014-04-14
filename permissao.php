@@ -70,15 +70,20 @@
  {
 
 ?>
-    <form id="form_permisao" class="form-horizontal" action="permissao.php" method="post">
-     <legend>Concessão de Permissão</legend>    
-        <fieldset>
+  <form id="form_permisao" class="form-horizontal" action="permissao.php" method="post">
+    <fieldset>
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Concessão de Permissão</strong>
+      </div>
+      
+      <div class="panel-body">
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
           
-                 <div class="control-group">
-                   <label class="control-label" for="pap_id">Papel</label>
-                   <div class="controls">
-                    <select name="pap_id" id="pap_id">
+                 <div class="form-group">
+                   <label class="control-label col-sm-2" for="pap_id">Papel</label>
+                   <div class="col-sm-4">
+                    <select name="pap_id" id="pap_id" class="form-control">
                         <option value="-1">[Selecionar]</option>
                         <?php
                             
@@ -96,10 +101,10 @@
                    </div>
                  </div>
           
-                 <div class="control-group">
-                   <label class="control-label" for="usr_id">Cestante</label>
-                   <div class="controls">                
-                     <select name="usr_id" id="usr_id">
+                 <div class="form-group">
+                   <label class="control-label col-sm-2" for="usr_id">Cestante</label>
+                   <div class="col-sm-4">                
+                     <select name="usr_id" id="usr_id" class="form-control">
                         <option value="-1">[Selecionar]</option>
                         <?php
                             
@@ -115,19 +120,23 @@
                         ?>                        
                     </select>                               
                     </div>
-                 </div>                 
-
-            
-             
-           <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> incluir permissão</button>
+                 </div>                          
+          
+     </div> <!-- div panel-body --> 
+     
+  		<div class="panel-footer">          
+		  <div class="form-group">
+	          <div class="col-sm-offset-2">
+                   <button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> incluir permissão</button>
                    &nbsp;&nbsp;
-                   <button class="btn" type="button" onclick="javascript:location.href='permissoes.php'"><i class="icon-off"></i> descartar alterações</button>
-                                 
-            </div>
-          </div>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='permissoes.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+              </div>
+          </div> <!-- div panel-footer --> 
+          
+               
+  </div>  <!-- div panel -->     
+            
+          
       </fieldset> 
     </form>
 

@@ -35,7 +35,7 @@ define('URL_ABSOLUTA', "http://" . $_SERVER["SERVER_NAME"]. substr($_SERVER["PHP
 
 $meses = array("","janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro");
 
-$msg_tipo_erros = array(MSG_TIPO_SUCESSO => "success", MSG_TIPO_INFO => "info", MSG_TIPO_AVISO => "warning", MSG_TIPO_ERRO => "error");
+$msg_tipo_erros = array(MSG_TIPO_SUCESSO => "success", MSG_TIPO_INFO => "info", MSG_TIPO_AVISO => "warning", MSG_TIPO_ERRO => "danger");
 
 date_default_timezone_set ('America/Sao_Paulo');
 
@@ -106,7 +106,7 @@ function adiciona_popover_descricao($titulo,$texto)
 {
 	if(isset($texto) && $texto!="")
 	{
-		echo(" <span class='btn-popover' data-content='" .  prep_para_html($texto) . "' data-html='true' data-title='" . $titulo . "' data-trigger='hover'><i class='icon-file'></i></span>");
+		echo(" <span class='btn-popover' data-content='" .  prep_para_html($texto) . "' data-html='true' data-title='" . $titulo . "' data-trigger='hover'><i class='glyphicon glyphicon-file'></i></span>");
 	}	
 }
 

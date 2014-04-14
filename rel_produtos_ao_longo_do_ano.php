@@ -8,21 +8,23 @@
  
  ?>
  
- <form class="form-inline" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Produtos Disponíveis ao Longo do Ano</legend>
-   
-	<?php  		
+ <div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Produtos Disponíveis ao Longo do Ano</strong>
+  </div>
+ <div class="panel-body">
+ 
+ 	<?php  		
   		$ano = request_get("ano",date("Y")) ;
 		$prodt = request_get("prodt",-1) ;
-		
-	
-		
 	?>
-     <fieldset>
-     
-     
+    
+ <form class="form-inline" method="post" name="frm_filtro" id="frm_filtro">
+ 
+     <fieldset>    
+      <div class="form-group">
   				<label for="prodt">Tipo: </label>            
-                 <select name="prodt" id="prodt" class="input-medium">
+                 <select name="prodt" id="prodt" class="form-control">
 						<?php
                             
                             $sql = "SELECT prodt_id, prodt_nome ";
@@ -40,18 +42,23 @@
                             }
                         ?>  
                  </select>    
-                 
+        </div>      
                  &nbsp;
-                    
+         <div class="form-group">            
   				<label for="ano">Ano: </label>            
-                <input type="text" name="ano" id="ano" class="input-mini" value="<?php echo($ano); ?>">
-                &nbsp;&nbsp;
-			<button class="btn btn-primary" type="submit"><i class="icon-search icon-white"></i> consultar</button>
+                <input type="text" name="ano" id="ano" class="form-control" value="<?php echo($ano); ?>">
+         </div>&nbsp;&nbsp;
+           <div class="form-group">
+			<button class="btn btn-primary btn-enviando" data-loading-text="consultando..." type="submit" class="form-control"><i class="glyphicon glyphicon-search glyphicon-white"></i> consultar</button>
+            </div>
                                            
                     
      </fieldset>
 </form>
-
+ </div>
+ 
+ </div>
+ 
 <?php
  if($prodt!=-1 )
  {
@@ -74,7 +81,6 @@
 
 ?> 
 
-<legend>Relatório - Produtos ao longo do ano de <?php echo($ano);?> </legend>
 
 <?php 
 
@@ -126,7 +132,7 @@ if($res)
 	
 	if($total_entregas==0)
 	{
-		echo("Nenhum");
+		echo("<tr><td colspan='4'>Nenhuma chamada para o período informado</td></tr>");
 	}
 	else
 	{
@@ -162,12 +168,13 @@ if($res)
     </tbody>
     
     </table>
+    
     <?php
 }
 
 ?>
 
-<hr>
+
 
 <?php
 

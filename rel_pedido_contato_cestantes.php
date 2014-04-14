@@ -35,7 +35,7 @@
 	<table class="table table-striped table-bordered">
 		<thead>
 	 		<tr>
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Núcleo</th>                
 				<th>Associado</th>                
 				<th>Nome Curto</th>

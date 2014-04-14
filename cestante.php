@@ -153,38 +153,43 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações do Cestante</legend>
-<table class="table-condensed">
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações do Cestante</strong>
+  </div>
+ <div class="panel-body">
+
+<table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right" class="span3">Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
+				<th>Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
 			</tr>	    
     		<tr>
-				<th align="right">Nome Curto:</th> <td><?php echo($usr_nome_curto); ?></td>
+				<th>Nome Curto:</th> <td><?php echo($usr_nome_curto); ?></td>
 			</tr>            
     		<tr>
-				<th align="right">Email Principal:</th>	<td><?php echo($usr_email); ?></td>
+				<th>Email Principal:</th>	<td><?php echo($usr_email); ?></td>
 			</tr>
 
     		<tr>
-				<th align="right">Emails Adicionais:</th>	<td><?php echo($usr_email_alternativo); ?></td>
+				<th>Emails Adicionais:</th>	<td><?php echo($usr_email_alternativo); ?></td>
 			</tr>
             
     		<tr>
-				<th align="right">Contatos:</th> <td><?php echo($usr_contatos); ?></td>
+				<th>Contatos:</th> <td><?php echo($usr_contatos); ?></td>
 			</tr>        
     		<tr>
-				<th align="right">Endereço:</th> <td><?php echo($usr_endereco); ?></td>
+				<th>Endereço:</th> <td><?php echo($usr_endereco); ?></td>
 			</tr>    
 	   		<tr>
-				<th align="right">Data de Entrada:</th> <td><?php echo($usr_desde); ?></td>
+				<th>Data de Entrada:</th> <td><?php echo($usr_desde); ?></td>
 			</tr>                   
              
     		<tr>
-				<th align="right">Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
+				<th>Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
 			</tr> 
     		<tr>
-				<th align="right">Situação:</th> 
+				<th>Situação:</th> 
                 <td>
 					<?php echo( ($usr_archive==1)?"Inativo":"Ativo"); ?>
                  
@@ -193,8 +198,8 @@
                  {							 
                  ?>               
                     <span class='text-error'> (sem senha cadastrada)</span> &nbsp;
-				<button type="button" class="btn btn-danger btn-small btn-enviando" data-loading-text="gerando..." onclick="javascript:location.href='cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>&gera_primeira_senha=1'">
-            <i class="icon-lock icon-white"></i> Gerar primeira senha de acesso</button>
+				<button type="button" class="btn btn-danger btn-sm btn-enviando" data-loading-text="gerando..." onclick="javascript:location.href='cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>&gera_primeira_senha=1'">
+            <i class="glyphicon glyphicon-lock glyphicon-white"></i> Gerar primeira senha de acesso</button>
                          		                     
                  <?php 					 
                  }
@@ -204,32 +209,30 @@
                 </td>
 			</tr>                                    
     		<tr>
-				<th align="right">Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
+				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
 			</tr>
-                
-			                                    
-       
-            <tr><td colspan="2"></td></tr>
-            <tr> 
-              <th>&nbsp;</th>  
-              <td> 
-         	 	<a class="btn btn-primary" href="cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&usr_id=<?php echo($usr_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
+        </tbody>    
+  </table>
+  </div>
+    
+    <div class="panel-footer">
+      		<div class="col-sm-offset-2">    
+         	 	<a class="btn btn-primary" href="cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&usr_id=<?php echo($usr_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
 	         		<?php 
 					if($_SESSION[PAP_ADM]  || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_PEDIDO] )
 					  { 
 					 ?>
-                     	  <a class="btn" href="cestantes.php"><i class="icon-list"></i> listar cestantes</a> 
+                     	  <a class="btn btn-default" href="cestantes.php"><i class="glyphicon glyphicon-list"></i> listar cestantes</a> 
             		<?php
 					   } // fim do if tem permisao
 					
 					?>
-                    
-              </td>            
-            </tr>
-        </tbody>
+              </div>
     
-</table>
+   	 </div>
+    
+  </div>
   
    
 	
@@ -241,65 +244,73 @@
  {
 
 ?>
-    <form id="form_cestante" class="form-horizontal" action="cestante.php" method="post">
-     <legend>Atualização de Informações do Cestante</legend>    
-        <fieldset>
+ <form id="form_cestante" class="form-horizontal" role="form" action="cestante.php" method="post">
+  <fieldset>
+        
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Atualização de Informações do Cestante</strong>
+      </div>
+	  <div class="panel-body">
+         
           <input type="hidden" name="usr_id" value="<?php echo($usr_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
-            <div class="control-group">
-               <label class="control-label" for="usr_nome_completo">Nome Completo</label>
-                 <div class="controls">
-                   <input type="text" name="usr_nome_completo" class="input-xlarge" required="required" value="<?php echo($usr_nome_completo); ?>" placeholder="Nome Completo"/>
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="usr_nome_completo">Nome Completo</label>
+                 <div class="col-sm-4">
+                   <input type="text" name="usr_nome_completo" class="form-control" required="required" value="<?php echo($usr_nome_completo); ?>" placeholder="Nome Completo"/>
                   </div>
             </div>
             
-            <div class="control-group">
-               <label class="control-label" for="usr_nome_curto">Nome Curto</label>
-                 <div class="controls">
-                   <input type="text" class="input-small" name="usr_nome_curto"  required="required" value="<?php echo($usr_nome_curto); ?>" placeholder="Nome Curto" />
-                   <span class="help-inline">Preferencialmente com no máximo 10 caracteres, para economizar na impressão de relatório de pedidos</span> 
-                 </div>  
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="usr_nome_curto">Nome Curto</label>
+                   <div class="col-sm-2">
+                       <input type="text" class="form-control" name="usr_nome_curto"  required="required" value="<?php echo($usr_nome_curto); ?>" placeholder="Nome Curto" />                    
+                    </div>  
+	                 <span class="help-block">Preferencialmente com no máximo 10 caracteres, para economizar na impressão de relatórios</span>
             </div>
             
-             <div class="control-group">
-                   <label class="control-label" for="usr_email">Email Principal </label>
-                   <div class="controls">   
-                    <input type="text" class="input-xlarge" required="required" id="usr_email" name="usr_email" value="<?php echo($usr_email); ?>" placeholder="Email" /><br />
-                    <span class="help-inline"> É o principal email de contato. E é utilizado para identificar a associação no sistema (login).</span>
+             <div class="form-group">
+                   <label class="control-label col-sm-2" for="usr_email">Email Principal </label>
+                   <div class="col-sm-4">   
+                    <input type="text" class="form-control" required="required" id="usr_email" name="usr_email" value="<?php echo($usr_email); ?>" placeholder="Email" /><br />                  
     			   </div>
+                     <span class="help-block"> Utilizado para identificar a associação no sistema (login).</span>
             </div>        
        
 
-             <div class="control-group">
-                <label class="control-label" for="usr_email_alternativo">Emails Adicionais</label>
-                  <div class="controls">
-                    <textarea name="usr_email_alternativo" id="usr_email_alternativo" rows="3" class="input-xlarge" placeholder="Emails adicionais para recebimento das comunicações."><?php echo($usr_email_alternativo); ?></textarea><span class="help-inline">Emails adicionais para recebimento das comunicações, bastante útil para quem compartilha associação.<br>Informar valores separados por vírgula (ex.: fulano@dominio.com.br, ciclano@dominio.com.br)</span>
+             <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_email_alternativo">Emails Adicionais</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_email_alternativo" id="usr_email_alternativo" rows="3" class="form-control" placeholder="Emails adicionais para recebimento das comunicações."><?php echo($usr_email_alternativo); ?></textarea>
                   </div>
-            </div>
+					<span class="help-block">Emails adicionais para recebimento das comunicações. Bastante útil para quem compartilha associação.<br>Informar valores separados por vírgula (ex.: fulano@dominio.com.br, ciclano@dominio.com.br)</span>
+             </div>
                       
        
-             <div class="control-group">
-                <label class="control-label" for="usr_contatos">Contatos</label>
-                  <div class="controls">
-                    <textarea name="usr_contatos" rows="2" required="required"  class="input-xlarge" placeholder="ex.: 8888-9999/2333-4567"><?php echo($usr_contatos); ?></textarea>
-                    <br>
-                    <span class="help-inline">Contatos (telefone celular, fixo,...). Ex.: 8888-9999 / 2333-4567</span>
+             <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_contatos">Contatos</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_contatos" rows="2" required="required"  class="form-control" placeholder="ex.: 8888-9999/2333-4567"><?php echo($usr_contatos); ?></textarea>
+                    <br>                    
                   </div>
+                  <span class="help-block">Contatos (telefone celular, fixo,...). Ex.: 8888-9999 / 2333-4567</span>
             </div>
           
           
-            <div class="control-group">
-                <label class="control-label" for="usr_endereco">Endereço</label>
-                  <div class="controls">
-                    <textarea name="usr_endereco" rows="4"  class="input-xlarge" placeholder="Endereço"><?php echo($usr_endereco); ?></textarea>
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_endereco">Endereço</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo($usr_endereco); ?></textarea>
                   </div>
             </div>  
             
-            <div class="control-group">
-                <label class="control-label" for="usr_desde">Data de Entrada</label>
-                  <div class="controls">
-                  	<input type="text"  value="<?php echo($usr_desde); ?>" class="data input-small" name="usr_desde" id="usr_desde"/ >                    Ex.: 01/09/2010
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_desde">Data de Entrada</label>
+                  <div class="col-sm-2">
+                  	<input type="text"  value="<?php echo($usr_desde); ?>" class="data form-control" name="usr_desde" id="usr_desde"/ >                    
                   </div>
+			<span class="help-block">Ex.: 15/09/2010</span>
             </div>             
 
 
@@ -307,10 +318,10 @@
 			   if($_SESSION[PAP_ADM]  || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_PEDIDO] )
                   { 
              ?>
-                     <div class="control-group">
-                      <label class="control-label" for="usr_nuc">Núcleo</label>
-                      <div class="controls">                                       
-                        <select name="usr_nuc" id="usr_nuc">
+                     <div class="form-group">
+                      <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
+                      <div class="col-sm-3">                                       
+                        <select name="usr_nuc" id="usr_nuc" class="form-control">
                             <option value="-1">SELECIONAR</option>
                             <?php
                                 $sql = "SELECT nuc_id, nuc_nome_curto ";
@@ -332,24 +343,22 @@
                     </div>  
     
            
-                     <div class="control-group">
-                       <label class="control-label" for="usr_archive">Situação</label>
-                       <div class="controls">                
-                         <select name="usr_archive" id="usr_archive">
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
+                       <div class="col-sm-2">                
+                         <select name="usr_archive" id="usr_archive" class="form-control">
                             <option value="0" <?php echo( ($usr_archive)==0?" selected" : ""); ?> >Ativo</option>
                             <option value="1" <?php echo( ($usr_archive)==1?" selected" : "");?> >Inativo</option>            
                          </select>                       
                                                      
                        </div>
                      </div>
-                     
-
-                     
+                                         
               
-                     <div class="control-group">
-                       <label class="control-label" for="usr_associado">Associado</label>
-                       <div class="controls">                
-                         <select name="usr_associado" id="usr_associado">
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_associado">Associado</label>
+                       <div class="col-sm-2">                
+                         <select name="usr_associado" id="usr_associado" class="form-control">
                             <option value="1" <?php echo( ($usr_associado)==1?" selected" : ""); ?> >Associado</option>
                             <option value="0" <?php echo( ($usr_associado)==0?" selected" : ""); ?> >Não Associado</option>            
                          </select>                       
@@ -362,24 +371,24 @@
 				  else
 				  {
 					 ?> 
-                     <div class="control-group">
-                      <label class="control-label" for="usr_nuc">Núcleo</label>
-                      <div class="controls">                                       
-                       	<span class="well well-small"><?php echo($nuc_nome_curto); ?></span>
+                     <div class="form-group">
+                      <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
+                      <div class="col-sm-2">                                       
+                       	<span class="well well-sm"><?php echo($nuc_nome_curto); ?></span>
                       </div>                  
                     </div>  
     
            
-                     <div class="control-group">
-                       <label class="control-label" for="usr_archive">Situação</label>
-                       <div class="controls">                
-							<span class="well well-small"><?php echo(($usr_archive)==0?"Ativo" : "Não Ativo"); ?></span>
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
+                       <div class="col-sm-2">                
+							<span class="well well-sm"><?php echo(($usr_archive)==0?"Ativo" : "Não Ativo"); ?></span>
 	                  </div>
                      </div>              
-                     <div class="control-group">
-                       <label class="control-label" for="usr_associado">Associado</label>
-                       <div class="controls">                
-							<span class="well well-small"><?php echo(($usr_associado)==1?"Sim" : "Não"); ?></span>
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_associado">Associado</label>
+                       <div class="col-sm-2">                
+							<span class="well well-sm"><?php echo(($usr_associado)==1?"Sim" : "Não"); ?></span>
                        </div>
                      </div>                 
 		
@@ -387,34 +396,36 @@
 				  } // fim do if (tem permissão)
             ?>
                     
+	</div> 
 
-            
-             
-           <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> salvar alterações</button>
+   <div class="panel-footer">          
+		  <div class="form-group">
+	          <div class="col-sm-offset-2">
+                   <button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
                    <?php 
 				   
 				   if($usr_id!="") 
 				   {
 				   ?>
-                   <button class="btn" type="button" onclick="javascript:location.href='cestante.php?&action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>'"><i class="icon-off"></i> descartar alterações</button>
-                   
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='cestante.php?&action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>                   
 				   <?php 
 				   }
 				   else
 				   {
 				   ?>
-					<button class="btn" type="button" onclick="javascript:location.href='cestantes.php'"><i class="icon-off"></i> descartar alterações</button>                  
+					<button class="btn btn-default" type="button" onclick="javascript:location.href='cestantes.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>                  
                    
                    <?php
 				   }
 				   ?>
-                               
-            </div>
-          </div>
+
+              </div>
+          </div>  
+     </div> <!-- div panel-footer --> 
+     
+  </div>  <!-- div panel -->         
+          
       </fieldset> 
     </form>
     

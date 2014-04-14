@@ -54,7 +54,7 @@ if($res)
 ?>
 
 <hr>
-<a class="btn" href="arquivos/modelo_relatorio_pedidos_para_nucleo.xlsx"><i class="icon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
+<a class="btn btn-default" href="arquivos/modelo_relatorio_pedidos_para_nucleo.xlsx"><i class="glyphicon glyphicon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
 
 <?php
 

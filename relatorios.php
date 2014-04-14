@@ -4,6 +4,12 @@
   top();
 ?>
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Relatórios</strong>
+  </div>
+ <div class="panel-body">
+ 
 <ul>
 <?php 
                       
@@ -109,6 +115,7 @@
 ?>
 </ul>
 
+</div>
 
 <?php 
  

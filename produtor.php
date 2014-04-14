@@ -61,39 +61,47 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
-	<legend>Informações do Produtor</legend>
-<table class="table-condensed">
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Informações do Produtor</strong>
+  </div>
+ <div class="panel-body"> 
+
+<table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th align="right" class="span3">Nome Completo:</th> <td><?php echo($forn_nome_completo); ?></td>
+				<th>Nome Completo:</th> <td><?php echo($forn_nome_completo); ?></td>
 			</tr>	    
     		<tr>
-				<th align="right">Nome Curto:</th> <td><?php echo($forn_nome_curto); ?></td>
+				<th>Nome Curto:</th> <td><?php echo($forn_nome_curto); ?></td>
 			</tr>            
     		<tr>
-				<th align="right">Email:</th>	<td><?php echo($forn_email); ?></td>
+				<th>Email:</th>	<td><?php echo($forn_email); ?></td>
 			</tr>
     		<tr>
-				<th align="right">Contatos:</th> <td><?php echo($forn_contatos); ?></td>
+				<th>Contatos:</th> <td><?php echo($forn_contatos); ?></td>
 			</tr>        
     		<tr>
-				<th align="right">Endereço:</th> <td><?php echo($forn_endereco); ?></td>
+				<th>Endereço:</th> <td><?php echo($forn_endereco); ?></td>
 			</tr>     
     		<tr>
-				<th align="right">Situação:</th> <td><?php echo( ($forn_archive==1)?"Inativo":"Ativo"); ?></td>
+				<th>Situação:</th> <td><?php echo( ($forn_archive==1)?"Inativo":"Ativo"); ?></td>
 			</tr>                                    
-            <tr><td colspan="2"></td></tr>
-            <tr> 
-              <th>&nbsp;</th>  
-              <td> 
-         	 	<a class="btn btn-primary" href="produtor.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&forn_id=<?php echo($forn_id); ?>"><i class="icon-edit icon-white"></i> editar</a>
-         	&nbsp;&nbsp;
-         		<a class="btn" href="produtores.php"><i class="icon-list"></i> listar produtores</a>          </td>            
-            </tr>
         </tbody>
     
 </table>
+  </div>  
   
+        <div class="panel-footer">
+      		<div class="col-sm-offset-2">
+         	 	<a class="btn btn-primary" href="produtor.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&forn_id=<?php echo($forn_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+         	&nbsp;&nbsp;
+         		<a class="btn btn-default" href="produtores.php"><i class="glyphicon glyphicon-list"></i> listar produtores</a>
+             </div>
+       </div>
+       
+  </div>       
+    
    
 	
 <?php 
@@ -104,69 +112,80 @@
  {
 
 ?>
-    <form class="form-horizontal" action="produtor.php" method="post">
-     <legend>Atualização de Informações do Produtor</legend>    
-        <fieldset>
+<form class="form-horizontal" action="produtor.php" method="post"  role="form">
+   <fieldset>
+    
+    <div class="panel panel-default">
+      <div class="panel-heading">
+         <strong>Atualização de Informações do Produtor</strong>
+      </div>
+      
+ 	 <div class="panel-body">         
           <input type="hidden" name="forn_id" value="<?php echo($forn_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
-            <div class="control-group">
-               <label class="control-label" for="forn_nome_completo">Nome Completo</label>
-                 <div class="controls">
-                   <input type="text" name="forn_nome_completo" required="required" value="<?php echo($forn_nome_completo); ?>" placeholder="Nome Completo" class="input-xxlarge"/>
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="forn_nome_completo">Nome Completo</label>
+                 <div class="col-sm-6">
+                   <input type="text" name="forn_nome_completo" required="required" value="<?php echo($forn_nome_completo); ?>" placeholder="Nome Completo" class="form-control"/>
                   </div>
             </div>
             
-            <div class="control-group">
-               <label class="control-label" for="forn_nome_curto">Nome Curto</label>
-                 <div class="controls">
-                   <input type="text" name="forn_nome_curto"  required="required" value="<?php echo($forn_nome_curto); ?>" placeholder="Nome Curto" />
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="forn_nome_curto">Nome Curto</label>
+                 <div class="col-sm-4">
+                   <input type="text" name="forn_nome_curto"  required="required" value="<?php echo($forn_nome_curto); ?>" placeholder="Nome Curto" class="form-control" />
                  </div>  
             </div>
             
-             <div class="control-group">
-                   <label class="control-label" for="forn_email">Email </label>
-                   <div class="controls">   
-                    <input type="text" class="input-xlarge" name="forn_email" value="<?php echo($forn_email); ?>" placeholder="Email" />
+             <div class="form-group">
+                   <label class="control-label col-sm-2" for="forn_email">Email </label>
+                   <div class="col-sm-4">   
+                    <input type="text" class="form-control" name="forn_email" value="<?php echo($forn_email); ?>" placeholder="Email" />
     			   </div>
             </div>        
           
        
-             <div class="control-group">
-                <label class="control-label" for="forn_contatos">Contatos</label>
-                  <div class="controls">
-                    <textarea name="forn_contatos" rows="2"  class="input-xlarge" placeholder="Contatos (telefone fixo, celular,...)"><?php echo($forn_contatos); ?></textarea>
+             <div class="form-group">
+                <label class="control-label col-sm-2" for="forn_contatos">Contatos</label>
+                  <div class="col-sm-5">
+                    <textarea name="forn_contatos" rows="3"  class="form-control" placeholder="Contatos (telefone fixo, celular,...)"><?php echo($forn_contatos); ?></textarea>
                   </div>
             </div>
           
           
-            <div class="control-group">
-                <label class="control-label" for="forn_endereco">Endereço</label>
-                  <div class="controls">
-                    <textarea name="forn_endereco" rows="3"  class="input-xlarge" placeholder="Endereço"><?php echo($forn_endereco); ?></textarea>
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="forn_endereco">Endereço</label>
+                  <div class="col-sm-5">
+                    <textarea name="forn_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo($forn_endereco); ?></textarea>
                   </div>
             </div>  
        
-                   <div class="control-group">
-                <label class="control-label" for="forn_archive">Situação: </label>
-                  <div class="controls">
+                   <div class="form-group">
+                <label class="control-label col-sm-2" for="forn_archive">Situação: </label>
+                  <div class="col-sm-2">
                 
-                    <select name="forn_archive" id="forn_archive">
+                    <select name="forn_archive" id="forn_archive" class="form-control">
                         <option value="0" <?php echo( ($forn_archive ==0) ?" selected" : ""); ?> >Ativo</option>
                         <option value="1" <?php echo( ($forn_archive ==1) ?" selected" : ""); ?> >Inativo</option>            
                     </select>   
                     
                   </div>
             </div>  
-            
-           <!--<div class="form-actions">-->
-		  <div class="control-group">
-            <div class="controls">
-                   <button class="btn btn-primary" type="submit"><i class="icon-ok icon-white"></i> salvar alterações</button>
+	</div>  <!-- div panel-body --> 
+
+   		<div class="panel-footer">          
+		  <div class="form-group">
+	          <div class="col-sm-offset-2">
+                   <button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
-                   <button class="btn" type="button" onclick="javascript:location.href='produtores.php'"><i class="icon-off"></i> descartar alterações</button>
-                                 
-            </div>
-          </div>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='produtores.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+              </div>
+          </div>   
+        </div>   <!-- div panel-footer -->        
+     
+  </div>  <!-- div panel --> 
+            
+          
       </fieldset> 
     </form>
     

@@ -5,31 +5,33 @@
 ?>
 
 
-
-<form class="form-inline" action="cestantes_email.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Email dos Cestantes para Comunicação</legend> 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Email dos Cestantes para Comunicação</strong>
+  </div>
+  <div class="panel-body">
+  
+  <form class="form-inline" action="cestantes_email.php" method="post" name="frm_filtro" id="frm_filtro">
 	<?php  
   		$usr_archive = request_get("usr_archive",0);  		
-		$usr_nuc = request_get("usr_nuc",($_SESSION[PAP_RESP_NUCLEO]? $_SESSION['usr.nuc'] : -1)) ;
-	
-		
-	?>
-
-    
-     <fieldset>
-  
+		$usr_nuc = request_get("usr_nuc",($_SESSION[PAP_RESP_NUCLEO]? $_SESSION['usr.nuc'] : -1)) ;		
+	?>    
+     <fieldset> 
      
-  				<label for="usr_archive">Situação: </label>            
-                 <select name="usr_archive" id="usr_archive" onchange="javascript:frm_filtro.submit();" class="input-medium">
+     			<div class="form-group">
+  				<label for="usr_archive">Situação: </label>&nbsp;           
+                 <select name="usr_archive" id="usr_archive" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo( ($usr_archive)==-1?" selected" : ""); ?> >TODOS</option>
                         <option value="0"  <?php echo( ($usr_archive)==0?" selected" : ""); ?> >Ativos</option>
                         <option value="1"  <?php echo( ($usr_archive)==1?" selected" : ""); ?> >Inativos</option>            
                  </select>    
+                 </div>
                  
-                 &nbsp;
-                    
-  				<label for="usr_nuc">Núcleo: </label>            
-                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                 &nbsp;&nbsp;
+                  
+                 <div class="form-group">
+  				<label for="usr_nuc">Núcleo: </label>&nbsp;            
+                <select name="usr_nuc" id="usr_nuc" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo( ($usr_nuc)==-1?" selected" : ""); ?> >TODOS</option>
                     <option value="-1">-------------</option>                     
                     <?php
@@ -57,12 +59,13 @@
                           }
                         }
                     ?>                        
-                </select>                           
+                </select>   
+                </div>                        
                   
      </fieldset>
 </form>
 
-
+<br>
     Lista de Destinatários (contém email principal e emails adicionais do cadastro do cestante):<br>
        <form>
   
@@ -79,7 +82,7 @@
 					$contador = 0;
 				    if($res)
 					{
-					  echo("<textarea rows='40' class='span10'>");
+					  echo("<textarea rows='40' class='form-control col-md-10'>");
 					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				     {
 						 echo($row["usr_email"] . ", ");
@@ -93,7 +96,7 @@
 				?>
                 
 	</form>
-
+</div>
 
 <?php 
  

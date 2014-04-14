@@ -5,16 +5,38 @@
 ?>
 
 
+<div class="panel panel-default">
+  <div class="panel-heading">
+     <strong>Lista de Chamadas</strong>
+        <span class="pull-right">
+        <div class="btn-group">
+          <a class="btn btn-default dropdown-toggle btn-xs" data-toggle="dropdown" href="#"><i class="glyphicon glyphicon-plus"></i> adicionar nova chamada <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+           <?php
+                $res = executa_sql("SELECT prodt_id, prodt_nome FROM produtotipos ORDER BY prodt_nome");
+                if($res)
+                { 
+                 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
+                 {
+                     echo("<li><a href='chamada.php?action=" . ACAO_INCLUIR . "&cha_prodt=" . $row["prodt_id"] . "'>" . $row["prodt_nome"] . "</a></li>");
+                  }
+                }
+            ?>   
+          </ul>
+        </div>
+        </span>
+  </div>
+ <div class="panel-body">
 
 <form class="form-inline" action="chamadas.php" method="post" name="frm_filtro" id="frm_filtro">
-	<legend>Lista de Chamadas</legend>
+
 	<?php  
 		$cha_prodt = request_get("cha_prodt",-1);
 	?>
      <fieldset>
-                         
-  				<label for="cha_prodt">Tipo: </label>            
-                <select name="cha_prodt" id="cha_prodt" onchange="javascript:frm_filtro.submit();" class="input-medium">
+                 <div class="form-group">
+  				<label for="cha_prodt">Tipo: </label>&nbsp;     
+                <select name="cha_prodt" id="cha_prodt" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo(($cha_prodt==-1)?" selected" : "");?> >TODOS</option>
                     <?php
                         
@@ -31,18 +53,18 @@
                         }
                     ?>                        
                 </select>                           
-                    
+                 </div>     
                                            
-                    
+                  
      </fieldset>
 </form>
-        
+    </div>      
         
 	<table class="table table-striped table-bordered">
 		<thead>
 			<tr>
             
-				<th class="span1">#</th>
+				<th>#</th>
 				<th>Tipo</th>
         		<th>Data de Entrega</th>
 				<th>Início Pedido</th>
@@ -75,7 +97,7 @@
 					 <td><a href="chamada.php?action=0&amp;cha_id=<?php echo($row['cha_id']);?>"><?php echo($row['cha_dt_entrega']);?></a></td>
                      <td><?php echo($row['cha_dt_min']);?></td> 
 					 <td><?php echo($row['cha_dt_max']);?> </td>                     
-					 <td>&nbsp;<?php echo($row['cha_qtde_pedidos']);?>  &nbsp; <a class="btn btn-mini" href="pedidos.php?ped_cha=<?php echo($row['cha_id']);?>"><i class="icon-search"></i> consultar</a></td>     
+					 <td>&nbsp;<?php echo($row['cha_qtde_pedidos']);?>  &nbsp; <a class="btn btn-default btn-xs" href="pedidos.php?ped_cha=<?php echo($row['cha_id']);?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>     
                      
 				  </tr>
 				<?php 
@@ -84,12 +106,12 @@
 				?>
 		</tbody>
 	</table>
+   </div>
 
-<!--<a href="chamada.php?action=<?php echo(ACAO_INCLUIR);?>" class="btn"><i class="icon-plus"></i> adicionar nova</a> </br>    
--->
-<div align="right">
+
+<span class="pull-right">
 <div class="btn-group">
-  <a class="btn dropdown-toggle" data-toggle="dropdown" href="#"><i class="icon-plus"></i> adicionar nova chamada <span class="caret"></span></a>
+  <a class="btn btn-default dropdown-toggle" data-toggle="dropdown" href="#"><i class="glyphicon glyphicon-plus"></i> adicionar nova chamada <span class="caret"></span></a>
   <ul class="dropdown-menu">
    <?php
 		$res = executa_sql("SELECT prodt_id, prodt_nome FROM produtotipos ORDER BY prodt_nome");
@@ -103,7 +125,7 @@
     ?>   
   </ul>
 </div>
-</div>
+</span>
 
 <?php 
  
