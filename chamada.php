@@ -275,19 +275,24 @@
  
 
 				<?php
-                    $sql = "SELECT prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
-					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, FORMAT(prod_valor_venda,2) prod_valor_venda, ";
-					$sql.= "chaprod_prod, chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, ";
+					$bd_id_chamada_anterior = prep_para_bd(get_chamada_anterior($cha_id));
+					
+                    $sql = "SELECT chamadaprodutos_anterior.chaprod_disponibilidade as chaprod_disponibilidade_anterior, ";
+					$sql.= "prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
+					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, ";
+					$sql.= "FORMAT(prod_valor_venda,2) prod_valor_venda, chamadaprodutos.chaprod_prod, ";
+					$sql.= "chamadaprodutos.chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, ";
 					$sql.= "forn_id, forn_contatos, prod_prodt, FORMAT(est_prod_qtde_depois,1) em_estoque FROM produtos ";
                     $sql.= "LEFT JOIN chamadaprodutos on chaprod_prod = prod_id AND chaprod_cha = " . prep_para_bd($cha_id) . " ";
                     $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
-			        $sql.="LEFT JOIN estoque ON est_prod = prod_id AND est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";							
+			        $sql.= "LEFT JOIN estoque ON est_prod = prod_id AND est_cha = " . $bd_id_chamada_anterior . " ";	
+					$sql.= "LEFT JOIN chamadaprodutos chamadaprodutos_anterior ON chamadaprodutos_anterior.chaprod_prod = prod_id ";
+					$sql.= " AND chamadaprodutos_anterior.chaprod_cha= " . $bd_id_chamada_anterior . " " ;				
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
                     $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);					
-				
-					   
+							   
                     if($res)
                     {
 						echo("<table class='table table-striped table-bordered table-condensed table-hover'>");
@@ -308,20 +313,29 @@
 											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_contatos"]);
 											  ?>
                                             </th>
-											<th style="width:180px">Disponível<br>
+											<th style="width:185px">Disponível <span class="label label-info">azul = anterior</span><br>
+                                            
 												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <strong>sim</strong>
+												  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
 												</label>
 																												
 												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <strong>parc.</strong>
+													<span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
 												</label>
 												<label class="radio-inline">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <strong>não</strong>
+											<span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"></i> </span>
 												</label>
+                                                <!--
+                                                futuro: implementar botão para repetir os valores da chamada anterior
+												<label class="radio-inline">                                                
+												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
+												  <span class="label label-info"><i class="glyphicon glyphicon-repeat"></i> anterior</span>
+												</label>                                                
+                                                -->
+                                                
 											</th>
 											<th>Unid.</th>
 											<th>Compra (R$)</th>
@@ -342,18 +356,22 @@
 							
 							?></td>
 							<td>
-                                <label class="radio-inline">
+                            <!-- hidden incluído com a disponibilidade anterior -->
+                                  <input type="hidden" name="chaprod_prod_disponibilidade_anterior_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_anterior_<?php echo($row["prod_id"])?>_X" value="<?php echo($row["chaprod_disponibilidade_anterior"]); ?>" data-fornecedor="<?php echo($row["forn_id"]);?>">
+                            <!-- fim do hidden com a disponibilidade anterior -->
+                                                                                          
+                                <label class="radio-inline <?php echo((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 2) ? "label-info" : "" ); ?>">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  sim
+                                  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
                                 </label>
                                                                                                 
-                                <label class="radio-inline">
+                                <label class="radio-inline <?php echo((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 1) ? "label-info" : "" ); ?>"">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  parc.
+                                 <span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
                                 </label>
-                                <label class="radio-inline">
+                                <label class="radio-inline  <?php echo((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 0) ? "label-info" : "" ); ?>"">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"])?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  não
+                                 <span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"></i> </span>
                                 </label>
                             </td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
