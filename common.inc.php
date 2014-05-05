@@ -12,6 +12,7 @@ define('PAP_ADM',"Administrador");
 define('PAP_RESP_NUCLEO',"Responsável por Núcleo");
 define('PAP_RESP_PEDIDO',"Responsável por Pedido");
 define('PAP_RESP_MUTIRAO',"Responsável pelo Mutirão");
+define('PAP_BETA_TESTER',"Beta Tester");
  
 
 define('ACAO_EXIBIR_LEITURA',0);
