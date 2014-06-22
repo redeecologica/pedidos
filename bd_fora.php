@@ -1,5 +1,6 @@
 <?php  
   require_once("header.inc.php"); 
+  require_once("settings.php");
 
   $url_abs = "http://" . $_SERVER["SERVER_NAME"]. substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")) ; 
   
