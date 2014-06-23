@@ -321,10 +321,24 @@ $(function() {
 	$(".seleciona_produtos_fornecedor").change(function(){
 		var produtos = null;
 		if(this.checked){
-			produtos = $('input[id^="chaprod_prod_disponibilidade"][value='+$(this).val()+'][data-fornecedor='+$(this).attr("data-fornecedor")+']');
-			produtos.each(function(){
-				this.checked = true;
-			});
+			if($(this).val()!='X') {
+				produtos = $('input[id^="chaprod_prod_disponibilidade"][value='+$(this).val()+'][data-fornecedor='+$(this).attr("data-fornecedor")+']');
+				produtos.each(function(){
+					this.checked = true;
+				});
+			} else {
+				produtos = $('input[id^="chaprod_prod_disponibilidade"][data-fornecedor="'+$(this).attr('data-fornecedor')+'"][type="radio"]');
+				produtos.each(function(){
+					var itemNum = $(this).attr('id').split("_")[3];
+					var valorAnterior = $("#chaprod_prod_disponibilidade_anterior_"+itemNum+"_X").val();
+					if($(this).val()==valorAnterior) {
+						this.checked = true;
+					} else {
+						this.checked = false;
+					}
+				});
+				
+			}
 		}
 	});
 	
