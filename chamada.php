@@ -306,6 +306,7 @@
 								$ultimo_forn = $row["forn_nome_curto"];
 								$contador=0;
 								?>
+                                	<tr><th colspan="7">&nbsp;</th></tr>
 										<tr>
                                         	<th>&nbsp;</th>
 											<th>
@@ -314,27 +315,26 @@
 											  ?>
                                             </th>
 											<th style="width:185px">Disponível <span class="label label-info">azul = anterior</span><br>
-                                            
-												<label class="radio-inline">
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
+                    
+												<label class="radio-inline"  style="margin-left: 4px; padding-left:7px;">
+                                                <input type="radio"  name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px"><span class="label label-info"><i class="glyphicon glyphicon-repeat"></i> </span>
+												</label> 
+
+												<label class="radio-inline"  style="margin-left: 4px; padding-left:10px;" >
+												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 												  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
 												</label>
-																												
-												<label class="radio-inline">
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
+													
+												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
+												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 													<span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
 												</label>
-												<label class="radio-inline">
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
+
+												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
+												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 											<span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"></i> </span>
 												</label>
-                                                <!--
-                                                futuro: implementar botão para repetir os valores da chamada anterior
-												<label class="radio-inline">                                                
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor">
-												  <span class="label label-info"><i class="glyphicon glyphicon-repeat"></i> anterior</span>
-												</label>                                                
-                                                -->
+
                                                 
 											</th>
 											<th>Unid.</th>
