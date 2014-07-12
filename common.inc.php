@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 require_once("phpmailer/class.phpmailer.php");
 require_once("settings.php");
@@ -398,6 +398,17 @@ function get_hifen_se_zero($valor)
 }
 
 
+function get_ultima_chamada_pelo_tipo($prodt_id)
+{
+	$cha_id_anterior="";
+		
+	$sql = "SELECT cha_id FROM chamadas WHERE cha_prodt = " . prep_para_bd($prodt_id) . " ORDER BY cha_dt_entrega DESC limit 1" ;
+	if($row = mysqli_fetch_array(executa_sql($sql),MYSQLI_ASSOC))
+	{
+		$cha_id_anterior = $row["cha_id"];
+	}
+	return 	$cha_id_anterior;	
+}
 
 function get_chamada_anterior($cha_id)
 {

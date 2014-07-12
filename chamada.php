@@ -275,7 +275,14 @@
  
 
 				<?php
-					$bd_id_chamada_anterior = prep_para_bd(get_chamada_anterior($cha_id));
+					if($cha_id=="")
+					{
+						$bd_id_chamada_anterior = prep_para_bd(get_ultima_chamada_pelo_tipo($cha_prodt));
+					}
+					else
+					{
+						$bd_id_chamada_anterior = prep_para_bd(get_chamada_anterior($cha_id));
+					}
 					
                     $sql = "SELECT chamadaprodutos_anterior.chaprod_disponibilidade as chaprod_disponibilidade_anterior, ";
 					$sql.= "prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
@@ -291,7 +298,7 @@
 					$sql.= " AND chamadaprodutos_anterior.chaprod_cha= " . $bd_id_chamada_anterior . " " ;				
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
                     $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
-                    $res = executa_sql($sql);					
+                    $res = executa_sql($sql);	
 							   
                     if($res)
                     {
