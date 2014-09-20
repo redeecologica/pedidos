@@ -455,6 +455,28 @@ function get_texto_interno($nome_interno)
 	return "";
 }
 
+function chaprod_recebido_get_sum_dist_quantidade($cha_id)
+{
+	// função utilizada quando o tipo de chamada não tem mutirão, ou seja, quando no processo não ocorre uma contagem geral 
+	// dos produtos recebidos antes da distribuição aos núcleos, então o recebido pela rede passa a ser o somatório 
+	// da quantidade recebida pelos núcleos
+	
+	$sql = "UPDATE chamadaprodutos cp1 ";
+	$sql.= "INNER JOIN ";
+	$sql.= "( ";
+	$sql.= " SELECT chaprod_cha, chaprod_prod, SUM(dist_quantidade) total_acumulado ";
+	$sql.= " FROM chamadaprodutos ";
+	$sql.= " INNER JOIN chamadas ON cha_id = chaprod_cha ";
+	$sql.= " INNER JOIN produtos ON prod_id = chaprod_prod ";
+	$sql.= " INNER JOIN distribuicao ON dist_cha = chaprod_cha AND dist_prod = chaprod_prod ";
+	$sql.= " WHERE chaprod_cha= " . prep_para_bd($cha_id) .  " AND chaprod_disponibilidade <> '0' AND ";
+	$sql.= " prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
+	$sql.= " GROUP BY prod_id ";
+	$sql.= ") cp2 ON cp1.chaprod_cha = cp2.chaprod_cha AND cp1.chaprod_prod = cp2.chaprod_prod ";
+	$sql.= " SET cp1.chaprod_recebido = cp2.total_acumulado ";
+	$sql.= " WHERE cp1.chaprod_cha= " . prep_para_bd($cha_id);		
+	$res2 = executa_sql($sql);	
+}
 
 
 
