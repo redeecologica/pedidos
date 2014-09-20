@@ -35,6 +35,10 @@
 	width:80px;
 }
 
+.coluna-quantidade {
+	width:95px;
+}
+
 .table-pedido thead th {
 	font-size:14px;
 	text-align:center;

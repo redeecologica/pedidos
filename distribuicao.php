@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || $_SESSION[PAP_RESP_MUTIRAO]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || $_SESSION[PAP_RESP_MUTIRAO] || ($_SESSION[PAP_RESP_NUCLEO] && $_SESSION[PAP_BETA_TESTER] ) );
   top();
 ?>
 
@@ -58,11 +58,11 @@
 			if($res)
 			{
 				$action=ACAO_EXIBIR_LEITURA; //volta para modo visualização somente leitura
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");								
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição/entrega relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");								
 			}
 			else
 			{
-				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações de distribuição da chamada de " . $cha_dt_entrega . ".");								
+				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações de distribuição/entrega da chamada de " . $cha_dt_entrega . ".");								
 			}
 			escreve_mensagem_status();
 		
@@ -81,13 +81,15 @@
 <?php 
 
 	$sql = "SELECT prod_id, prod_nome, prod_unidade, FORMAT(dist_quantidade,1) dist_quantidade, ";
-	$sql.= " forn_nome_curto, forn_nome_completo, forn_id ";
+	$sql.= " forn_nome_curto, forn_nome_completo, forn_id, FORMAT(SUM(pedprod_quantidade),1) total_pedido_nucleo ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
 	$sql.= "LEFT JOIN fornecedores on prod_forn  = forn_id ";
+	$sql.= "LEFT JOIN pedidos ON ped_cha = cha_id "; 	
+	$sql.= "LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";		
 	$sql.= "LEFT JOIN distribuicao on dist_cha  = cha_id AND dist_prod = prod_id AND dist_nuc = " . prep_para_bd($nuc_id)  ;
-	$sql.= " WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW()  ";
+	$sql.= " WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW()  AND ped_fechado = '1' AND ped_nuc = " . prep_para_bd($nuc_id)  ;
 	$sql.= " AND chaprod_cha = " . prep_para_bd($cha_id) . " AND chaprod_disponibilidade > 0  ";
 	$sql.= " GROUP BY forn_id, prod_id ";
 	$sql.= " ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
@@ -97,9 +99,10 @@
   
   <div class="panel panel-default">
   <div class="panel-heading">
-     <strong>Informações de Distribuição relacionada à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
+     <strong>Informações de Distribuição/Entrega relacionada à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
 
   </div>
+
   
   <?php   
 
@@ -108,7 +111,7 @@
  ?>	  
  <div class="panel-body">
  
-                <form class="form-inline" action="distribuicao.php" method="post" name="frm_filtro" id="frm_filtro">
+                <form class="form-inline" action="distribuicao.php" name="frm_filtro" id="frm_filtro">
                     
                      <fieldset>
                            <input type="hidden" name="action" value="<?php echo(ACAO_EXIBIR_LEITURA); ?>" /> 
@@ -139,7 +142,7 @@
                      </fieldset>
                 </form>						
                 
-                </div>
+             </div>  
             <?php     
                 
 
@@ -152,7 +155,7 @@
                         <table class="table table-striped table-bordered table-condensed table-hover">
 						<thead>
                         	<tr>
-                            	<th colspan="2">Relatório do que foi distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
+                            	<th colspan="3">Relatório do que foi distribuído/entregue para o núcleo  <?php echo($nuc_nome_curto); ?></th>
                                 <th>
                                   <a class="btn btn-primary" href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
                                 </th>
@@ -178,7 +181,8 @@
 											  ?>
                                             </th>
 											<th>Unidade</th>
-											<th>Distribuído</th>
+                                            <th>Pedido</th>
+											<th>Recebido</th>
 										</tr>
 								<?php
 								
@@ -187,7 +191,20 @@
 							?>
 							<tr>                              
                             <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>                          				
+                            <td><?php echo($row["prod_unidade"]); ?></td>  
+                            <td>                            
+                          		<?php 
+									if($row["total_pedido_nucleo"]) 
+									{
+										echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido_nucleo"]))); 
+									}
+									else
+									{
+										echo("&nbsp;");
+									}
+								 
+								?> 
+                             </td>                                                    				
                             <td>                            
                           		<?php 
 									if($row["dist_quantidade"]) 
@@ -200,7 +217,7 @@
 									}
 								 
 								?> 
-                             </td>               
+                             </td> 
                                  
                             </tr>
                              
@@ -213,10 +230,10 @@
                     }  // nuc_id != -1
                
 			      ?>             
-				</div>
+		  </div>
                 
-         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
-	
+
+    
 <?php 
 
 
@@ -228,7 +245,7 @@
 ?>
 	
     <form class="form-horizontal" action="distribuicao.php" method="post">
-        <fieldset>
+        <fieldset> 
         
           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />
           <input type="hidden" name="nuc_id" value="<?php echo($nuc_id); ?>" />          
@@ -238,13 +255,14 @@
                 
                  
                  <table class='table table-striped table-bordered table-condensed table-hover'>                 
+                 
                   <thead>
                         	<tr>
-                            	<th colspan="3">Relatório do que foi distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
+                            	<th colspan="4">Relatório do que foi distribuído para o núcleo <?php echo($nuc_nome_curto); ?></th>
                             </tr>
                     </thead>
                     <tbody>
-                        
+              
 
 				<?php
  										  
@@ -268,7 +286,8 @@
 											  ?>
                                             </th>
 											<th>Unidade</th>
-											<th>Distribuído</th>
+                                            <th>Pedido</th>
+											<th class="coluna-quantidade">Recebido</th>
 										</tr>
 								<?php
 								
@@ -280,8 +299,15 @@
                              
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td>                            
+                          		<?php 
+									if($row["total_pedido_nucleo"]) 
+										echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido_nucleo"]))); 
+									else echo("&nbsp;");								 
+								?> 
+                             </td>                              
                             <td>
-                            <input type="text" class="input-mini propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>" name="dist_quantidade[]"/>
+                            <input type="text" class="form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>" name="dist_quantidade[]"/>
                             </td>
                                                      
                             </tr>
@@ -304,7 +330,7 @@
                    
                    
                    
-                   <button class="btn btn-default" type="button" onclick="javascript:location.href='mutirao.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href='distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($cha_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                  
     
 

@@ -168,7 +168,7 @@
 
          	 	<a class="btn btn-primary" href="estoque.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&est_cha=<?php echo($est_cha); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
-         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
+		<a class="btn btn-default" href="javascript:window.history.go(-1);"><i class="glyphicon glyphicon-arrow-left"></i> voltar</a>        
   
    
 	

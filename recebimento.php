@@ -98,6 +98,15 @@
   <div class="panel panel-default">
   <div class="panel-heading">
      <strong>Informações de Recebimento relacionado à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
+     <?php 
+		 if($action == ACAO_EXIBIR_LEITURA)
+		 {
+		   ?>	 
+		 <span class="pull-right"><a class="btn btn-xs btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="glyphicon glyphicon-edit"></i> editar</a></span>
+		 <?php
+		 }
+	  ?>     
+      
   </div>
 
 <?php
@@ -174,9 +183,11 @@
 			      ?>       
                   </div>      
 
-         	 	<a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+    <span class="pull-right"><a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>"><i class="glyphicon glyphicon-edit"></i> editar</a>    
+    </span>
+    <!--
          	&nbsp;&nbsp;
-         		<a class="btn btn-default" href="mutirao.php"><i class="glyphicon glyphicon-list"></i> voltar para mutirão</a>        
+         	<a class="btn btn-default" href="javascript:window.history.go(-1);"><i class="glyphicon glyphicon-arrow-left"></i> voltar</a>        -->
   
    
 	
@@ -218,7 +229,7 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Pedido</th>
-											<th>Recebido</th>
+											<th class="coluna-quantidade">Recebido</th>
 										</tr>
 								<?php
 								
@@ -232,7 +243,7 @@
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td><?php echo(formata_numero_de_mysql($row["total_pedido"]));?></td>
                             <td>
-                            <input type="text" class="input-mini propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>" name="chaprod_recebido[]"/>
+                            <input type="text" class="form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>" name="chaprod_recebido[]"/>
                             </td>
                                                      
                             </tr>
@@ -248,14 +259,18 @@
                        
                </div>
             
-	               <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                <span class="pull-right">
+                	  <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
+            <i class="glyphicon glyphicon-ok"></i> salvar alterações</button>
+                &nbsp;&nbsp;
                    
-                   &nbsp;&nbsp;
+                   <button class="btn btn-default" type="button" onclick="javascript:window.history.go(-1);"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                   
+                </span>
+                
+	             
                    
                    
-                   
-                   <button class="btn btn-default" type="button" onclick="javascript:location.href='mutirao.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                  
       </fieldset> 
     </form>
