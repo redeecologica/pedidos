@@ -73,11 +73,28 @@
 			  ?>
 
     		  <?php 
-			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_MUTIRAO] )			  
+			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_RESP_NUCLEO]  )			  
 					{
-			   ?>
-
-                    <li><a href="mutirao.php"><i class="glyphicon glyphicon-wrench"></i> Mutirão</a></li>  
+			   ?>               		
+                    
+					  <?php 
+                            if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_MUTIRAO] )			  
+                            {
+                       ?>
+                               <li><a href="mutirao.php"><i class="glyphicon glyphicon-wrench"></i> Mutirão</a></li>  
+                      <?php 
+                            } 			  
+                      ?>   
+                      
+                      
+					  <?php 
+                            if( ($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_PEDIDO]) && ($_SESSION[PAP_BETA_TESTER]) )			  
+                            {
+                       ?>
+			                    <li><a href="entregas.php"><i class="glyphicon glyphicon-fullscreen"></i> Entregas</a></li>    
+                      <?php 
+                            } 			  
+                      ?>                                     
 	               	<li class="divider"></li>
               <?php 
 			  		} 			  
