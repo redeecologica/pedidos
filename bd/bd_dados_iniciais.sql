@@ -7,7 +7,10 @@ INSERT INTO `papeis` (`pap_id`, `pap_nome`) VALUES
 (2, 'Responsável por Núcleo'),
 (3, 'Responsável por Pedido'),
 (4, 'Responsável pelo Mutirão'),
-(5, 'Beta Tester');
+(5, 'Beta Tester'),
+(6, 'Acompanhamento de Produtor'),
+(7, 'Acompanhamento Relatórios');
+
 
 INSERT INTO `nucleos` (`nuc_id`, `nuc_nome_curto`, `nuc_nome_completo`, `nuc_email`, `nuc_entrega_horario`, `nuc_entrega_endereco`, `nuc_archive`) VALUES
 (1, 'Núcleo Teste', 'Nucleo Teste Início Sistema', 'nucleo@mudar.com', '10h às 12h', 'Rua Tal, 123 - Bairro', 0);

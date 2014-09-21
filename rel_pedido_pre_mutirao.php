@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]);
   top();
   
  $cha_id=request_get("cha_id","");

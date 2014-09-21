@@ -13,6 +13,8 @@ define('PAP_RESP_NUCLEO',"Responsável por Núcleo");
 define('PAP_RESP_PEDIDO',"Responsável por Pedido");
 define('PAP_RESP_MUTIRAO',"Responsável pelo Mutirão");
 define('PAP_BETA_TESTER',"Beta Tester");
+define('PAP_ACOMPANHA_PRODUTOR',"Acompanhamento de Produtor");
+define('PAP_ACOMPANHA_RELATORIOS',"Acompanhamento Relatórios");
  
 
 define('ACAO_EXIBIR_LEITURA',0);

@@ -15,7 +15,7 @@
 		  <?php  
 		  
 		   // menu de administração
-			if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]  || $_SESSION[PAP_RESP_MUTIRAO] )			  
+			if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]  || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] )			  
 			{
            ?>
             <li class="dropdown">
@@ -61,7 +61,7 @@
 
 
 			  <?php 
-			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO]  )			  
+			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] )			  
 					{
 			   ?>
                     <li><a href="produtores.php"><i class="glyphicon glyphicon-picture"></i> Produtores</a></li>                
@@ -103,7 +103,7 @@
               
     
     		  <?php 
-			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] )			  
+			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] )			  
 					{
 			   ?>
 

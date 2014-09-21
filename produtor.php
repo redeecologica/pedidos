@@ -1,13 +1,16 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]);
+  
+  $action = request_get("action",-1);
+  if($action==-1) redireciona(PAGINAPRINCIPAL);
+		
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || ($_SESSION[PAP_ACOMPANHA_PRODUTOR] && $action == ACAO_EXIBIR_LEITURA ) );
   top();
 ?>
 
 <?php
 
-		$action = request_get("action",-1);
-		if($action==-1) redireciona(PAGINAPRINCIPAL);
+
 		
 		$forn_id =  request_get("forn_id","");
 
