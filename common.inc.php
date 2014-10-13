@@ -109,7 +109,7 @@ function adiciona_popover_descricao($titulo,$texto)
 {
 	if(isset($texto) && $texto!="")
 	{
-		echo(" <span class='btn-popover' data-content='" .  prep_para_html($texto) . "' data-html='true' data-title='" . $titulo . "' data-trigger='hover'><i class='glyphicon glyphicon-file'></i></span>");
+		echo(" <span class='btn-popover' data-content='" .  prep_para_html($texto) . "' data-html='true' data-title='" . $titulo . "' data-trigger='hover'><i class='glyphicon glyphicon-info-sign'></i></span>");
 	}	
 }
 

@@ -88,7 +88,7 @@
   
    
                         $sql = "SELECT prod_id, prod_nome, prod_descricao,FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, ";
-					$sql.= "forn_nome_completo, chaprod_disponibilidade, ";
+					$sql.= "forn_nome_completo, forn_link_info, chaprod_disponibilidade, ";
 					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade ";
 					$sql.= "FROM chamadaprodutos ";
                     $sql.= "LEFT JOIN produtos ON chaprod_prod = prod_id ";
@@ -97,7 +97,7 @@
                     $sql.= "WHERE chaprod_disponibilidade <>'0' ";
 					$sql.= "AND chaprod_cha = " . $bd_cha_id . " ";
 					$sql.= "AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
+                    $sql.= "ORDER BY forn_nome_completo, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
 														
                     if($res)
@@ -122,16 +122,21 @@
 					   $total_pedido=0;
                        while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                        {
-							if($row["forn_nome_curto"]!=$ultimo_forn)
+							if($row["forn_nome_completo"]!=$ultimo_forn)
 							{
 								
-								$ultimo_forn = $row["forn_nome_curto"];
+								$ultimo_forn = $row["forn_nome_completo"];
 								
 								?>
 								 
 										<tr>
 										  <th colspan="4">
-										  				<?php echo($row["forn_nome_completo"]);															
+										  				<?php echo($row["forn_nome_completo"]);
+														
+												  if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
+												  {
+													   echo("&nbsp;<a href='" . $row["forn_link_info"] . "' target='_blank'><span class='badge'><span class='glyphicon glyphicon-search'></span></span></a>");
+												  }																													
 										  				?>
                                             
                                               </th>

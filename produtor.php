@@ -176,7 +176,7 @@
             
              <div class="form-group">
                    <label class="control-label col-sm-2" for="forn_link_info">Link para descrição</label>
-                   <div class="col-sm-4">   
+                   <div class="col-sm-7">   
                     <input type="text" class="form-control" name="forn_link_info" value="<?php echo($forn_link_info); ?>" placeholder="Link com informações sobre o produtor para o cestante" />
     			   </div>
             </div>   

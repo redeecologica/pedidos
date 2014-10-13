@@ -288,8 +288,8 @@
 					$sql.= "prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
 					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, ";
 					$sql.= "FORMAT(prod_valor_venda,2) prod_valor_venda, chamadaprodutos.chaprod_prod, ";
-					$sql.= "chamadaprodutos.chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, ";
-					$sql.= "forn_id, forn_contatos, prod_prodt, FORMAT(est_prod_qtde_depois,1) em_estoque FROM produtos ";
+					$sql.= "chamadaprodutos.chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, forn_link_info, ";
+					$sql.= "forn_id, forn_info_chamada, prod_prodt, FORMAT(est_prod_qtde_depois,1) em_estoque FROM produtos ";
                     $sql.= "LEFT JOIN chamadaprodutos on chaprod_prod = prod_id AND chaprod_cha = " . prep_para_bd($cha_id) . " ";
                     $sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
                     $sql.= "LEFT JOIN fornecedores on prod_forn = forn_id ";
@@ -297,7 +297,7 @@
 					$sql.= "LEFT JOIN chamadaprodutos chamadaprodutos_anterior ON chamadaprodutos_anterior.chaprod_prod = prod_id ";
 					$sql.= " AND chamadaprodutos_anterior.chaprod_cha= " . $bd_id_chamada_anterior . " " ;				
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
-                    $sql.= "ORDER BY forn_nome_curto, prod_nome, prod_unidade ";
+                    $sql.= "ORDER BY forn_nome_completo, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
 							   
                     if($res)
@@ -307,18 +307,23 @@
 					   $ultimo_forn = "";
                        while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                        {
-							if($row["forn_nome_curto"]!=$ultimo_forn)
+							if($row["forn_nome_completo"]!=$ultimo_forn)
 							{
 								
-								$ultimo_forn = $row["forn_nome_curto"];
+								$ultimo_forn = $row["forn_nome_completo"];
 								$contador=0;
 								?>
                                 	<tr><th colspan="7">&nbsp;</th></tr>
 										<tr>
                                         	<th>&nbsp;</th>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
-											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_contatos"]);
+											  <?php 
+											  echo($row["forn_nome_curto"]);
+											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_info_chamada"]);
+											  if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
+											  {
+												   echo("&nbsp;<a href='" . $row["forn_link_info"] . "' target='_blank'><span class='badge'><span class='glyphicon glyphicon-search'></span></span></a>");
+											  }
 											  ?>
                                             </th>
 											<th style="width:185px">Disponível <span class="label label-info">azul = anterior</span><br>
