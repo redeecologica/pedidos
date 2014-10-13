@@ -9,7 +9,7 @@
 ?>
 
 <?php
-
+ 
 
 		
 		$forn_id =  request_get("forn_id","");
@@ -24,11 +24,13 @@
 			$forn_endereco = "";
 			$forn_archive = "";
 			$forn_id = "";
+			$forn_link_info = "";
+			$forn_info_chamada = "";
 		
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{
- 			 $campos = array('forn_nome_completo','forn_nome_curto','forn_contatos','forn_endereco','forn_email','forn_archive');  			
+ 			 $campos = array('forn_nome_completo','forn_nome_curto','forn_contatos','forn_endereco','forn_email','forn_archive','forn_link_info','forn_info_chamada');  			
 			 $sql=prepara_sql_atualizacao("forn_id",$campos,"fornecedores");
      		 $res = executa_sql($sql);
 			 if($res) 
@@ -55,6 +57,9 @@
 			$forn_contatos = $row["forn_contatos"];
 			$forn_endereco = $row["forn_endereco"];			
 			$forn_archive = $row["forn_archive"];
+			$forn_link_info = $row["forn_link_info"];
+			$forn_info_chamada = $row["forn_info_chamada"];
+			
 		   }
 		}		
 
@@ -86,7 +91,13 @@
 			</tr>        
     		<tr>
 				<th>Endereço:</th> <td><?php echo($forn_endereco); ?></td>
-			</tr>     
+			</tr>   
+    		<tr>
+				<th>Link com info do produtor para o cestante:</th> <td><?php echo($forn_link_info); ?></td>
+			</tr>   
+    		<tr>
+				<th>Informações para chamada:</th> <td><?php echo(prep_para_html($forn_info_chamada)); ?></td>
+			</tr>                
     		<tr>
 				<th>Situação:</th> <td><?php echo( ($forn_archive==1)?"Inativo":"Ativo"); ?></td>
 			</tr>                                    
@@ -162,6 +173,20 @@
                     <textarea name="forn_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo($forn_endereco); ?></textarea>
                   </div>
             </div>  
+            
+             <div class="form-group">
+                   <label class="control-label col-sm-2" for="forn_link_info">Link para descrição</label>
+                   <div class="col-sm-4">   
+                    <input type="text" class="form-control" name="forn_link_info" value="<?php echo($forn_link_info); ?>" placeholder="Link com informações sobre o produtor para o cestante" />
+    			   </div>
+            </div>   
+            
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="forn_info_chamada">Informações para realizar chamada</label>
+                  <div class="col-sm-7">
+                    <textarea name="forn_info_chamada" rows="6"  class="form-control" placeholder="Informações do produtor para auxiliar na criação da chamada"><?php echo($forn_info_chamada); ?></textarea>
+                  </div>
+            </div>              
        
                    <div class="form-group">
                 <label class="control-label col-sm-2" for="forn_archive">Situação: </label>

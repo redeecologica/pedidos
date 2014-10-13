@@ -133,6 +133,8 @@ CREATE TABLE IF NOT EXISTS `fornecedores` (
   `forn_endereco` varchar(400) DEFAULT NULL,
   `forn_contatos` varchar(400) DEFAULT NULL,
   `forn_archive` tinyint(2) DEFAULT '0',
+  `forn_link_info` VARCHAR(100) DEFAULT NULL,
+  `forn_info_chamada` TEXT,  
   PRIMARY KEY (`forn_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
