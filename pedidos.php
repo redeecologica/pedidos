@@ -94,11 +94,11 @@
 
 				<?php
 					
-					$sql = "SELECT ped_id, ped_cha, nucleos.nuc_id cest_nuc_id, usr_id, usr_email, usr_nome_curto, nucleo_entrega.nuc_nome_curto entrega_nuc_nome_curto, nucleos.nuc_nome_curto cest_nuc_nome_curto, ped_fechado, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao FROM usuarios ";
+					$sql = "SELECT ped_id, ped_cha, nucleos.nuc_id cest_nuc_id, usr_id, usr_email, usr_nome_curto, nucleo_entrega.nuc_nome_curto entrega_nuc_nome_curto, nucleos.nuc_nome_curto cest_nuc_nome_curto, ped_fechado, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, usr_archive FROM usuarios ";
 					$sql.= "LEFT JOIN pedidos ON ped_usr = usr_id  AND ped_cha = " . prep_para_bd($ped_cha) .  " ";	
 					$sql.= "LEFT JOIN nucleos ON usr_nuc = nucleos.nuc_id ";	
 					$sql.= "LEFT JOIN nucleos nucleo_entrega ON ped_nuc = nucleo_entrega.nuc_id ";
-					$sql.= "WHERE usr_archive = '0' ";
+					$sql.= "WHERE  (usr_archive = '0' or ( ped_id is not NULL) ) ";
 					if($ped_cha==-1)$sql.= " AND 0 "; // não permite que mostre todos... este é um parâmetro obrigatório
 					if($ped_nuc!=-1) $sql.= " AND nucleos.nuc_id = " . prep_para_bd($ped_nuc) .  " ";						
 					if($ped_status!="*")
@@ -142,7 +142,10 @@
                       <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                          <td><?php echo(++$contador);?></td>               
                          <td><?php echo($row['cest_nuc_nome_curto']);?> <?php if($row['entrega_nuc_nome_curto'] && $row['entrega_nuc_nome_curto']!=$row['cest_nuc_nome_curto']) echo("(entrega em ". $row['entrega_nuc_nome_curto'] . ")"); ?> </td>                         
-                         <td><?php echo($row['usr_nome_curto']);?></td>                                    
+                         <td><?php 
+						 	echo($row['usr_nome_curto']); 
+							if($row['usr_archive']) echo(" <span class='label label-danger'>inativo</span>");?>
+                         </td>                                    
 						 <td><?php echo($row['usr_email']);?></td>                                                             
                          <td><?php echo($row['ped_dt_atualizacao']); ?></td>      
                          <td>
