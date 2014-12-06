@@ -209,7 +209,7 @@
 		$sql.= "LEFT JOIN chamadas ON ped_cha = cha_id ";
 		$sql.= "LEFT JOIN chamadaprodutos ON chaprod_cha = ped_cha AND chaprod_prod = prod_id ";
 		$sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id ";
-		$sql.= "WHERE pedprod_quantidade > '0.0' ";
+		$sql.= "WHERE pedprod_quantidade > '0.0' AND chaprod_disponibilidade!='0' ";
 		$sql.= "AND pedprod_ped = " . prep_para_bd($ped_id) . " ";
 		$sql.= "AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
 

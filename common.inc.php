@@ -395,8 +395,8 @@ function gera_primeira_senha_acesso($usr_id)
 
 function get_hifen_se_zero($valor)
 {
-	if($valor==0) return "-";
-	return $valor;	
+	if ($valor=="0,0" || $valor=="0") return "-";
+	return $valor;
 }
 
 
