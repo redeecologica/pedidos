@@ -88,7 +88,6 @@ $sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, prod_unidade, usr_n
 
 $res = executa_sql($sql);
 
-echo("</div>");
 
 		if($res)
 		{
@@ -97,10 +96,12 @@ echo("</div>");
 								   
 			?>
          
-            <br>
-
+		  <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+           onclick="selectElementContents( document.getElementById('selectable') );">
+           <br><br>
+           
             
-			<table class="table table-striped table-bordered table-condensed">
+			<table id="selectable" class="table table-striped table-bordered table-condensed">
             <thead> 
              <tr>
                <th colspan="<?php echo($num_colunas); ?>" style="text-align:center;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
@@ -312,7 +313,6 @@ echo("</div>");
 		   
 		   <?php
 		} 
- echo("<div>") ;
 
  
 	footer();

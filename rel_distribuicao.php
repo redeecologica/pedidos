@@ -73,6 +73,15 @@ $res = executa_sql($sql);
 		   $total_qtde_produto=0;		   
 		   $num_colunas=count($nucleos)*2 +4;
 		   
+		   ?>
+		   <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+           onclick="selectElementContents( document.getElementById('selectable') );">
+           <br><br>
+           
+  		   <div id="selectable">
+           
+		   <?php			   
+		   
 		   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		   {
 				if($row["forn_nome_curto"]!=$ultimo_forn)
@@ -159,11 +168,13 @@ $res = executa_sql($sql);
          
           </tbody>
 		   </table>
+           
+           </div>
 		   
 		   <?php
 		} 
  
-	 echo("<div>") ;
+
  
 	footer();
 ?>

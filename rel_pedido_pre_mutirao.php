@@ -23,8 +23,15 @@
 
 <a class="btn btn-default" href="arquivos/modelo_relatorio_mutirao.xlsx"><i class="glyphicon glyphicon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
 
-</div>
+   <br /><br />
+	  <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+      onclick="selectElementContents( document.getElementById('selectable') );">
+       <br><br> 
+
+
 <br>
+
+<div id="selectable">
 
 <?php 
 
@@ -183,7 +190,7 @@ $res = executa_sql($sql);
 		   <?php
 		} 
  
-	 echo("<div>") ;
+	 echo("</div>") ;
  
 	footer();
 ?>

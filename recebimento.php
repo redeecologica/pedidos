@@ -94,6 +94,22 @@
 
 ?>
 
+ <?php 
+		 if($action == ACAO_EXIBIR_LEITURA)
+		 {
+		   ?>	 
+
+		    <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+	    		  onclick="selectElementContents( document.getElementById('selectable') );">
+		       <br><br> 
+		 <?php
+		 }
+	  ?>  
+      
+
+                
+      
+
   
   <div class="panel panel-default">
   <div class="panel-heading">
@@ -123,7 +139,14 @@
 					}
 					else if($res)
                     {
-						echo("<table class='table table-striped table-bordered table-condensed table-hover'>");
+						?>
+                            
+                        <div id="selectable">
+                        <table class='table table-striped table-bordered table-condensed table-hover'>
+                        
+                        <?php
+						
+
 
 					   $ultimo_forn = "";
                        while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
@@ -177,7 +200,7 @@
 
                        }
 					   
-					   echo("</table>");
+					   echo("</div></table>");
                     } 
                
 			      ?>       

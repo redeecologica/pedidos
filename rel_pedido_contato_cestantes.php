@@ -30,9 +30,11 @@
 
 <legend>Contato dos cestantes<?php if($ped_nuc!=0) echo(" de " . $nuc_nome_curto);?> que fizeram Pedido de <?php echo($prodt_nome . " - " . $cha_dt_entrega);?></legend>
 
-  
+ 		  <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+           onclick="selectElementContents( document.getElementById('selectable') );">
+           <br><br> 
        
-	<table class="table table-striped table-bordered">
+	<table id="selectable" class="table table-striped table-bordered">
 		<thead>
 	 		<tr>
 				<th>#</th>

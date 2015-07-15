@@ -66,6 +66,15 @@ $res = executa_sql($sql);
 		   $total_qtde_produto=0;	
 		   $num_colunas=count($nucleos)+5;
 		   
+		   ?>
+		   <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+           onclick="selectElementContents( document.getElementById('selectable') );">
+           <br><br>
+           
+  		   <div id="selectable">
+           
+		   <?php
+           
 		   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		   {
 				if($row["forn_nome_curto"]!=$ultimo_forn)
@@ -199,6 +208,8 @@ $res = executa_sql($sql);
                         <th style="text-align:center">R$ <?php echo(formata_moeda($total_geral_rede));?></th                  
                ></tbody>
 		   </table>
+           
+           </div>
 		   <?php
 		} 
  

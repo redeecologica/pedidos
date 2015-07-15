@@ -41,8 +41,12 @@ $res = executa_sql($sql);
 		   $total_geral_rede=0;	
 		   
 			?>
+            
+           <input class="btn btn-success" type="button" value="selecionar tabela para copiar" 
+           onclick="selectElementContents( document.getElementById('selectable') );">
+           <br><br> 
 
-                <table class="table table-striped table-bordered table-condensed">
+                <table id="selectable" class="table table-striped table-bordered table-condensed">
                 <thead>
                     <tr>
                               <th>Produtor (nome curto)</th>
