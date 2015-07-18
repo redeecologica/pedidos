@@ -17,6 +17,7 @@
 
 		if ( $action == ACAO_INCLUIR) // exibe formulário vazio para inserir novo registro
 		{
+			$forn_prodt = "";
 			$forn_nome_completo = "";
 			$forn_nome_curto = "";
 			$forn_email = "";
@@ -30,9 +31,12 @@
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{
- 			 $campos = array('forn_nome_completo','forn_nome_curto','forn_contatos','forn_endereco','forn_email','forn_archive','forn_link_info','forn_info_chamada');  			
+ 			 $campos = array('forn_prodt','forn_nome_completo','forn_nome_curto','forn_contatos','forn_endereco','forn_email','forn_archive','forn_link_info','forn_info_chamada');  			
 			 $sql=prepara_sql_atualizacao("forn_id",$campos,"fornecedores");
-     		 $res = executa_sql($sql);
+     		 
+			 $res = executa_sql($sql);
+			 
+			 
 			 if($res) 
 			 {
 				$action=ACAO_EXIBIR_LEITURA; //volta para modo visualização somente leitura
@@ -46,11 +50,14 @@
 		
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT * FROM fornecedores WHERE forn_id=" . prep_para_bd($forn_id) ;
+		  $sql = "SELECT fornecedores.*, prodt_nome FROM fornecedores ";
+  		  $sql.= "LEFT JOIN produtotipos ON forn_prodt = prodt_id  ";
+		  $sql.= "WHERE forn_id=" . prep_para_bd($forn_id) ;
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
-		  {		  
-	  
+		  {	
+		  	$forn_prodt = $row["forn_prodt"];
+			$prodt_nome = $row["prodt_nome"];
 			$forn_nome_completo = $row["forn_nome_completo"];
 			$forn_nome_curto = $row["forn_nome_curto"];
 			$forn_email = $row["forn_email"]; 
@@ -77,6 +84,10 @@
 
 <table class="table-condensed table-info-cadastro">
 		<tbody>
+        
+			<tr>
+				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+			</tr>        
     		<tr>
 				<th>Nome Completo:</th> <td><?php echo($forn_nome_completo); ?></td>
 			</tr>	    
@@ -137,6 +148,35 @@
  	 <div class="panel-body">         
           <input type="hidden" name="forn_id" value="<?php echo($forn_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
+          
+          
+          
+                 <div class="form-group">
+                   <label class="control-label col-sm-2" for="forn_prodt">Tipo</label>
+                   <div class="col-sm-2">                
+                     <select name="forn_prodt" id="forn_prodt" class="form-control">
+                       	<option value="-1">SELECIONAR</option>
+						<?php
+                            
+                            $sql = "SELECT prodt_id, prodt_nome ";
+                            $sql.= "FROM produtotipos ";
+                            $sql.= "ORDER BY prodt_nome ";
+                            $res = executa_sql($sql);
+                            if($res)
+                            {
+                              while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
+                              {
+                                 echo("<option value='" . $row['prodt_id'] . "'");
+                                 if($row['prodt_id']==$forn_prodt) echo(" selected");
+                                 echo (">" . $row['prodt_nome'] . "</option>");
+                              }
+                            }
+                        ?>            
+                     </select>                       
+                   </div>
+                 </div>
+                 
+                           
             <div class="form-group">
                <label class="control-label col-sm-2" for="forn_nome_completo">Nome Completo</label>
                  <div class="col-sm-6">

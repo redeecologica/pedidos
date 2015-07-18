@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS `estoque` (
 
 CREATE TABLE IF NOT EXISTS `fornecedores` (
   `forn_id` mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
+  `forn_prodt` SMALLINT(2) NOT NULL DEFAULT '-1',
   `forn_nome_curto` varchar(40) NOT NULL,
   `forn_nome_completo` varchar(150) DEFAULT NULL,
   `forn_email` varchar(150) DEFAULT NULL,
@@ -135,7 +136,8 @@ CREATE TABLE IF NOT EXISTS `fornecedores` (
   `forn_archive` tinyint(2) DEFAULT '0',
   `forn_link_info` VARCHAR(200) DEFAULT NULL,
   `forn_info_chamada` TEXT,  
-  PRIMARY KEY (`forn_id`)
+  PRIMARY KEY (`forn_id`),
+  KEY `fk_fornecedor_tipo_idx` (`forn_prodt`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
