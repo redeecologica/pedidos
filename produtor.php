@@ -4,7 +4,7 @@
   $action = request_get("action",-1);
   if($action==-1) redireciona(PAGINAPRINCIPAL);
 		
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || ($_SESSION[PAP_ACOMPANHA_PRODUTOR] && $action == ACAO_EXIBIR_LEITURA ) );
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || $_SESSION[PAP_ACOMPANHA_PRODUTOR]);
   top();
 ?>
 
