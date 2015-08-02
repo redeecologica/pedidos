@@ -58,27 +58,24 @@
 				$res = executa_sql($sql);	
 			}		
 			
-			// salva disponibilidade de produtos
-			$sql =  "SELECT prod_id FROM produtos ";
-			$sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND prod_prodt = " . prep_para_bd($cha_prodt) . " ";
-			$res = executa_sql($sql);			
-			if($res)
+			
+			// salva disponibilidade de produtos		
+			foreach($_POST as $p_campo=>$p_valor) 
 			{
-				while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
-				{
-					if(isset($_REQUEST["chaprod_prod_disponibilidade_" . $row["prod_id"]]))
-					{
-						$sql = "INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) ";
-						$sql.= "VALUES (" . prep_para_bd($cha_id) . "," . prep_para_bd($row["prod_id"]) . ", ";
-						$sql.= prep_para_bd($_REQUEST["chaprod_prod_disponibilidade_" . $row["prod_id"]]) . ") ";
-						$sql.= "ON DUPLICATE KEY UPDATE ";
-						$sql.= "chaprod_disponibilidade = " . prep_para_bd($_REQUEST["chaprod_prod_disponibilidade_" . $row["prod_id"]]);
-						$res2 = executa_sql($sql);
+			  if((strlen($p_campo)>29) && (substr($p_campo,0,29)== 'chaprod_prod_disponibilidade_')  && (is_numeric($p_campo[29]) ) )
+			  {
+				  		$prod_id =substr($p_campo,29, strlen($p_campo)-29);
 						
-					}					
+						$sql = "INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) ";
+						$sql.= "VALUES (" . prep_para_bd($cha_id) . "," . prep_para_bd($prod_id) . ", ";
+						$sql.= prep_para_bd($p_valor) . ") ";
+						$sql.= "ON DUPLICATE KEY UPDATE ";
+						$sql.= "chaprod_disponibilidade = " . prep_para_bd($p_valor);
+						$res2 = executa_sql($sql);															
 				}						
-			}			
-
+			}	
+			
+			
 			// atualiza informações da tabela chamadas
 			$sql = "UPDATE chamadas SET ";
 			$sql.= "cha_dt_min  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_min"] . " " .  $_REQUEST["cha_hh_min"])) . ", ";
@@ -404,7 +401,7 @@
 		  <div class="panel-footer">        
               <div class="form-group">
                   <div class="col-sm-offset-2">
-<button class="btn btn-primary" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+<button class="btn btn-primary btn-enviando" data-loading-text="salvando chamada..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
                    &nbsp;&nbsp;
                    <button class="btn btn-default" type="button" onclick="javascript:location.href='chamadas.php'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                   </div>
