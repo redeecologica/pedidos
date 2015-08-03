@@ -249,6 +249,8 @@ CREATE TABLE IF NOT EXISTS `produtos` (
   KEY `prod_id` (`prod_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
+-- campo prod_prodt não está sendo mais usado
+
 -- --------------------------------------------------------
 
 --

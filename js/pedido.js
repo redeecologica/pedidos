@@ -227,11 +227,6 @@ function validaNucleo(){
 }
 
 function validaProduto(){
-	if ($("#prod_prodt").val() == -1) {
-		alert("Por favor, selecione um Tipo antes de salvar suas alterações.");
-		$("#prod_prodt").focus();
-		return false;
-	}
 	if ($("#prod_forn").val() == -1) {
 		alert("Por favor, selecione um Produtor antes de salvar suas alterações.");
 		$("#prod_forn").focus();

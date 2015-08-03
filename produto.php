@@ -14,7 +14,6 @@
 		if ( $action == ACAO_INCLUIR) // exibe formulário vazio para inserir novo registro
 		{
 			$prod_nome = "";
-			$prod_prodt = "";
 			$prod_forn = "";
 			$prod_unidade = "";
 			$prod_valor_compra = "";
@@ -23,7 +22,6 @@
 			$prod_multiplo_venda = "";
 			$prod_descricao = "";
 			$forn_nome_curto = "";
-			$prodt_nome = "";
 	
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
@@ -46,11 +44,10 @@
 					$res = executa_sql($sql);
 			}
 
-			$sql = "INSERT INTO produtos (prod_id, prod_ini_validade, prod_fim_validade, prod_nome, prod_prodt, prod_forn, ";
+			$sql = "INSERT INTO produtos (prod_id, prod_ini_validade, prod_fim_validade, prod_nome, prod_forn, ";
 			$sql.= "prod_unidade, prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_multiplo_venda, prod_descricao) ";
 			$sql.= " VALUES (". prep_para_bd($prod_id) . ", NOW(), '9999-12-31', ";
 			$sql.= prep_para_bd($_REQUEST["prod_nome"]) . ", ";
-			$sql.= prep_para_bd($_REQUEST["prod_prodt"]) . ", ";
 			$sql.= prep_para_bd($_REQUEST["prod_forn"]) . ", ";
 			$sql.= prep_para_bd($_REQUEST["prod_unidade"]) . ", ";
 			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_valor_compra"])) . ", ";
@@ -76,9 +73,8 @@
 		
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT prod_auto_inc, prod_nome, prod_prodt, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto, prodt_nome FROM produtos ";
+		  $sql = "SELECT prod_auto_inc, prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto FROM produtos ";			
 		  $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id  ";
-		  $sql.= "LEFT JOIN produtotipos ON prod_prodt = prodt_id  ";
 		  $sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
 		  $sql.= "AND prod_id=". prep_para_bd($prod_id);
 		  $sql.= " ORDER BY prod_ini_validade DESC ";
@@ -88,7 +84,6 @@
 		  {	
 		  	$prod_auto_inc = $row["prod_auto_inc"];	  
 			$prod_nome = $row["prod_nome"];
-			$prod_prodt = $row["prod_prodt"];
 			$prod_forn = $row["prod_forn"];
 			$prod_unidade = $row["prod_unidade"];
 			$prod_valor_compra = formata_moeda($row["prod_valor_compra"]);
@@ -97,7 +92,6 @@
 			$prod_multiplo_venda = formata_moeda($row["prod_multiplo_venda"]);
 			$prod_descricao =  $row["prod_descricao"];
 			$forn_nome_curto = $row["forn_nome_curto"];
-			$prodt_nome = $row["prodt_nome"];
 
 		   }
 		}	
@@ -116,9 +110,6 @@
  
 <table class="table-condensed table-info-cadastro">
 		<tbody>
-			<tr>
-				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
-			</tr>
             <tr>
 				<th>Produtor:</th> <td><?php echo($forn_nome_curto); ?></td>
 			</tr>        
@@ -177,32 +168,6 @@
                  
           <input type="hidden" name="prod_id" value="<?php echo($prod_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
-
-                 <div class="form-group">
-                   <label class="control-label col-sm-2" for="prod_prodt">Tipo</label>
-                   <div class="col-sm-2">                
-                     <select name="prod_prodt" id="prod_prodt" class="form-control">
-                       	<option value="-1">SELECIONAR</option>
-						<?php
-                            
-                            $sql = "SELECT prodt_id, prodt_nome ";
-                            $sql.= "FROM produtotipos ";
-                            $sql.= "ORDER BY prodt_nome ";
-                            $res = executa_sql($sql);
-                            if($res)
-                            {
-                              while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
-                              {
-                                 echo("<option value='" . $row['prodt_id'] . "'");
-                                 if($row['prodt_id']==$prod_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
-                              }
-                            }
-                        ?>            
-                     </select>                       
-                   </div>
-                 </div>
-                 
 
                  <div class="form-group">
                   <label class="control-label col-sm-2" for="prod_forn">Produtor</label>

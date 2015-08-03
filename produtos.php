@@ -17,14 +17,14 @@
 <form class="form-inline" action="produtos.php" method="post" name="frm_filtro" id="frm_filtro">
 
 	<?php  
-  		$prod_prodt = request_get("prod_prodt",-1) ;
+  		$forn_prodt = request_get("forn_prodt",-1) ;
 		$prod_forn = request_get("prod_forn",-1) ;
 	?>
      <fieldset>     
      	<div class="form-group">
-  				<label for="prod_prodt">Tipo: </label>            
-                 <select name="prod_prodt" id="prod_prodt" onchange="javascript:frm_filtro.submit();" class="form-control">
-                        <option value="-1" <?php echo(($prod_prodt==-1)?" selected" : ""); ?> >TODOS</option>
+  				<label for="forn_prodt">Tipo Produtor: </label>            
+                 <select name="forn_prodt" id="forn_prodt" onchange="javascript:frm_filtro.prod_forn.selected=-1;frm_filtro.submit();" class="form-control">
+                        <option value="-1" <?php echo(($forn_prodt==-1)?" selected" : ""); ?> >TODOS</option>
 						<?php
                             
                             $sql = "SELECT prodt_id, prodt_nome ";
@@ -36,7 +36,7 @@
                               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
-                                 if($row['prodt_id']==$prod_prodt) echo(" selected");
+                                 if($row['prodt_id']==$forn_prodt) echo(" selected");
                                  echo (">" . $row['prodt_nome'] . "</option>");
                               }
                             }
@@ -53,8 +53,10 @@
                
                         $sql = "SELECT forn_id, forn_archive, forn_nome_curto ";
                         $sql.= "FROM fornecedores ";
+						if($forn_prodt!=-1) $sql.= " WHERE  forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
                         $sql.= "ORDER BY forn_archive, forn_nome_curto ";
                         $res = executa_sql($sql);
+						$achou=false;
                         if($res)
                         {
 						  $arquivados=0;
@@ -69,9 +71,14 @@
 								 }
 							 }
                              echo("<option value='" . $row['forn_id'] . "'");
-                             if($row['forn_id']==$prod_forn) echo(" selected");
+                             if($row['forn_id']==$prod_forn)
+							 {
+								  echo(" selected");
+								  $achou=true;
+							 }
                              echo (">" . $row['forn_nome_curto'] . "</option>");
                           }
+						  if(!$achou) $prod_forn = -1;
                         }
                     ?>                        
                 </select>                           
@@ -97,11 +104,11 @@
 		<tbody>
 				<?php
 					
-					$sql = "SELECT prod_id, prod_nome, prod_unidade,FORMAT(prod_valor_venda,2) prod_valor_venda, FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_forn, prod_prodt, prodt_nome, forn_nome_curto  ";
+					$sql = "SELECT prod_id, prod_nome, prod_unidade,FORMAT(prod_valor_venda,2) prod_valor_venda, FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_forn, forn_prodt, prodt_nome, forn_nome_curto  ";
 					$sql.= "FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
-					$sql.= "LEFT JOIN produtotipos ON prod_prodt = prodt_id ";						
+					$sql.= "LEFT JOIN produtotipos ON forn_prodt = prodt_id ";						
 					$sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
-					if($prod_prodt!=-1) $sql.= "  AND  prodt_id = " . prep_para_bd($prod_prodt) .  " ";
+					if($forn_prodt!=-1) $sql.= "  AND forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
 					if($prod_forn!=-1) 	 $sql.= " AND forn_id = " . prep_para_bd($prod_forn) .  " ";						
 					$sql.= "ORDER BY prodt_nome, forn_nome_curto, prod_nome, prod_unidade ";
 								
