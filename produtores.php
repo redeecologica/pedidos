@@ -17,9 +17,9 @@
 <form class="form-inline" action="produtores.php" method="post" name="frm_filtro" id="frm_filtro">
     
 	<?php  
-  		$forn_archive = isset($_REQUEST['forn_archive']) ? mysqli_real_escape_string($conn_link,$_REQUEST['forn_archive']) : 0 ;
+  		$forn_archive = request_get("forn_archive",0);
 		
-		$forn_prodt = request_get("forn_prodt",-1) ;
+		$forn_prodt = request_get("forn_prodt",-1);
 		
 		
 	?>

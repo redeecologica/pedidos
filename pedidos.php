@@ -154,7 +154,7 @@
                                 {
                                     echo("Sem pedido <a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_INCLUIR . "&amp;ped_cha=" . $ped_cha);
                                     echo("&amp;ped_usr=" . $row['usr_id'] . "\">");
-                                    echo("<i class=\"glyphicon glyphicon-plus\"></i> criar pedido</a>");						
+                                    echo("<i class=\"glyphicon glyphicon-plus\"></i> criar</a>");						
                                 }
                                 else
                                 {
@@ -163,13 +163,13 @@
                                                                 
                                     echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=0");
                                     echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-                                    echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
+                                    echo("<i class=\"glyphicon glyphicon-search\"></i> ver</a>");						
         
                                     if($row['ped_fechado']!=1)
                                     {
                                         echo("&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=1");
                                         echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-                                        echo("<i class=\"glyphicon glyphicon-edit\"></i> editar pedido</a>");
+                                        echo("<i class=\"glyphicon glyphicon-edit\"></i> editar</a>");
                                     }
                                 }
                              ?>
