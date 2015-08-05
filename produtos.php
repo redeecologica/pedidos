@@ -17,13 +17,15 @@
 <form class="form-inline" action="produtos.php" method="post" name="frm_filtro" id="frm_filtro">
 
 	<?php  
-  		$forn_prodt = request_get("forn_prodt",-1) ;
-		$prod_forn = request_get("prod_forn",-1) ;
+  		$forn_prodt = request_get("forn_prodt",-1);
+		$prod_forn = request_get("prod_forn",-1);
+  		$forn_archive = request_get("forn_archive",0); 
 	?>
      <fieldset>     
-     	<div class="form-group">
+     
+          	<div class="form-group">
   				<label for="forn_prodt">Tipo Produtor: </label>            
-                 <select name="forn_prodt" id="forn_prodt" onchange="javascript:frm_filtro.prod_forn.selected=-1;frm_filtro.submit();" class="form-control">
+                 <select name="forn_prodt" id="forn_prodt" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo(($forn_prodt==-1)?" selected" : ""); ?> >TODOS</option>
 						<?php
                             
@@ -44,6 +46,21 @@
                  </select>    
          </div>        
                  &nbsp;
+                 
+     
+          	  <div class="form-group">
+  		<label for="forn_archive">Situação Produtor: </label>&nbsp;
+            
+                    <select name="forn_archive" id="forn_archive" onchange="javascript:frm_filtro.submit();" class="form-control">
+                        <option value="-1" <?php echo( ($forn_archive)==-1?" selected" : ""); ?> >TODOS</option>
+                        <option value="0"  <?php echo( ($forn_archive)==0?" selected" : ""); ?> >Ativos</option>
+                        <option value="1"  <?php echo( ($forn_archive)==1?" selected" : ""); ?> >Inativos</option>            
+                    </select>     
+                    
+            </div>  
+            
+            &nbsp;
+
         <div class="form-group">            
   				<label for="prod_forn">Produtor: </label>            
                 <select name="prod_forn" id="prod_forn" onchange="javascript:frm_filtro.submit();" class="form-control">
@@ -54,6 +71,7 @@
                         $sql = "SELECT forn_id, forn_archive, forn_nome_curto ";
                         $sql.= "FROM fornecedores ";
 						if($forn_prodt!=-1) $sql.= " WHERE  forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
+						if($forn_archive!=-1) $sql.= " AND forn_archive = " . prep_para_bd($forn_archive) .  " ";
                         $sql.= "ORDER BY forn_archive, forn_nome_curto ";
                         $res = executa_sql($sql);
 						$achou=false;
@@ -109,6 +127,7 @@
 					$sql.= "LEFT JOIN produtotipos ON forn_prodt = prodt_id ";						
 					$sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
 					if($forn_prodt!=-1) $sql.= "  AND forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
+					if($forn_archive!=-1) $sql.= " AND forn_archive = " . prep_para_bd($forn_archive) .  " ";
 					if($prod_forn!=-1) 	 $sql.= " AND forn_id = " . prep_para_bd($prod_forn) .  " ";						
 					$sql.= "ORDER BY prodt_nome, forn_nome_curto, prod_nome, prod_unidade ";
 								
