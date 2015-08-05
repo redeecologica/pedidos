@@ -69,11 +69,12 @@
                     <?php
                
                         $sql = "SELECT forn_id, forn_archive, forn_nome_curto ";
-                        $sql.= "FROM fornecedores ";
-						if($forn_prodt!=-1) $sql.= " WHERE  forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
+                        $sql.= "FROM fornecedores WHERE 1 ";
+						if($forn_prodt!=-1) $sql.= " AND forn_prodt = " . prep_para_bd($forn_prodt) .  " ";
 						if($forn_archive!=-1) $sql.= " AND forn_archive = " . prep_para_bd($forn_archive) .  " ";
                         $sql.= "ORDER BY forn_archive, forn_nome_curto ";
                         $res = executa_sql($sql);
+
 						$achou=false;
                         if($res)
                         {
@@ -98,6 +99,7 @@
                           }
 						  if(!$achou) $prod_forn = -1;
                         }
+						
                     ?>                        
                 </select>                           
                     

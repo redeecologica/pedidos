@@ -143,8 +143,70 @@
       		<div class="col-sm-offset-2">
          	 	<a class="btn btn-primary" href="produto.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&prod_id=<?php echo($prod_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
          	&nbsp;&nbsp;
-         		<a class="btn btn-default" href="produtos.php"><i class="glyphicon glyphicon-list"></i> listar produtos</a>             </div>
+         		<a class="btn btn-default" href="produto.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&prod_id=<?php echo($prod_id); ?>&ver_historico=sim"><i class="glyphicon glyphicon-dashboard"></i> ver histórico de alterações</a>
+&nbsp;&nbsp;
+         		<a class="btn btn-default" href="produtos.php"><i class="glyphicon glyphicon-list"></i> listar produtos</a>
+                                
+             </div>
        </div>
+       
+       <?php
+       		$ver_historico =  request_get("ver_historico","");
+			if($ver_historico)
+			{
+			  $sql = "SELECT prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto, DATE_FORMAT(prod_ini_validade,'%d/%m/%Y %H:%i') as prod_data_alteracao FROM produtos ";			
+			  $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id  ";				  
+			  $sql.= "WHERE prod_id=". prep_para_bd($prod_id);
+			  $sql.= " ORDER BY prod_ini_validade DESC ";
+			  
+			  $res2 = executa_sql($sql);
+			  
+			  ?>
+              
+	<table class="table table-striped table-bordered">
+		<thead>
+			<tr>
+				<th>Atualização em</th>  
+                <th>Produtor</th>                
+        		<th>Nome</th>
+				<th>Unidade</th>
+				<th>Valor compra</th>
+				<th>Valor venda</th>                
+				<th>Venda com margem</th>
+                <th>Qte mínima</th>
+                <th>Descrição</th>
+			</tr>
+		</thead>
+		<tbody>
+              
+              <?php			  
+			  if($res2)
+			  {
+				while ($row = mysqli_fetch_array($res2,MYSQLI_ASSOC)) 
+				 {
+					echo("<tr>");
+					echo("<td>".$row["prod_data_alteracao"]."</td>");
+					echo("<td>".$row["forn_nome_curto"]."</td>");
+					echo("<td>".$row["prod_nome"]."</td>");
+					echo("<td>".$row["prod_unidade"]."</td>");					
+					echo("<td>".$row["prod_valor_compra"]."</td>");
+					echo("<td>".$row["prod_valor_venda"]."</td>");
+					echo("<td>".$row["prod_valor_venda_margem"]."</td>");
+					echo("<td>".$row["prod_multiplo_venda"]."</td>");	
+					echo("<td>".$row["prod_descricao"]."</td>");																				
+					echo("</tr>");
+		  
+					
+				 }	
+			   }	
+			   
+			  
+			  echo("</tbody>") ;
+			  echo("</table>") ;			  
+			   			
+			}
+			
+	   ?>
        
  </div>
    
@@ -206,9 +268,6 @@
                                                    
                   </div>                  
             	</div>  
-
-       
-                 
 
 
             <div class="form-group">
