@@ -170,4 +170,6 @@ pip-log.txt
 settings.php
 
 
+# Este diretório será um outro repositório com o código para integração do sistema com wordpress
+intranet/
 
