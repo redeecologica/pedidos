@@ -42,7 +42,8 @@
 			$usr_archive = "";		
 			$nuc_nome_curto = "";		
 			$usr_associado=0;
-			$usr_desde="";			
+			$usr_desde="";	
+			$usr_atividades="";							
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{			
@@ -74,7 +75,7 @@
 			 
 			 if($salvar)		 
 			 {				 									
-				 $campos = array('usr_nome_completo','usr_nome_curto','usr_contatos','usr_endereco','usr_email','usr_email_alternativo','usr_nuc','usr_archive','usr_associado');  			
+				 $campos = array('usr_nome_completo','usr_nome_curto','usr_contatos','usr_endereco','usr_email','usr_email_alternativo','usr_nuc','usr_archive','usr_associado', 'usr_atividades');  			
 				 $sql=prepara_sql_atualizacao("usr_id",$campos,"usuarios");				 
 				 $res = executa_sql($sql);				 
 				 if($usr_id=="") $usr_id = id_inserido();	
@@ -115,7 +116,8 @@
 				$usr_archive = request_get('usr_archive',"");		
 				$nuc_nome_curto = "";		
 				$usr_associado=request_get('usr_associado',0);	
-				$usr_associado=request_get('usr_desde',"");	
+				$usr_desde=request_get('usr_desde',"");	
+				$usr_atividades=request_get('usr_atividades',"");					
 							
 				
 			 }
@@ -127,7 +129,7 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, usr_associado, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id WHERE usr_id=". prep_para_bd($usr_id);
+		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, usr_associado, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto, usr_atividades FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id WHERE usr_id=". prep_para_bd($usr_id);
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		  {		  
@@ -143,6 +145,7 @@
 			$nuc_nome_curto = $row['nuc_nome_curto'];
 			$usr_sem_senha_acesso = $row['usr_sem_senha_acesso'];
 			$usr_desde = $row['usr_desde'];
+			$usr_atividades = $row['usr_atividades'];			
 
 		   }
 		}		
@@ -161,6 +164,9 @@
 
 <table class="table-condensed table-info-cadastro">
 		<tbody>
+			<tr>
+				<th>Data Entrada:</th> <td><?php echo($usr_desde); ?></td>
+			</tr>           
     		<tr>
 				<th>Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
 			</tr>	    
@@ -210,7 +216,12 @@
 			</tr>                                    
     		<tr>
 				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
-			</tr>
+			</tr>            
+                       
+			<tr>
+				<th>Atividades Atuais:</th> <td><?php echo($usr_atividades); ?></td>
+			</tr>               
+            
         </tbody>    
   </table>
   </div>
@@ -395,6 +406,17 @@
             <?php		  
 				  } // fim do if (tem permissão)
             ?>
+               
+           <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na Rede</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>
+                    <br>                    
+                  </div>
+                  <span class="help-block">Exemplos: Acolhida; Comissão Gestora; Participação em mutirões no ano; Acompanhamento Produtor Ecobio;  Acompanhamento Produtor Biorga; Acompanhamento Produtor Amarea; ...</span>
+            </div>
+            
+               
                     
 	</div> 
 

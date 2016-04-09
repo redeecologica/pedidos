@@ -326,6 +326,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `usr_endereco` varchar(300) DEFAULT NULL,
   `usr_contatos` varchar(300) DEFAULT NULL,
   `usr_desde` date DEFAULT NULL,
+  `usr_atividades` VARCHAR(600) NOT NULL DEFAULT 'a preencher',
   `usr_archive` tinyint(2) DEFAULT '0',
   `usr_dt_atualizacao` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`usr_id`),
