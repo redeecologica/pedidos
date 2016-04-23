@@ -6,8 +6,8 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title><?php echo(NOME_SISTEMA); ?></title>
-	<link href="css/bootstrap-3.3.5.min.css" rel="stylesheet" media="screen" />
-	<link href="css/bootstrap-theme.min.css?ver=3.3.5" rel="stylesheet" media="screen" />
+	<link href="css/bootstrap-3.3.6.min.css" rel="stylesheet" media="screen" />
+	<link href="css/bootstrap-theme-3.3.6.min.css" rel="stylesheet" media="screen" />
 	<link href="css/complemento.css?ver=1.2" rel="stylesheet" media="screen" /> 
 	<link href="css/datepicker.min.css" rel="stylesheet" media="screen">
     
@@ -18,7 +18,7 @@
 	  		document.write(unescape('%3Cscript%20src%3D%22js/jquery-1.12.2.min.js%22%3E%3C/script%3E'));
 		}
 	</script>    
-	<script src="js/bootstrap-3.3.5.min.js"></script>
+	<script src="js/bootstrap-3.3.6.min.js"></script>
 	<script src="js/pedido.js?ver=1.8.0"></script>
 	<script src="js/bootstrap-datepicker.min.js" charset="UTF-8"></script>
     <script src="js/locales/bootstrap-datepicker.pt-BR.js" charset="UTF-8"></script>
