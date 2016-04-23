@@ -14,5 +14,5 @@ A instalação consiste em:
 1) disponibilizar os arquivos desta distribuição no diretório destinado à aplicação (não copiar o diretório "bd").
 2) renomear o arquivo settings.php.sample para settings.php e editá-lo de acordo com as configurações do GCR associado.
 3) criar o banco de dados inicial conforme descrito em (bd/leiame.txt).
-4) para alterar a imagem que aparece no cabeçalho, para uma representativa do GCR associado, alterar o arquivo (img/logo_sistema.gif).
+4) para alterar a imagem que aparece no cabeçalho, para uma representativa do GCR associado, alterar o arquivo (img/logo_sistema.png).
 
