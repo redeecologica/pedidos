@@ -2,8 +2,8 @@
  <nav class="navbar navbar-default" role="navigation">
 
 	<div class="container-fluid">
-      <div class="navbar-header">      
-        <span class="navbar-brand">Bem-vindo(a), <?php echo($_SESSION["usr.nome"]); ?></span>
+      <div class="navbar-header">        	   
+        <span class="navbar-brand"><small>Bem-vindo(a), <strong><?php echo($_SESSION["usr.nome"]); ?></strong></small></span>
        </div>
 
       <div class="collapse navbar-collapse">                
@@ -11,6 +11,8 @@
           
             <li><a href="index.php"><i class="glyphicon glyphicon-home"></i> Início</a></li>
             <li><a href="meuspedidos.php"><i class="icon-pedidos-shopping-bag"></i> Meus Pedidos</a></li>
+		    <li><a href="contatos.php"><i class="glyphicon glyphicon-phone-alt"></i> Contatos</a></li>        
+          
             		  
 		  <?php  
 		  
