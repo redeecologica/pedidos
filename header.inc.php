@@ -11,11 +11,11 @@
 	<link href="css/complemento.css?ver=1.2" rel="stylesheet" media="screen" /> 
 	<link href="css/datepicker.min.css" rel="stylesheet" media="screen">
     
-  	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <script>
 		if (typeof jQuery === 'undefined') 
 		{
-	  		document.write(unescape('%3Cscript%20src%3D%22js/jquery-1.11.3.min.js%22%3E%3C/script%3E'));
+	  		document.write(unescape('%3Cscript%20src%3D%22js/jquery-1.12.2.min.js%22%3E%3C/script%3E'));
 		}
 	</script>    
 	<script src="js/bootstrap-3.3.5.min.js"></script>
