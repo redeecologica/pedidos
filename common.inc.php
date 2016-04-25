@@ -57,28 +57,50 @@ mysqli_set_charset($conn_link,'utf8');
 function verifica_seguranca($parametro_validacao = true)
 {
 	$validado = false;
+	$pagina="login.php";
 	
 	if(( isset($_SESSION["usr.id"]) && strlen($_SESSION["usr.id"]) ) )
 	{
-		if(isset($_SESSION[PAP_ADM]) && $_SESSION[PAP_ADM] ) $validado = true;
-		else
+		$sql = "SELECT usr_archive FROM usuarios ";
+		$sql.= " WHERE usr_id = " . prep_para_bd($_SESSION["usr.id"]);				
+		$res = executa_sql($sql);
+		if($res)
 		{
-			$validado = $parametro_validacao;			
-		}
-	}
+			if(mysqli_num_rows($res))
+			{
+				$row = mysqli_fetch_array($res,MYSQLI_ASSOC);
+				if($row["usr_archive"]==1)
+				{
+					adiciona_mensagem_status(MSG_TIPO_ERRO,"Usuário não possui mais conta.");
+					$pagina="login.php?logoff=sim";
+				}	
+				else
+				{
+					if(isset($_SESSION[PAP_ADM]) && $_SESSION[PAP_ADM] ) 
+					{
+						$validado = true;
+					}
+					else
+					{
+						$validado = $parametro_validacao;			
+					}
+					
+					if(!$validado)
+					{					
+						adiciona_mensagem_status(MSG_TIPO_ERRO,"Usuário não possui permissão para a ação executada.");
+						$pagina=PAGINAPRINCIPAL;
+					}
+				}
+			}		
+		}					 
+	}	
+	else $pagina="login.php";
+
 	
-	if(! $validado )
+	if(!$validado )
 	{
-		if(isset($_SESSION["usr.id"]) && strlen($_SESSION["usr.id"]))
-		{
-			 adiciona_mensagem_status(MSG_TIPO_ERRO,"Usuário não possui permissão para a ação executada.");
-			 $pagina=PAGINAPRINCIPAL;
-		}
-		else $pagina="login.php";
-		
 		header("Location:$pagina");
-		redireciona("$pagina");
-		
+		redireciona("$pagina");		
 		exit();
 	}
 }
