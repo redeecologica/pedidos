@@ -82,19 +82,45 @@
 				 if($res)
 				 {
 					  $sucesso = true;
-					  $usr_desde = request_get("usr_desde","");
 					  
-					  if ($usr_desde=="") $bd_usr_desde = 'Null';
-					  else $bd_usr_desde = prep_para_bd(formata_data_para_mysql($usr_desde));
+					// atualiza pedidos em aberto para o novo núcleo e para o novo status de associação  
+					$sql = "UPDATE pedidos SET ";
+					$sql.= " ped_usr_associado =  " . prep_para_bd(request_get('usr_associado',0)) . ", ";
+					if (request_get('usr_archive',0)==1) $sql.= " ped_fechado =  0, "; // caso o cestante tenha ficado inativo, cancela o pedido em aberto
+					$sql.= " ped_nuc =  " . prep_para_bd(request_get('usr_nuc',0)) . " ";
+					$sql.= " WHERE ped_usr=" . prep_para_bd($usr_id) . " AND ";	
+					$sql.= " ped_cha IN( SELECT cha_id FROM chamadas where cha_dt_max > now() ) ";
+					$res2 = executa_sql($sql);
+					if(!$res2) $sucesso = false;
+					
+					// remove produtos que não estão disponíveis para este novo núcleo do cestante
+					$sql = "UPDATE pedidoprodutos SET ";
+					$sql.= " pedprod_quantidade = '0' ";		
+					$sql.= " WHERE ";
+					$sql.= " pedprod_ped IN  ";
+					$sql.= "   (SELECT ped_id FROM pedidos LEFT JOIN chamadas ON ped_cha = cha_id WHERE ped_usr=" . prep_para_bd($usr_id) . " AND  cha_dt_max > now() ) ";
+					$sql.= " AND pedprod_prod NOT IN ";
+					$sql.= "   (SELECT prod_id FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
+					$sql.= "     LEFT JOIN nucleofornecedores ON prod_forn = nucforn_forn ";
+					$sql.= "     WHERE nucforn_nuc=" .prep_para_bd(request_get('usr_nuc',0)) . ")";
+					$res3 = executa_sql($sql);
+					if(!$res3) $sucesso = false;
+					
+				   
+				    $usr_desde = request_get("usr_desde","");
 					  
- 					  $sql = "UPDATE usuarios SET usr_desde = " . $bd_usr_desde;
- 					  $sql.= " WHERE usr_id=". prep_para_bd($usr_id) . " ";	
-					  $res = executa_sql($sql);			 		 						 						 
-					  if(!$res) $sucesso=false;					 
+					if ($usr_desde=="") $bd_usr_desde = 'Null';
+					else $bd_usr_desde = prep_para_bd(formata_data_para_mysql($usr_desde));
+					  
+ 					$sql = "UPDATE usuarios SET usr_desde = " . $bd_usr_desde;
+ 					$sql.= " WHERE usr_id=". prep_para_bd($usr_id) . " ";	
+					$res = executa_sql($sql);			 		 						 						 
+					if(!$res) $sucesso=false;				
+
 				 }
 				 if(!$sucesso)
 				 {
-					adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações do(a) cestante " . $_REQUEST["usr_nome_curto"] . ".");								 
+					adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar algumas informações do(a) cestante " . $_REQUEST["usr_nome_curto"] . ".");								 
 				 }
 			 }
 			 
@@ -164,9 +190,6 @@
 
 <table class="table-condensed table-info-cadastro">
 		<tbody>
-			<tr>
-				<th>Data Entrada:</th> <td><?php echo($usr_desde); ?></td>
-			</tr>           
     		<tr>
 				<th>Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
 			</tr>	    
@@ -191,6 +214,11 @@
 				<th>Data de Entrada:</th> <td><?php echo($usr_desde); ?></td>
 			</tr>                   
              
+			<tr>
+				<th>Atividades Atuais:</th> <td><?php echo($usr_atividades); ?></td>
+			</tr>   
+            
+                         
     		<tr>
 				<th>Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
 			</tr> 
@@ -218,9 +246,7 @@
 				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
 			</tr>            
                        
-			<tr>
-				<th>Atividades Atuais:</th> <td><?php echo($usr_atividades); ?></td>
-			</tr>               
+            
             
         </tbody>    
   </table>
@@ -322,13 +348,80 @@
                   	<input type="text"  value="<?php echo($usr_desde); ?>" class="data form-control" name="usr_desde" id="usr_desde"/ >                    
                   </div>
 			<span class="help-block">Ex.: 15/09/2010</span>
-            </div>             
+            </div>      
+            
+  <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na Rede</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>
+                    <br>                    
+                  </div>
+                  <span class="help-block">Exemplos: Acolhida; Comissão Gestora; Participação em mutirões no ano; Acompanhamento Produtor Ecobio;  Acompanhamento Produtor Biorga; Acompanhamento Produtor Amarea; ...</span>
+            </div>                   
 
 
 			<?php 
 			   if($_SESSION[PAP_ADM]  || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_PEDIDO] )
                   { 
              ?>
+             		
+                     <?php
+					 
+					 
+                                $sql = "SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega_formatado, ";
+								$sql.= "DATE_FORMAT(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max_formatado, ";
+								$sql.= "cha_dt_max > now() dentro_prazo_edicao, ";						
+								$sql.= "prodt_nome, ped_fechado, ped_usr_associado ";								
+                                $sql.= "FROM usuarios ";
+								$sql.= "LEFT JOIN pedidos ON ped_usr = usr_id ";
+								$sql.= "LEFT JOIN chamadas ON ped_cha = cha_id ";
+								$sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";								
+                                $sql.= "WHERE ped_usr=" . prep_para_bd($usr_id) . " AND ";	
+								$sql.= " ( cha_dt_max > now() OR (cha_dt_max < now() AND cha_dt_entrega > now() AND ped_fechado='1' ) ) ";
+								$sql.= "ORDER BY dentro_prazo_edicao DESC, cha_dt_entrega ";
+                                $res3 = executa_sql($sql);
+
+                                if($res3)
+                                {
+								  echo("<p class='bg-danger'><strong>Atenção ao alterar algum dos campos abaixo, pois há  pedido deste cestante ainda a ser entregue.</strong><br>");
+								  $primeiro_fora = $primeiro_dentro = 1;
+                                  while ($row = mysqli_fetch_array($res3,MYSQLI_ASSOC)) 
+                                  {
+									 if($row['dentro_prazo_edicao'])
+									 {
+										if($primeiro_dentro) echo("<br><strong>&nbsp; - Pedido(s) com chamada ainda em aberto:</strong><br>");
+										$primeiro_dentro = 0;
+									 }
+									 else
+									 {
+										if($primeiro_fora) echo("<br><strong>&nbsp; - Pedido(s) com chamada já encerrada:</strong><br>");
+										$primeiro_fora = 0;
+									 }									 
+									 echo("&nbsp; &nbsp; - " . $row['prodt_nome'] . " entrega em " . $row['cha_dt_entrega_formatado']);
+									 echo(" (prazo edição pedido: " . $row['cha_dt_max_formatado'] . ") - ");
+									 echo("Status pedido: " . ($row['ped_fechado']==1 ? "Enviado" : "Em elaboração") .  "<br>");	 									 
+                                     
+                                  } // end while
+								  ?>
+                                  <br><strong>Leia com atenção as orientações sobre o que ocorrerá com os pedidos ainda não entregues, para cada caso:</strong><br><br>
+                                 
+                                  <strong>Para pedido com chamada ainda em aberto:</strong><br>
+                                   &nbsp; - Se alterar o núcleo do cestante, o núcleo de entrega do respectivo pedido será mudado para o novo núcleo. Como consequência: caso o pedido contenha produtos de produtores que não atendem este novo núcleo, estes produtos serão automaticamente removidos do pedido. <br>
+                                  &nbsp; - Se alterar o status da associação (associado / não associado) do cestante, o status de associado do respectivo pedido será mudado para a nova situação.<br>
+								  &nbsp; - Se alterar o cestante para inativo, seu respectivo pedido será automaticamente cancelado (vai para o status 'Em Elaboração'). Se por acaso o cestante retornar para ativo dentro deste período, precisará entrar no pedido e enviar novamente.<br>
+                                  
+                                  <br>
+                                   <strong>Para pedido com chamada já encerrada:</strong><br>
+                                 Para estes casos o pedido não pode mais ser alterado, pois se o prazo para edição terminou significa que a logística já começou. Então o pedido fica congelado. Se o cestante mudar de núcleo, precisará resgatar este pedido no núcleo antigo, onde será entregue. Se o cestante ficar inativo, precisará resolver o resgate / pagamento deste pedido. <br><br>                                 
+                                  
+                                  </p>
+                                  
+								  <?php
+								  
+                                } // end if tem pedidos a serem entregues
+                    ?>   
+                            
+                    
                      <div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
                       <div class="col-sm-3">                                       
@@ -407,14 +500,7 @@
 				  } // fim do if (tem permissão)
             ?>
                
-           <div class="form-group">
-                <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na Rede</label>
-                  <div class="col-sm-4">
-                    <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>
-                    <br>                    
-                  </div>
-                  <span class="help-block">Exemplos: Acolhida; Comissão Gestora; Participação em mutirões no ano; Acompanhamento Produtor Ecobio;  Acompanhamento Produtor Biorga; Acompanhamento Produtor Amarea; ...</span>
-            </div>
+         
             
                
                     

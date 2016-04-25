@@ -108,19 +108,12 @@
 				$res = executa_sql($sql);
 			}
 			
-			// se núcleo do usuário alterou, ou se o tipo de associado dele mudou, modifica no pedido
-			$sql = "SELECT usr_nuc, usr_associado, ped_fechado FROM pedidos LEFT JOIN usuarios ON ped_usr = usr_id WHERE ped_id = $ped_id_bd";
+			$sql = "SELECT ped_fechado FROM pedidos WHERE ped_id = $ped_id_bd";
 			$res = executa_sql($sql);
 			$ped_fechado=0;
 			if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 			{
 				$ped_fechado=$row['ped_fechado'];
-				$sql = "UPDATE pedidos SET ";
-				$sql.= "ped_nuc = " . prep_para_bd($row['usr_nuc']) . ", ";
-				$sql.= "ped_usr_associado = " . prep_para_bd($row['usr_associado']) . ", ";
-				$sql.= "ped_dt_atualizacao  = NOW() ";
-				$sql.= "WHERE ped_id = $ped_id_bd";
-				$res = executa_sql($sql);
 			}
 			
 			if($res) 
@@ -384,8 +377,10 @@
                     $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id ";
                     $sql.= "LEFT JOIN pedidos ON cha_id = ped_cha AND ped_id = " . prep_para_bd($ped_id) . " ";
                     $sql.= "LEFT JOIN pedidoprodutos ON pedprod_prod = prod_id AND pedprod_ped = ped_id ";
+					$sql.= "LEFT JOIN nucleofornecedores ON (nucforn_nuc = ped_nuc AND nucforn_forn=prod_forn) ";
 
                     $sql.= "WHERE chaprod_disponibilidade <>'0' ";
+					$sql.= "AND nucforn_nuc IS NOT NULL ";
 					$sql.= "AND chaprod_cha = " . prep_para_bd($ped_cha) . " ";
 					$sql.= "AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
 

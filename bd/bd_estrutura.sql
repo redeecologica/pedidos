@@ -37,6 +37,24 @@ DROP TABLE IF EXISTS `chamadanucleos`;
 DROP TABLE IF EXISTS `chamadaprodutos`;
 DROP TABLE IF EXISTS `produtos`;
 DROP TABLE IF EXISTS `pedidos`;
+DROP TABLE IF EXISTS `nucleofornecedores`;
+
+
+--
+-- Table structure for table `nucleofornecedores`
+--
+
+CREATE TABLE IF NOT EXISTS `nucleofornecedores` (
+  `nucforn_nuc` mediumint(6) unsigned NOT NULL,
+  `nucforn_forn` mediumint(6) unsigned NOT NULL,
+  PRIMARY KEY (`nucforn_nuc`,`nucforn_forn`),
+  KEY `fk_nucleofornecedor_nucleo_idx` (`nucforn_nuc`),
+  KEY `fk_nucleofornecedor_fornecedor_idx` (`nucforn_forn`),
+  KEY `nucforn.nuc` (`nucforn_nuc`),
+  KEY `nucforn.forn` (`nucforn_forn`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 
 --
 -- Table structure for table `chamadanucleos`
