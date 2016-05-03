@@ -83,9 +83,9 @@
 			}
 			else
 			{
-				$sql = "INSERT INTO pedidos (ped_cha, ped_usr, ped_fechado, ped_nuc) ";
+				$sql = "INSERT INTO pedidos (ped_cha, ped_usr, ped_fechado, ped_nuc, ped_usr_associado) ";
 				$sql.= "SELECT " . prep_para_bd($ped_cha) . " ," . prep_para_bd($ped_usr) . ", '0', ";
-				$sql.= " usr_nuc FROM usuarios WHERE usr_id = " . prep_para_bd($ped_usr);
+				$sql.= " usr_nuc, usr_associado FROM usuarios WHERE usr_id = " . prep_para_bd($ped_usr);
 				$res = executa_sql($sql);							 
 				$ped_id = id_inserido();
 			}
@@ -130,7 +130,7 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-			$sql = "SELECT (cha_dt_max<now()) somente_leitura, usr_nome_curto, ped_usr, usr_associado, ped_usr_associado, usr_nome_completo, usr_contatos, prodt_nome, ";
+			$sql = "SELECT (cha_dt_max<now()) somente_leitura, usr_nome_curto, ped_usr, ped_usr_associado, usr_nome_completo, usr_contatos, prodt_nome, ";
 			$sql.= "nuc_nome_curto, nuc_id, ped_fechado, ped_cha, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, ";
 			$sql.= "DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max  FROM pedidos ";
 			$sql.= "LEFT JOIN usuarios ON ped_usr = usr_id ";	
@@ -146,9 +146,7 @@
 			$prodt_nome = $row["prodt_nome"]; 
 			$usr_nome_curto = $row["usr_nome_curto"];
 			$usr_contatos = $row["usr_contatos"];
-			$usr_associado = $row["usr_associado"];
-			if($action == ACAO_EXIBIR_EDICAO) $ped_usr_associado = $row["usr_associado"]; 
-			else $ped_usr_associado = $row["ped_usr_associado"]; 
+			$ped_usr_associado = $row["ped_usr_associado"]; 
 			$usr_nome_completo = $row["usr_nome_completo"];
 			$nuc_nome_curto = $row["nuc_nome_curto"];						
 			$nuc_id = $row["nuc_id"];									
@@ -178,7 +176,7 @@
       <div class="row">
        	<div class="col-md-5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
         <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
-     	<div class="col-md-3"><strong>Associado:</strong> <?php echo($usr_associado==1 ? "Sim" : "Não")?></div>
+     	<div class="col-md-3"><strong>Associado:</strong> <?php echo($ped_usr_associado==1 ? "Sim" : "Não")?></div>
 	    <div class="col-md-8"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-danger") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
         
      
@@ -362,7 +360,8 @@
 <form action="pedido.php" method="post" class="form-horizontal">
   <fieldset>
           <input type="hidden" name="ped_id" value="<?php echo($ped_id); ?>" />
-          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
+            
           
 <?php
  
