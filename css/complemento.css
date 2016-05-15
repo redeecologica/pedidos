@@ -55,6 +55,33 @@
 }
 /* fim capricho na tabela de pedido */
 
+@media print{
+	.table-pedido thead th {
+		font-size:12px;
+	}
+	
+	.table-pedido tbody th {
+		font-size:12px;
+	}
+	
+	.table-pedido tbody td {
+		font-size:12px;
+	    line-height: normal;
+	}		
+	
+	.table-condensed>tbody>tr>td {
+		font-size:12px;
+	    line-height: normal;
+	    padding: 1px;			
+	}
+	
+	.table-condensed>tbody>tr>th {
+		font-size:12px;
+	    line-height: 1.1;
+	    padding: 3px;			
+	}	
+}
+
 
 /* capricho no formulário de login */
 

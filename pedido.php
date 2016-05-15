@@ -108,6 +108,14 @@
 				$res = executa_sql($sql);
 			}
 			
+			// atualiza data de ultima atualização do pedido
+			$sql = "UPDATE pedidos SET ";
+			$sql.= "ped_dt_atualizacao  = NOW() ";
+			$sql.= "WHERE ped_id = $ped_id_bd";
+			$res = executa_sql($sql);
+			
+			
+			
 			$sql = "SELECT ped_fechado FROM pedidos WHERE ped_id = $ped_id_bd";
 			$res = executa_sql($sql);
 			$ped_fechado=0;
@@ -176,12 +184,15 @@
       <div class="row">
        	<div class="col-md-5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
         <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
-     	<div class="col-md-3"><strong>Associado:</strong> <?php echo($ped_usr_associado==1 ? "Sim" : "Não")?></div>
-	    <div class="col-md-8"><strong>Status do Pedido:</strong>    <span class="label <?php echo($ped_fechado ? "label-success" : "label-danger") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?></span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) </div>
+     	<div class="col-md-3 hidden-print"><strong>Associado:</strong> <?php echo($ped_usr_associado==1 ? "Sim" : "Não")?></div>
+	    <div class="col-md-8"><strong>Status do Pedido:</strong>         	
+             <span class="label <?php echo($ped_fechado ? "label-success" : "label-danger\" style=\"font-size:larger;\"") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?>
+             </span> (última atualização em <?php echo($ped_dt_atualizacao) ?>) 
+        </div>
         
-     
+             
      </div>
-<hr>
+<hr class="hidden-print">
 
 <?php 
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
@@ -245,7 +256,7 @@
                               
                                           if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
                                           {
-                                               echo("&nbsp;<a href='" . $row["forn_link_info"] . "' target='_blank'><span class='badge'><span class='glyphicon glyphicon-search'></span></span></a>");
+                                               echo("&nbsp;<a href='" . $row["forn_link_info"] . "' target='_blank' class='hidden-print'><span class='badge'><span class='glyphicon glyphicon-search'></span></span></a>");
                                           }																												
                                    ?>
                               
@@ -305,25 +316,25 @@
    
 	  ?> 
       
-    <div class="form-group" align="right">
+    <div class="form-group" align="right hidden-print">
    	<a name="botao_editar"></a>
 	  <?php 
 	  if($ped_somente_leitura && (!($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_ADM] )  ) )
 	  {
 	 ?>
-            <div class="text-error">O prazo limite para edição do pedido foi <?php echo($cha_dt_max);?>.</div>
+            <div class="text-error hidden-print">O prazo limite para edição do pedido foi <?php echo($cha_dt_max);?>.</div>
 			<?php		  
 		  
 	  }
 	  else if($ped_fechado)
 	  {
 			?>
-            <div class="col-sm-8 text-info">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
+            <div class="col-sm-8 text-info hidden-print">Caso precise alterar seu pedido enviado, clique em editar. Caso queira cancelar o pedido enviado, clique em cancelar. Tais ações estarão disponíveis até <?php echo($cha_dt_max);?></div>
 		    <div>    
-			<a class="btn btn-danger" href="pedido.php?action=<?php echo(ACAO_CANCELAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-remove glyphicon-white"></i> cancelar pedido</a>
+			<a class="btn btn-danger hidden-print" href="pedido.php?action=<?php echo(ACAO_CANCELAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-remove glyphicon-white"></i> cancelar pedido</a>
 			&nbsp;&nbsp;
 
-			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+			<a class="btn btn-primary hidden-print" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
             </div>
 			<?php	
 		}
@@ -331,11 +342,11 @@
 		{
 			?>
 
-      		<div class="col-sm-8 text-warning">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
+      		<div class="col-sm-8 text-warning hidden-print">Prazo para você enviar seu pedido: <?php echo($cha_dt_max);?>. Mesmo após enviado, você poderá alterar o seu pedido ou mesmo cancelá-lo, desde que dentro do prazo. </div>
 		    <div>                            		
-			<a class="btn btn-primary" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+			<a class="btn btn-primary hidden-print" href="pedido.php?action=<?php echo(ACAO_EXIBIR_EDICAO);?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
 			&nbsp;&nbsp;
-			<button type="button" class="btn btn-success btn-lg btn-enviando" data-loading-text="enviando..." onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_CONFIRMAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>'">
+			<button type="button" class="btn btn-success btn-lg btn-enviando hidden-print" data-loading-text="enviando..." onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_CONFIRMAR_PEDIDO);?>&ped_id=<?php echo($ped_id); ?>'">
             <i class="glyphicon glyphicon-send glyphicon-white"></i> enviar pedido
             </button>
             

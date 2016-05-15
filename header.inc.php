@@ -6,10 +6,10 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title><?php echo(NOME_SISTEMA); ?></title>
-	<link href="css/bootstrap-3.3.6.min.css" rel="stylesheet" media="screen" />
-	<link href="css/bootstrap-theme-3.3.6.min.css" rel="stylesheet" media="screen" />
-	<link href="css/complemento.css?ver=1.2" rel="stylesheet" media="screen" /> 
-	<link href="css/datepicker.min.css" rel="stylesheet" media="screen">
+	<link href="css/bootstrap-3.3.6.min.css" rel="stylesheet"/>
+	<link href="css/bootstrap-theme-3.3.6.min.css" rel="stylesheet"/>
+	<link href="css/complemento.css?ver=1.3" rel="stylesheet"/> 
+	<link href="css/datepicker.min.css" rel="stylesheet">
     
   	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <script>
@@ -28,7 +28,7 @@
 
 <body >
  <div class="container">
-<img src="img/logo_sistema.png"  class="img-responsive"  />
+<img src="img/logo_sistema.png"  class="img-responsive hidden-print"/>
 
 <?php
  if(isset($_SESSION['usr.id']) && $_SESSION['usr.id']!="")
