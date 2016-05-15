@@ -83,28 +83,33 @@
 				 {
 					  $sucesso = true;
 					  
-					// atualiza pedidos em aberto para o novo núcleo e para o novo status de associação  
-					$sql = "UPDATE pedidos SET ";
-					$sql.= " ped_usr_associado =  " . prep_para_bd(request_get('usr_associado',0)) . ", ";
-					if (request_get('usr_archive',0)==1) $sql.= " ped_fechado =  0, "; // caso o cestante tenha ficado inativo, cancela o pedido em aberto
-					$sql.= " ped_nuc =  " . prep_para_bd(request_get('usr_nuc',0)) . " ";
-					$sql.= " WHERE ped_usr=" . prep_para_bd($usr_id) . " AND ";	
-					$sql.= " ped_cha IN( SELECT cha_id FROM chamadas where cha_dt_max > now() ) ";
-					$res2 = executa_sql($sql);
-					if(!$res2) $sucesso = false;
-					
-					// remove produtos que não estão disponíveis para este novo núcleo do cestante
-					$sql = "UPDATE pedidoprodutos SET ";
-					$sql.= " pedprod_quantidade = '0' ";		
-					$sql.= " WHERE ";
-					$sql.= " pedprod_ped IN  ";
-					$sql.= "   (SELECT ped_id FROM pedidos LEFT JOIN chamadas ON ped_cha = cha_id WHERE ped_usr=" . prep_para_bd($usr_id) . " AND  cha_dt_max > now() ) ";
-					$sql.= " AND pedprod_prod NOT IN ";
-					$sql.= "   (SELECT prod_id FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
-					$sql.= "     LEFT JOIN nucleofornecedores ON prod_forn = nucforn_forn ";
-					$sql.= "     WHERE nucforn_nuc=" .prep_para_bd(request_get('usr_nuc',0)) . ")";
-					$res3 = executa_sql($sql);
-					if(!$res3) $sucesso = false;
+					  
+					if(request_get('usr_nuc',0)!=0)
+          			{	   
+					  
+						// atualiza pedidos em aberto para o novo núcleo e para o novo status de associação  
+						$sql = "UPDATE pedidos SET ";
+						$sql.= " ped_usr_associado =  " . prep_para_bd(request_get('usr_associado',0)) . ", ";
+						if (request_get('usr_archive',0)==1) $sql.= " ped_fechado =  0, "; // caso o cestante tenha ficado inativo, cancela o pedido em aberto
+						$sql.= " ped_nuc =  " . prep_para_bd(request_get('usr_nuc',0)) . " ";
+						$sql.= " WHERE ped_usr=" . prep_para_bd($usr_id) . " AND ";	
+						$sql.= " ped_cha IN( SELECT cha_id FROM chamadas where cha_dt_max > now() ) ";
+						$res2 = executa_sql($sql);
+						if(!$res2) $sucesso = false;
+						
+						// remove produtos que não estão disponíveis para este novo núcleo do cestante
+						$sql = "UPDATE pedidoprodutos SET ";
+						$sql.= " pedprod_quantidade = '0' ";		
+						$sql.= " WHERE ";
+						$sql.= " pedprod_ped IN  ";
+						$sql.= "   (SELECT ped_id FROM pedidos LEFT JOIN chamadas ON ped_cha = cha_id WHERE ped_usr=" . prep_para_bd($usr_id) . " AND  cha_dt_max > now() ) ";
+						$sql.= " AND pedprod_prod NOT IN ";
+						$sql.= "   (SELECT prod_id FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
+						$sql.= "     LEFT JOIN nucleofornecedores ON prod_forn = nucforn_forn ";
+						$sql.= "     WHERE nucforn_nuc=" .prep_para_bd(request_get('usr_nuc',0)) . ")";
+						$res3 = executa_sql($sql);
+						if(!$res3) $sucesso = false;
+					}
 					
 				   
 				    $usr_desde = request_get("usr_desde","");
@@ -381,7 +386,7 @@
 								$sql.= "ORDER BY dentro_prazo_edicao DESC, cha_dt_entrega ";
                                 $res3 = executa_sql($sql);
 
-                                if($res3)
+                                if($res3 && mysqli_num_rows($res3))
                                 {
 								  echo("<p class='bg-danger'><strong>Atenção ao alterar algum dos campos abaixo, pois há  pedido deste cestante ainda a ser entregue.</strong><br>");
 								  $primeiro_fora = $primeiro_dentro = 1;
@@ -475,6 +480,10 @@
 				  else
 				  {
 					 ?> 
+                      <input type="hidden" name="usr_nuc" value="<?php echo($usr_nuc); ?>">
+                      <input type="hidden" name="usr_archive" value="<?php echo($usr_archive); ?>">
+                      <input type="hidden" name="usr_associado" value="<?php echo($usr_associado); ?>">
+                                                   
                      <div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
                       <div class="col-sm-2">                                       
