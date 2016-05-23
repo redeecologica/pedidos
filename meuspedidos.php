@@ -115,7 +115,7 @@
 					 <td><?php echo($row['prodt_nome']); ?></td>               
 					 <td><?php echo($row['cha_dt_entrega']); ?></td>
 					 <td><?php echo($row['cha_dt_max']); ?> </td>  
-					 <td> <?php echo("<a class=\"btn btn-default btn-sm btn-enviando\" data-loading-text=\"aguarde...\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver produtos</a>");?></td>
+					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver produtos</a>");?></td>
                                                                                   
 					 <td>
                      <?php
