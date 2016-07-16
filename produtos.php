@@ -117,14 +117,17 @@
                 <th>Produtor</th>                
         		<th>Nome</th>
 				<th>Unidade</th>
-				<th>Valor (R$)</th>
-				<th>Valor com Margem (R$)</th>
+				<th>Compra (R$)</th>
+				<th>Venda (R$)</th>
+				<th>Venda Não Assoc. (R$)</th>
 			</tr>
 		</thead>
 		<tbody>
 				<?php
 					
-					$sql = "SELECT prod_id, prod_nome, prod_unidade,FORMAT(prod_valor_venda,2) prod_valor_venda, FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_forn, forn_prodt, prodt_nome, forn_nome_curto  ";
+					$sql = "SELECT prod_id, prod_nome, prod_unidade,FORMAT(prod_valor_venda,2) prod_valor_venda, ";
+					$sql.= "FORMAT(prod_valor_compra,2) prod_valor_compra, FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, ";
+					$sql.= "prod_forn, forn_prodt, prodt_nome, forn_nome_curto  ";
 					$sql.= "FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
 					$sql.= "LEFT JOIN produtotipos ON forn_prodt = prodt_id ";						
 					$sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
@@ -147,6 +150,7 @@
 					 <td><?php echo($row['forn_nome_curto']);?></td>                                    
 					 <td><a href="produto.php?action=0&amp;prod_id=<?php echo($row['prod_id']);?>"><?php echo($row['prod_nome']);?></a></td>
                      <td><?php echo($row['prod_unidade']);?></td> 
+                     <td><?php echo(formata_moeda($row['prod_valor_compra']));?></td>
                      <td><?php echo(formata_moeda($row['prod_valor_venda']));?></td> 
 					 <td><?php echo(formata_moeda($row['prod_valor_venda_margem']));?> </td>                     
 
