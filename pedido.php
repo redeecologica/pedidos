@@ -203,7 +203,7 @@
 <?php
 
 		$sql = "SELECT prod_id, prod_nome, prod_descricao, FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, ";
-		$sql.= "FORMAT(pedprod_quantidade,1) pedprod_quantidade, chaprod_disponibilidade, forn_nome_completo, forn_link_info, ";
+		$sql.= "FORMAT(pedprod_quantidade,2) pedprod_quantidade, chaprod_disponibilidade, forn_nome_completo, forn_link_info, ";
 		$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade ";
 		$sql.= "FROM pedidoprodutos ";
 		$sql.= "LEFT JOIN produtos ON pedprod_prod = prod_id ";
@@ -378,10 +378,10 @@
  
 		
                     $sql = "SELECT prod_id, prod_nome, prod_descricao,FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, forn_link_info, ";
-					$sql.= "forn_nome_completo, FORMAT(pedprod_quantidade,1) pedprod_quantidade, chaprod_disponibilidade, ";
+					$sql.= "forn_nome_completo, chaprod_disponibilidade, ";					
+					$sql.= "IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, ";	// quantidade com as casas decimais relevantes para pedido do produto								
 					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_multiplo_venda ";
 					$sql.= "FROM chamadaprodutos ";
-
                     $sql.= "LEFT JOIN produtos ON chaprod_prod = prod_id ";
                     $sql.= "LEFT JOIN chamadas ON chaprod_cha = cha_id ";
                     $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id ";
@@ -462,13 +462,13 @@
 								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Pedido mínimo: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}
 								else
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Pedido mínimo: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}								
 							?>

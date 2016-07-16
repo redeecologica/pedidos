@@ -322,6 +322,8 @@
                   <div class="col-sm-2">                    
 					<input type="text" required="required"  class="form-control numero" name="prod_multiplo_venda" value="<?php echo($prod_multiplo_venda); ?>" />                    
                   </div>
+                  <span class="help-block">Informar valor com no máximo 2 casas decimais.</span>
+
             </div>
 
 	</div>  <!-- div panel-body --> 
