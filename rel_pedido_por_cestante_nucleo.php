@@ -67,7 +67,7 @@ if($res)
 }
 
 $sql="SELECT  nuc_nome_curto, forn_nome_curto, usr_nome_curto, ped_usr_associado, prod_nome, prod_valor_venda, prod_valor_venda_margem,  ";
-$sql.="prod_unidade, FORMAT(pedprod_quantidade,1) pedprod_quantidade, chaprod_disponibilidade ";
+$sql.="prod_unidade, IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, chaprod_disponibilidade ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";

@@ -41,7 +41,9 @@ if($res)
 	}	
 }
 
-$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, FORMAT(sum(pedprod_quantidade),1) total_qtde_nucleo, FORMAT(est_prod_qtde_depois,1) estoque ";
+$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, nuc_nome_curto, ";
+$sql.=" SUM(IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0))) as total_qtde_nucleo, ";
+$sql.="FORMAT(est_prod_qtde_depois,2) estoque ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
