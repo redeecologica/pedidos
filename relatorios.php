@@ -113,7 +113,7 @@
 	$sql.= "WHERE 1 ";	
 	if($cha_prodt!=-1)	$sql.= " AND cha_prodt = " . prep_para_bd($cha_prodt) .  " ";
 	if($cha_ano!=-1)	$sql.= " AND year(cha_dt_entrega) = " . prep_para_bd($cha_ano) .  " ";		
-    $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT " . intval($cha_maximo);
+    $sql.= "ORDER BY cha_dt_entrega_original DESC, prodt_nome LIMIT " . intval($cha_maximo);
     $res = executa_sql($sql);
     if($res)
     {

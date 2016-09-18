@@ -81,7 +81,7 @@
 					$sql.= "WHERE 1 ";
 					if($cha_prodt!=-1) 	 $sql.= " AND cha_prodt = '" . $cha_prodt .  "' ";						
 					$sql.= "GROUP BY cha_id ";
-					$sql.= "ORDER BY cha_dt_entrega_original DESC ";
+					$sql.= "ORDER BY cha_dt_entrega_original DESC, prodt_nome ";
 					$sql.= "LIMIT 10 ";
 													
 					$res = executa_sql($sql);

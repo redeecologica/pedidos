@@ -10,9 +10,9 @@
         
 		
 		$filtro_disponiveis="RIGHT JOIN chamadanucleos ON chanuc_nuc = usr_nuc AND chanuc_cha = cha_id ";
-		$filtro_disponiveis.="WHERE cha_dt_min <= now() AND NOW()<= cha_dt_max ORDER BY cha_dt_max_original DESC ";
+		$filtro_disponiveis.="WHERE cha_dt_min <= now() AND NOW()<= cha_dt_max ORDER BY cha_dt_max_original DESC, prodt_nome ";
 		
-		$filtro_anteriores="WHERE NOW() > cha_dt_max  ORDER BY cha_dt_entrega_original DESC LIMIT 10"; 	
+		$filtro_anteriores="WHERE NOW() > cha_dt_max  ORDER BY cha_dt_entrega_original DESC, prodt_nome LIMIT 10"; 	
 			
         $sql = "SELECT cha_id, cha_prodt,  cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
         $sql.= "date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, ";
