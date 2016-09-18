@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS `pedidoprodutos` (
   `pedprod_ped` mediumint(6) unsigned NOT NULL,
   `pedprod_prod` mediumint(6) unsigned NOT NULL,
   `pedprod_quantidade` decimal(7,2) DEFAULT NULL,
+  `pedprod_entregue` decimal(7,2) DEFAULT NULL,
   PRIMARY KEY (`pedprod_ped`,`pedprod_prod`),
   KEY `fk_pedidoproduto_produto_idx` (`pedprod_prod`),
   KEY `fk_pedidoproduto_pedido_idx` (`pedprod_ped`)
@@ -261,6 +262,8 @@ CREATE TABLE IF NOT EXISTS `produtos` (
   `prod_ini_validade` datetime NOT NULL,
   `prod_fim_validade` datetime NOT NULL,
   `prod_multiplo_venda` decimal(4,2) NOT NULL,
+  `prod_peso_bruto` mediumint(6) unsigned NULL, 
+  `prod_retornavel` smallint unsigned NOT NULL DEFAULT '0',  
   PRIMARY KEY (`prod_auto_inc`),
   KEY `fk_produto_tipo_idx` (`prod_prodt`),
   KEY `fk_produto_fornecedor_idx` (`prod_forn`),
