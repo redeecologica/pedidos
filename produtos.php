@@ -120,6 +120,7 @@
 				<th>Compra (R$)</th>
 				<th>Venda (R$)</th>
 				<th>Venda Não Assoc. (R$)</th>
+				<th>Peso Bruto(g)</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -127,7 +128,7 @@
 					
 					$sql = "SELECT prod_id, prod_nome, prod_unidade,FORMAT(prod_valor_venda,2) prod_valor_venda, ";
 					$sql.= "FORMAT(prod_valor_compra,2) prod_valor_compra, FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, ";
-					$sql.= "prod_forn, forn_prodt, prodt_nome, forn_nome_curto  ";
+					$sql.= "prod_forn, forn_prodt, prodt_nome, forn_nome_curto, prod_descricao, prod_peso_bruto, prod_retornavel  ";
 					$sql.= "FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
 					$sql.= "LEFT JOIN produtotipos ON forn_prodt = prodt_id ";						
 					$sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
@@ -148,12 +149,16 @@
                   	 <td><?php echo(++$contador);?></td>               
 					 <td><?php echo($row['prodt_nome']);?></td>  
 					 <td><?php echo($row['forn_nome_curto']);?></td>                                    
-					 <td><a href="produto.php?action=0&amp;prod_id=<?php echo($row['prod_id']);?>"><?php echo($row['prod_nome']);?></a></td>
+					 <td>
+                     	<a href="produto.php?action=0&amp;prod_id=<?php echo($row['prod_id']);?>"><?php echo($row['prod_nome']);?></a> 
+					 	<?php adiciona_popover_descricao("Descrição", $row["prod_descricao"]);?>
+                        <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
+                     </td>
                      <td><?php echo($row['prod_unidade']);?></td> 
                      <td><?php echo(formata_moeda($row['prod_valor_compra']));?></td>
                      <td><?php echo(formata_moeda($row['prod_valor_venda']));?></td> 
 					 <td><?php echo(formata_moeda($row['prod_valor_venda_margem']));?> </td>                     
-
+                     <td><?php echo($row['prod_peso_bruto']);?></td> 
 				  </tr>
 				<?php 
 				     }

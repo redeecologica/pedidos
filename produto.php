@@ -21,6 +21,8 @@
 			$prod_valor_venda_margem = "";
 			$prod_multiplo_venda = "";
 			$prod_descricao = "";
+			$prod_peso_bruto = "";
+			$prod_retornavel = "";
 			$forn_nome_curto = "";
 	
 		}
@@ -45,7 +47,7 @@
 			}
 
 			$sql = "INSERT INTO produtos (prod_id, prod_ini_validade, prod_fim_validade, prod_nome, prod_forn, ";
-			$sql.= "prod_unidade, prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_multiplo_venda, prod_descricao) ";
+			$sql.= "prod_unidade, prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_multiplo_venda, prod_descricao, prod_peso_bruto, prod_retornavel) ";
 			$sql.= " VALUES (". prep_para_bd($prod_id) . ", NOW(), '9999-12-31', ";
 			$sql.= prep_para_bd($_REQUEST["prod_nome"]) . ", ";
 			$sql.= prep_para_bd($_REQUEST["prod_forn"]) . ", ";
@@ -54,7 +56,9 @@
 			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_valor_venda"])) . ", ";
 			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_valor_venda_margem"])) . ", ";			
 			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_multiplo_venda"])) . ", ";									
-			$sql.= prep_para_bd($_REQUEST["prod_descricao"]) . ") ";			
+			$sql.= prep_para_bd($_REQUEST["prod_descricao"]) . ", ";			
+			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_peso_bruto"])) . ", ";
+			$sql.= prep_para_bd(formata_numero_para_mysql($_REQUEST["prod_retornavel"])) . ") ";						
 
 	   		 $res = executa_sql($sql);
 			 $prod_auto_inc = id_inserido();
@@ -73,7 +77,10 @@
 		
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT prod_auto_inc, prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto FROM produtos ";			
+		  $sql = "SELECT prod_auto_inc, prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra, ";
+		  $sql.= "FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, ";
+		  $sql.= "FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto, prod_peso_bruto, prod_retornavel ";
+		  $sql.= "FROM produtos ";			
 		  $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id  ";
 		  $sql.= "WHERE prod_ini_validade <= NOW() AND prod_fim_validade >= NOW() ";
 		  $sql.= "AND prod_id=". prep_para_bd($prod_id);
@@ -92,6 +99,8 @@
 			$prod_multiplo_venda = formata_moeda($row["prod_multiplo_venda"]);
 			$prod_descricao =  $row["prod_descricao"];
 			$forn_nome_curto = $row["forn_nome_curto"];
+			$prod_peso_bruto =  $row["prod_peso_bruto"];
+			$prod_retornavel =  $row["prod_retornavel"];						
 
 		   }
 		}	
@@ -117,6 +126,9 @@
 				<th>Nome:</th> <td><?php echo($prod_nome); ?></td>
 			</tr>	    
     		<tr>
+				<th>Descrição:</th> <td><?php echo( prep_para_html($prod_descricao) ); ?></td>
+			</tr>	    
+    		<tr>
 				<th>Unidade:</th> <td><?php echo($prod_unidade); ?></td>
 			</tr>            
     		<tr>
@@ -132,8 +144,11 @@
 				<th>Pedido Mínimo:</th> <td><?php echo($prod_multiplo_venda); ?></td>
 			</tr>                               
     		<tr>
-				<th>Descrição:</th> <td><?php echo( prep_para_html($prod_descricao) ); ?></td>
-			</tr>	    
+				<th>Peso Bruto Estimado:</th> <td><?php if(!is_null($prod_peso_bruto)) echo ($prod_peso_bruto . ' g' ); ?></td>
+			</tr>
+    		<tr>
+				<th>Embalagem Retornável:</th> <td><?php echo( $prod_retornavel=='0' ? 'Não': 'Sim' ); ?></td>
+			</tr>
         </tbody>
     
   </table>
@@ -154,7 +169,7 @@
        		$ver_historico =  request_get("ver_historico","");
 			if($ver_historico)
 			{
-			  $sql = "SELECT prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto, DATE_FORMAT(prod_ini_validade,'%d/%m/%Y %H:%i') as prod_data_alteracao FROM produtos ";			
+			  $sql = "SELECT prod_nome, prod_forn, prod_unidade, FORMAT(prod_valor_compra,2) prod_valor_compra,  FORMAT(prod_valor_venda,2) prod_valor_venda,  FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, FORMAT(prod_multiplo_venda,2) prod_multiplo_venda, prod_descricao, forn_nome_curto, prod_peso_bruto, prod_retornavel, DATE_FORMAT(prod_ini_validade,'%d/%m/%Y %H:%i') as prod_data_alteracao FROM produtos ";			
 			  $sql.= "LEFT JOIN fornecedores ON prod_forn = forn_id  ";				  
 			  $sql.= "WHERE prod_id=". prep_para_bd($prod_id);
 			  $sql.= " ORDER BY prod_ini_validade DESC ";
@@ -174,6 +189,8 @@
 				<th>Valor venda</th>                
 				<th>Venda com margem</th>
                 <th>Qte mínima</th>
+                <th>Peso Bruto</th>
+                <th>Retornável</th>                
                 <th>Descrição</th>
 			</tr>
 		</thead>
@@ -193,6 +210,8 @@
 					echo("<td>".$row["prod_valor_venda"]."</td>");
 					echo("<td>".$row["prod_valor_venda_margem"]."</td>");
 					echo("<td>".$row["prod_multiplo_venda"]."</td>");	
+					echo("<td>".$row["prod_peso_bruto"]."</td>");	
+					echo("<td>" . ($row["prod_retornavel"]==0 ?  "Não" : "<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>") . "</td>");											
 					echo("<td>".$row["prod_descricao"]."</td>");																				
 					echo("</tr>");
 		  
@@ -325,6 +344,25 @@
                   <span class="help-block">Informar valor com no máximo 2 casas decimais.</span>
 
             </div>
+            
+      		 <div class="form-group">
+                <label class="control-label col-sm-2" for="prod_peso_bruto">Peso Bruto Estimado (g)</label>
+                  <div class="col-sm-2">                    
+					<input type="text" class="form-control numero" name="prod_peso_bruto" value="<?php echo($prod_peso_bruto); ?>" />                  
+                  </div>
+                  <span class="help-block">Valor em gramas. Informar somente número. Peso total incluindo embalagem, pois é para fins de cálculo de frete.</span>
+
+            </div>         
+            
+      		 <div class="form-group">
+                <label class="control-label col-sm-2" for="prod_retornavel">Embalagem Retornável</label>
+                  <div class="col-sm-2">
+					 <select name="prod_retornavel" id="prod_retornavel" class="form-control">
+                     	<option value="0" <?php if($prod_retornavel=='0') echo ("selected"); ?>>Não</option>
+                     	<option value="1" <?php if($prod_retornavel=='1') echo ("selected"); ?>>Sim</option>  
+                    </select>                                
+                  </div>
+            </div>                  
 
 	</div>  <!-- div panel-body --> 
 
