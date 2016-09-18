@@ -352,11 +352,11 @@
                   <div class="col-sm-2">
                   	<input type="text"  value="<?php echo($usr_desde); ?>" class="data form-control" name="usr_desde" id="usr_desde"/ >                    
                   </div>
-			<span class="help-block">Ex.: 15/09/2010</span>
+			<span class="help-block">Ex.: 15/09/2010. Data estimada em que você entrou na <?php echo(NOME_GRUPO_CONSUMO); ?>.</span>
             </div>      
             
   <div class="form-group">
-                <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na Rede</label>
+                <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na <?php echo(NOME_GRUPO_CONSUMO); ?></label>
                   <div class="col-sm-4">
                     <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>
                     <br>                    

@@ -503,5 +503,38 @@ function chaprod_recebido_get_sum_dist_quantidade($cha_id)
 }
 
 
+function campanha_atualizacao_cadastro()
+{
+	 $sql = "SELECT usr_nome_completo, usr_associado, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, usr_atividades FROM usuarios ";
+	 $sql.= " WHERE usr_id=". prep_para_bd($_SESSION['usr.id']);
+	 $sql.= " AND usr_associado!=0 ";
+	 $sql.= " AND (usr_desde IS NULL OR usr_atividades IS NULL OR usr_atividades='a preencher' ) ";	 	 
+ 	 $res = executa_sql($sql);	
+  	 if ($res && mysqli_num_rows($res)) 
+	 {	
+		$row = mysqli_fetch_array($res,MYSQLI_ASSOC);
+		$texto = "Prezad@ <strong>" . $row['usr_nome_completo'] . "</strong>,<br>";
+		$texto.= "Por favor, tome um tempo e atualize os seus dados.<br>";
+		if(strlen($row['usr_desde'])<6)
+		{
+			$texto.= "Preencha o campo 'Data de Entrada', que é a data estimada que você entrou na " . NOME_GRUPO_CONSUMO . ".<br>";
+		}
+		if(strlen($row['usr_atividades'])==0  ||  $row['usr_atividades']=='a preencher' )
+		{
+			$texto.= "Preencha o campo 'Atuais atividades na " . NOME_GRUPO_CONSUMO . "'.<br>";
+		}
+
+		$texto.= "Depois clique no botão 'salvar alterações'.<br>";
+	 	adiciona_mensagem_status(MSG_TIPO_AVISO,$texto);
+		?>
+        	<script language="javascript">
+			    alert("ATENÇÃO.\nPara fazer seu pedido é necessário cumprir o compromisso de estar com o cadastro atualizado na <?php echo(NOME_GRUPO_CONSUMO); ?>.\nVeja as informações a seguir e atualize o seu cadastro.");
+			</script>
+		<?php
+		redireciona("cestante.php?action=" . ACAO_EXIBIR_EDICAO . "&usr_id=" . $_SESSION["usr.id"]);
+		
+	 }
+	 
+}
 
 ?>

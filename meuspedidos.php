@@ -2,6 +2,9 @@
   require  "common.inc.php"; 
   verifica_seguranca();
   top();
+  
+  campanha_atualizacao_cadastro();
+  
 ?>
 
 
