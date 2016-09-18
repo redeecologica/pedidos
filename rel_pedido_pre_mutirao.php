@@ -57,7 +57,7 @@ $sql.=" FORMAT(estoque_atual.est_prod_qtde_depois,1) estoque_atual_depois, ";
 $sql.=" FORMAT(estoque_atual.est_prod_qtde_antes,1) estoque_atual_antes, ";
 $sql.=" FORMAT(dist_quantidade,1) distribuido_nucleo, ";
 //$sql.=" FORMAT(sum(pedprod_quantidade),1) total_nucleo ";
-$sql.=" SUM(IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0))) as total_nucleo ";
+$sql.=" SUM(IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0))) as total_nucleo ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";

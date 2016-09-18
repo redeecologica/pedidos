@@ -379,7 +379,7 @@
 		
                     $sql = "SELECT prod_id, prod_nome, prod_descricao,FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, forn_link_info, ";
 					$sql.= "forn_nome_completo, chaprod_disponibilidade, ";					
-					$sql.= "IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, ";	// quantidade com as casas decimais relevantes para pedido do produto								
+					$sql.= "IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, ";	// quantidade com as casas decimais relevantes para pedido do produto								
 					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_multiplo_venda ";
 					$sql.= "FROM chamadaprodutos ";
                     $sql.= "LEFT JOIN produtos ON chaprod_prod = prod_id ";
