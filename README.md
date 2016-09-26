@@ -3,6 +3,32 @@
 
 O sistema atende às necessidades de consolidação de pedidos de GCRs (grupos de consumo responsável). Este sistema foi desenvolvido inicialmente para atender às especificidades da [Rede Ecológica] (http://www.redeecologicario.org/). O código fonte foi disponibilizado neste repositório para que outros GCRs possam reutilizá-lo.
 
+Licença
+----------
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details:
+    http://www.gnu.org/licenses/
+
+
+    Tradução não-oficial:
+    Este programa é um software livre; você pode redistribuí-lo e/ou 
+    modificá-lo dentro dos termos da Licença Pública Geral GNU como 
+    publicada pela Fundação do Software Livre (FSF); na versão 3 da 
+    Licença ou qualquer versão futura.
+
+    Este programa é distribuído na esperança de que possa ser útil, 
+    mas SEM NENHUMA GARANTIA; sem uma garantia implícita de ADEQUAÇÃO
+    a qualquer MERCADO ou APLICAÇÃO EM PARTICULAR. Veja a
+    Licença Pública Geral GNU para mais detalhes:
+    http://www.gnu.org/licenses/
+
 
 Instalação
 ----------
