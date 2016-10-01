@@ -276,7 +276,7 @@ function colaDistribuindo(colecaoDestino, primeiroItem, pastedText){
 			proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
 		}
 		
-		if(!proxDestino) break;
+		if(!proxDestino || colecaoDestino.index(proxDestino)==-1) break;
 		else proxDestino.focus();
 	}
 }
