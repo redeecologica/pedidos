@@ -283,7 +283,7 @@
 					
                     $sql = "SELECT chamadaprodutos_anterior.chaprod_disponibilidade as chaprod_disponibilidade_anterior, ";
 					$sql.= "prod_id, prod_nome, FORMAT(prod_valor_compra,2) prod_valor_compra, prod_descricao, ";
-					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, ";
+					$sql.= "FORMAT(prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_retornavel, ";
 					$sql.= "FORMAT(prod_valor_venda,2) prod_valor_venda, chamadaprodutos.chaprod_prod, ";
 					$sql.= "chamadaprodutos.chaprod_disponibilidade, forn_nome_curto, forn_nome_completo, forn_link_info, ";
 					$sql.= "forn_id, forn_info_chamada, FORMAT(est_prod_qtde_depois,1) em_estoque FROM produtos ";
@@ -362,6 +362,7 @@
                             <td><?php 
 								echo($row["prod_nome"]); 
 								adiciona_popover_descricao("Descrição", $row["prod_descricao"]); 
+								if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");
 								if($row["em_estoque"]>0) echo("&nbsp;&nbsp;<span class='label label-info'>" . formata_numero_de_mysql($row["em_estoque"]) .  " em estoque</span>");
 							
 							?></td>

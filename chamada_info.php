@@ -89,7 +89,7 @@
    
                         $sql = "SELECT prod_id, prod_nome, prod_descricao,FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, ";
 					$sql.= "forn_nome_completo, forn_link_info, chaprod_disponibilidade, ";
-					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade ";
+					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_retornavel ";
 					$sql.= "FROM chamadaprodutos ";
                     $sql.= "LEFT JOIN produtos ON chaprod_prod = prod_id ";
                     $sql.= "LEFT JOIN chamadas ON chaprod_cha = cha_id ";
@@ -151,8 +151,9 @@
                             <td style="text-align:left;">
 								<?php echo($row["prod_nome"]); 
 									  adiciona_popover_descricao("Descrição", $row["prod_descricao"]);
-								?>                                  
-                                <?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
+								?>      
+                               <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
+                               <?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
                             
                             </td>
                             <td><?php echo($row["prod_unidade"]);?></td>

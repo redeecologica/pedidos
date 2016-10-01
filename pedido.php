@@ -204,7 +204,7 @@
 
 		$sql = "SELECT prod_id, prod_nome, prod_descricao, FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, ";
 		$sql.= "FORMAT(pedprod_quantidade,2) pedprod_quantidade, chaprod_disponibilidade, forn_nome_completo, forn_link_info, ";
-		$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade ";
+		$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_retornavel ";
 		$sql.= "FROM pedidoprodutos ";
 		$sql.= "LEFT JOIN produtos ON pedprod_prod = prod_id ";
 		$sql.= "LEFT JOIN pedidos ON pedprod_ped = ped_id AND ped_id = " . prep_para_bd($ped_id) . " ";		
@@ -270,7 +270,11 @@
 						
 				?>
 				<tr> 
-				<td style="text-align:left;"><?php echo($row["prod_nome"]); adiciona_popover_descricao("Descrição", $row["prod_descricao"]); ?> <?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?></td>
+				<td style="text-align:left;">
+					<?php echo($row["prod_nome"]); adiciona_popover_descricao("Descrição", $row["prod_descricao"]); ?> 
+					<?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
+					<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
+                </td>
 				<td><?php echo($row["prod_unidade"]);?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"]) ); ?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"]) ); ?></td> 
@@ -378,7 +382,7 @@
  
 		
                     $sql = "SELECT prod_id, prod_nome, prod_descricao,FORMAT(prod_valor_venda,2) prod_valor_venda, forn_nome_curto, forn_link_info, ";
-					$sql.= "forn_nome_completo, chaprod_disponibilidade, ";					
+					$sql.= "forn_nome_completo, chaprod_disponibilidade, prod_retornavel, ";					
 					$sql.= "IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, ";	// quantidade com as casas decimais relevantes para pedido do produto								
 					$sql.= "FORMAT (prod_valor_venda_margem,2) prod_valor_venda_margem, prod_unidade, prod_multiplo_venda ";
 					$sql.= "FROM chamadaprodutos ";
@@ -449,9 +453,9 @@
                             <td style="text-align:left;">
 								<?php echo($row["prod_nome"]); 
 									  adiciona_popover_descricao("Descrição", $row["prod_descricao"]);
-								?>                                  
-                                <?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
-                            
+								?>
+                                <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
+								<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>                           
                             </td>
                             <td><?php echo($row["prod_unidade"]);?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"])); ?></td>
