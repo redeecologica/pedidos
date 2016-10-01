@@ -20,7 +20,8 @@ A instalação consiste em:
 Licença
 ----------
 
-	Esta declaração é pertinente a todos os arquivos fontes do projeto, exceto os que possuem cabeçalho de copyright específico. 
+	Esta declaração é pertinente a todos os arquivos fontes do projeto, 
+	exceto os que possuem cabeçalho de copyright específico. 
 	
     Copyright 2013- Rede Ecológica (redeecologicario.org)
 	
