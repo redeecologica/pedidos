@@ -17,8 +17,8 @@
 				<th>#</th>
 				<th>Tipo</th>
         		<th>Data de Entrega</th>
-				<th>1) Recebido do Produtor</th>                 
-				<th>2) Distribuído ao Núcleo</th>                
+				<th>1) Entregue pelo Produtor</th>                 
+				<th>2) Entregue ao Núcleo</th>                
 				<th>3) Entregue ao Cestante</th>  
 				<th>Previsão Pagamento</th>                  
                               
@@ -29,7 +29,7 @@
 					$sql = "SELECT cha_id, cha_prodt, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, prodt_nome ";
 					$sql.= "FROM chamadas ";
 					$sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";	
-					$sql.= "ORDER BY cha_dt_entrega_original DESC ";
+					$sql.= "ORDER BY cha_dt_entrega_original DESC, prodt_nome ";
 					$sql.= "LIMIT 10 ";
 													
 					$res = executa_sql($sql);
@@ -52,7 +52,7 @@
                       &nbsp;&nbsp;
                      <a href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">editar</a></td>  
                      <td>
-                     <a href="rel_pedido_por_nucleo_entregue.php?cha_id=<?php echo($row['cha_id']);?>">ver</a>
+                     <a href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo($row['cha_id']);?>">ver</a>
                      &nbsp;&nbsp;
                      <a href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">editar</a></td>                      
                      <td>
