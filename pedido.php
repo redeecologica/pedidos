@@ -139,7 +139,7 @@
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
 			$sql = "SELECT (cha_dt_max<now()) somente_leitura, usr_nome_curto, ped_usr, ped_usr_associado, usr_nome_completo, usr_contatos, prodt_nome, ";
-			$sql.= "nuc_nome_curto, nuc_id, ped_fechado, ped_cha, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, ";
+			$sql.= "nuc_nome_curto, nuc_id, ped_fechado, ped_cha, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, FORMAT(cha_taxa_percentual,2) as cha_taxa_percentual, ";
 			$sql.= "DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max  FROM pedidos ";
 			$sql.= "LEFT JOIN usuarios ON ped_usr = usr_id ";	
 			$sql.= "LEFT JOIN nucleos ON ped_nuc = nuc_id ";	
@@ -162,6 +162,7 @@
 			$ped_dt_atualizacao = $row["ped_dt_atualizacao"];
 			$cha_dt_entrega = $row["cha_dt_entrega"]; 
 			$cha_dt_max = $row["cha_dt_max"];
+			$cha_taxa_percentual = $row["cha_taxa_percentual"];		
 			$ped_cha = $row["ped_cha"]; // serve como parametro  
 			$ped_usr = $row["ped_usr"]; // serve como parametro 			
 			$ped_somente_leitura = $row["somente_leitura"];
@@ -302,12 +303,12 @@
              <td><?php echo(formata_moeda($total_associado));?></td>
            </tr>
            <tr>
-          	 <td colspan="5"><div align="right">taxa de <?php echo(TAXA_ASSOCIADO) * 100; ?>% para associado</div></td> 
-             <td><?php echo(formata_moeda($total_associado*TAXA_ASSOCIADO));?></td>
+          	 <td colspan="5"><div align="right">taxa de <?php echo($cha_taxa_percentual) * 100; ?>% para associado</div></td> 
+             <td><?php echo(formata_moeda($total_associado*$cha_taxa_percentual));?></td>
            </tr>    
 			<tr>
           	 <th colspan="5"><div align="right">TOTAL FINAL</div></th> 
-             <th>R$ <?php echo(formata_moeda($ped_usr_associado==1 ? $total_associado*(1+TAXA_ASSOCIADO) : $total_nao_associado ));?></th>
+             <th>R$ <?php echo(formata_moeda($ped_usr_associado==1 ? $total_associado*(1+$cha_taxa_percentual) : $total_nao_associado ));?></th>
            </tr>
 		   
 

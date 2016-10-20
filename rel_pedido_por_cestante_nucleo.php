@@ -19,7 +19,7 @@
  $cha_id=request_get("cha_id",0);
  $nuc_id=request_get("nuc_id",0); 
                       
- $sql = "SELECT prodt_nome, nuc_nome_curto, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
+ $sql = "SELECT prodt_nome, nuc_nome_curto, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, FORMAT(cha_taxa_percentual,2) as cha_taxa_percentual ";
  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
  $sql.= "LEFT JOIN nucleos on nuc_id = " . prep_para_bd($nuc_id) . " " ;
  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
@@ -36,6 +36,7 @@
 $prodt_nome = $row["prodt_nome"];
 $cha_dt_entrega = $row["cha_dt_entrega"];
 $nuc_nome_curto = $row["nuc_nome_curto"];
+$cha_taxa_percentual = $row["cha_taxa_percentual"];
 
 
 ?>
@@ -278,12 +279,12 @@ $res = executa_sql($sql);
            </tr>
 
            <tr>
-            <th colspan="4" style="text-align:right">taxa de <?php echo(TAXA_ASSOCIADO) * 100; ?>% para associado</th>
+            <th colspan="4" style="text-align:right">taxa de <?php echo($cha_taxa_percentual) * 100; ?>% para associado</th>
 				  <?php
 				  $total=0.0;
                    for ($i = 0; $i < count($cestante_nome); $i++)
                    {
-					   $valor_taxa = $cestante_associado[$i] ? $cestante_valor[$i]*TAXA_ASSOCIADO : 0;
+					   $valor_taxa = $cestante_associado[$i] ? $cestante_valor[$i]*$cha_taxa_percentual : 0;
 					   $total+=$valor_taxa;															
                         echo("<td colspan='2'> R$ " . formata_moeda($valor_taxa) .  "</td>");										
                    }                                            
@@ -298,7 +299,7 @@ $res = executa_sql($sql);
 				  $total=0.0;
                    for ($i = 0; $i < count($cestante_nome); $i++)
                    {	
-				   		$valor_final = $cestante_associado[$i] ? $cestante_valor[$i]*(1+TAXA_ASSOCIADO ): $cestante_valor[$i];
+				   		$valor_final = $cestante_associado[$i] ? $cestante_valor[$i]*(1+$cha_taxa_percentual ): $cestante_valor[$i];
 					   $total+=$valor_final;																		
                         echo("<th colspan='2' align='center'> R$ " . formata_moeda($valor_final) .  "</th>");										
                    }                                            

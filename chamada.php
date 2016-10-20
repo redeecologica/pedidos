@@ -20,6 +20,7 @@
 			$cha_hh_min = "";
 			$cha_hh_max = "";
 			$cha_dt_entrega = "";
+			$cha_taxa_percentual = formata_moeda(TAXA_ASSOCIADO);
 			$sql = "SELECT prodt_nome FROM produtotipos WHERE prodt_id= ". prep_para_bd($cha_prodt) . " ";
 			$res = executa_sql($sql);
 			if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
@@ -80,6 +81,7 @@
 			$sql = "UPDATE chamadas SET ";
 			$sql.= "cha_dt_min  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_min"] . " " .  $_REQUEST["cha_hh_min"])) . ", ";
 			$sql.= "cha_dt_max  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_max"] . " " .  $_REQUEST["cha_hh_max"])) .  ", ";	
+			$sql.= "cha_taxa_percentual  = " . prep_para_bd(formata_numero_para_mysql($_REQUEST["cha_taxa_percentual"])) .  ", ";				
 			$sql.= "cha_dt_entrega  = " . prep_para_bd(formata_data_para_mysql($_REQUEST["cha_dt_entrega"]) . " 12:00:00" ) .  "  ";	
 			$sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";	
 			$res = executa_sql($sql);
@@ -100,7 +102,9 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_min,'%d/%m/%Y') cha_dt_min, DATE_FORMAT(cha_dt_min,'%H:%i') cha_hh_min, DATE_FORMAT(cha_dt_max,'%d/%m/%Y') cha_dt_max, DATE_FORMAT(cha_dt_max,'%H:%i') cha_hh_max, cha_prodt, prodt_nome FROM chamadas ";
+		  $sql = "SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_min,'%d/%m/%Y') cha_dt_min, ";
+		  $sql.= "DATE_FORMAT(cha_dt_min,'%H:%i') cha_hh_min, DATE_FORMAT(cha_dt_max,'%d/%m/%Y') cha_dt_max, DATE_FORMAT(cha_dt_max,'%H:%i') cha_hh_max, ";
+		  $sql.= "FORMAT(cha_taxa_percentual,2) cha_taxa_percentual, cha_prodt, prodt_nome FROM chamadas ";
 		  $sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";
 		  $sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";
 		  
@@ -113,6 +117,7 @@
 			$cha_hh_max = $row["cha_hh_max"];
 			$cha_dt_entrega = $row["cha_dt_entrega"];
 			$cha_prodt = $row["cha_prodt"];
+			$cha_taxa_percentual = formata_moeda($row["cha_taxa_percentual"]);
 			$prodt_nome = $row["prodt_nome"];
 			
 		   }
@@ -134,7 +139,9 @@
     		<tr>
 				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
 			</tr>	    
-
+    		<tr>
+				<th>Taxa Percentual:</th>	<td><?php echo($cha_taxa_percentual); ?></td>
+			</tr>
     		<tr>
 				<th>Data da Entrega:</th> <td><?php echo($cha_dt_entrega); ?></td>
 			</tr>	    
@@ -187,6 +194,14 @@
                  <div class="col-sm-2">
                    <span class="well well-sm"><?php echo($prodt_nome); ?></span>
                   </div>
+            </div>
+
+            <div class="form-group">
+               <label class="control-label col-sm-2" for="cha_taxa_percentual">Taxa Percentual</label>
+                 <div class="col-sm-2">
+                   <input type="text" class="form-control numero" id="cha_taxa_percentual" name="cha_taxa_percentual" required="required" value="<?php echo($cha_taxa_percentual); ?>"/>
+                  </div>
+            	  <span class="help-block">Taxa aplicável no final do pedido para o caso de associados. Se 3%, informar 0,03. Informar no máximo 2 casas decimais. </span>
             </div>
 
 
@@ -327,22 +342,22 @@
 											<th style="width:185px">Disponível <span class="label label-info">azul = anterior</span><br>
                     
 												<label class="radio-inline"  style="margin-left: 4px; padding-left:7px;">
-                                                <input type="radio"  name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px"><span class="label label-info"><i class="glyphicon glyphicon-repeat"></i> </span>
+                                                <input type="radio"  name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px"><span class="label label-info"><i class="glyphicon glyphicon-repeat" title="Repetir para este produtor a disponibilidade da chamada anterior"></i> </span>
 												</label> 
 
 												<label class="radio-inline"  style="margin-left: 4px; padding-left:10px;" >
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
-												  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
+												  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up" title="Marcar todos os produtos deste produtor como 'Disponível'"></i> </span>
 												</label>
 													
 												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
-													<span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
+													<span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up" title="Marcar todos os produtos deste produtor como 'Entrega Parcial'"></i> </span>
 												</label>
 
 												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
 												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
-											<span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"></i> </span>
+											<span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"  title="Marcar todos os produtos deste produtor como 'Não Disponível'"></i> </span>
 												</label>
 
                                                 
@@ -373,17 +388,17 @@
                                                                                           
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 2)) echo (" label-info"); ?>">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
+                                  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"  title="Disponível"></i> </span>
                                 </label>
                                                                                                 
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 1)) echo (" label-info"); ?>">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                 <span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"></i> </span>
+                                 <span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"  title="Entrega Parcial"></i> </span>
                                 </label>
                                 
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 0)) echo (" label-info"); ?>">
                                   <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"])?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo($row["forn_id"]);?>">
-                                 <span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"></i> </span>
+                                 <span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down" title="Não Disponível"></i> </span>
                                 </label>
                             </td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
@@ -428,6 +443,9 @@
 			
 		$(".hora").mask("99:99");
 		$(".hora").blur(verificaHora);	
+		
+		$(".numero").bind('keydown', keyCheck);
+		$(".numero").on('blur', validaNumero);		
 	}); 
 </script>    
     

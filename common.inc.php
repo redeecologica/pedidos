@@ -32,7 +32,7 @@ define('MSG_TIPO_AVISO',2);
 define('MSG_TIPO_INFO',1);
 define('MSG_TIPO_SUCESSO',0);
 
-define('TAXA_ASSOCIADO',0.03);
+define('TAXA_ASSOCIADO',0.03); // valor padrão; pode ser alterado no cadastro da chamada
 
 define('URL_ABSOLUTA', "http://" . $_SERVER["SERVER_NAME"]. substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));	
 
@@ -417,7 +417,7 @@ function gera_primeira_senha_acesso($usr_id)
 
 function get_hifen_se_zero($valor)
 {
-	if ($valor=="0,0" || $valor=="0") return "-";
+	if ($valor=="0,0" || $valor=="0"  || $valor=="0,00") return "-";
 	return $valor;
 }
 

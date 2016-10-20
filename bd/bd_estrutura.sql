@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `chamadas` (
   `cha_dt_entrega` datetime DEFAULT NULL,
   `cha_dt_min` datetime NOT NULL,
   `cha_dt_max` datetime DEFAULT NULL,
+  `cha_taxa_percentual` DECIMAL(4,2) NOT NULL DEFAULT '0', 
   PRIMARY KEY (`cha_id`),
   KEY `fk_chamada_tipo_idx` (`cha_prodt`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
