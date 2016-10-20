@@ -74,9 +74,46 @@
 			 }
 			 
 			 if($salvar)		 
-			 {				 									
-				 $campos = array('usr_nome_completo','usr_nome_curto','usr_contatos','usr_endereco','usr_email','usr_email_alternativo','usr_nuc','usr_archive','usr_associado', 'usr_atividades');  			
-				 $sql=prepara_sql_atualizacao("usr_id",$campos,"usuarios");				 
+			 {		
+				 $usr_desde = request_get("usr_desde","");					  
+				 if ($usr_desde=="") $bd_usr_desde = 'Null';
+				 else $bd_usr_desde = prep_para_bd(formata_data_para_mysql($usr_desde));
+				 
+				 if($usr_id=="")
+				 {						 
+					 $sql="INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_contatos, usr_endereco, usr_email, usr_email_alternativo,  ";
+					 $sql.="usr_nuc, usr_archive, usr_associado, usr_atividades, usr_desde) ";
+					 $sql.=" VALUES ( ";					 
+					 $sql.=trim(prep_para_bd(request_get("usr_nome_completo",""))) . ", ";
+					 $sql.=trim(prep_para_bd(request_get("usr_nome_curto",""))) . ", ";
+					 $sql.=trim(prep_para_bd(request_get("usr_contatos",""))) . ", ";
+					 $sql.= trim(prep_para_bd(request_get("usr_endereco",""))) . ", ";
+					 $sql.= trim(prep_para_bd(request_get("usr_email",""))) . ", ";
+					 $sql.= trim(prep_para_bd(request_get("usr_email_alternativo",""))) . ", ";	
+					 $sql.= prep_para_bd(request_get("usr_nuc","")) . ", ";
+					 $sql.= prep_para_bd(request_get("usr_archive","")) . ", ";
+					 $sql.= prep_para_bd(request_get("usr_associado","")) . ", ";				 
+					 $sql.= trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
+					 $sql.= $bd_usr_desde . " ) ";
+					 					 
+				 }
+				 else
+				 {
+					 $sql="UPDATE usuarios SET ";
+					 $sql.="usr_nome_completo = " . trim(prep_para_bd(request_get("usr_nome_completo",""))) . ", ";
+					 $sql.="usr_nome_curto = " . trim(prep_para_bd(request_get("usr_nome_curto",""))) . ", ";
+					 $sql.="usr_contatos = " . trim(prep_para_bd(request_get("usr_contatos",""))) . ", ";
+					 $sql.="usr_endereco = " . trim(prep_para_bd(request_get("usr_endereco",""))) . ", ";
+					 $sql.="usr_email = " . trim(prep_para_bd(request_get("usr_email",""))) . ", ";
+					 $sql.="usr_email_alternativo = " . trim(prep_para_bd(request_get("usr_email_alternativo",""))) . ", ";	
+					 $sql.="usr_nuc = " . prep_para_bd(request_get("usr_nuc","")) . ", ";
+					 $sql.="usr_archive = " . prep_para_bd(request_get("usr_archive","")) . ", ";
+					 $sql.="usr_associado = " . prep_para_bd(request_get("usr_associado","")) . ", ";				 
+					 $sql.="usr_atividades = " . trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
+					 $sql.="usr_desde = " . $bd_usr_desde . " ";
+					 $sql.="WHERE usr_id = " . prep_para_bd(request_get("usr_id",""));
+				 }
+				  				 
 				 $res = executa_sql($sql);				 
 				 if($usr_id=="") $usr_id = id_inserido();	
 				 if($res)
@@ -110,17 +147,6 @@
 						$res3 = executa_sql($sql);
 						if(!$res3) $sucesso = false;
 					}
-					
-				   
-				    $usr_desde = request_get("usr_desde","");
-					  
-					if ($usr_desde=="") $bd_usr_desde = 'Null';
-					else $bd_usr_desde = prep_para_bd(formata_data_para_mysql($usr_desde));
-					  
- 					$sql = "UPDATE usuarios SET usr_desde = " . $bd_usr_desde;
- 					$sql.= " WHERE usr_id=". prep_para_bd($usr_id) . " ";	
-					$res = executa_sql($sql);			 		 						 						 
-					if(!$res) $sucesso=false;				
 
 				 }
 				 if(!$sucesso)
@@ -300,20 +326,20 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="usr_nome_completo">Nome Completo</label>
                  <div class="col-sm-4">
-                   <input type="text" name="usr_nome_completo" class="form-control" required="required" value="<?php echo($usr_nome_completo); ?>" placeholder="Nome Completo"/>
+                   <input type="text" name="usr_nome_completo"  class="form-control" required="required" value="<?php echo($usr_nome_completo); ?>" placeholder="Nome Completo"/>
                   </div>
             </div>
             
             <div class="form-group">
                <label class="control-label col-sm-2" for="usr_nome_curto">Nome Curto</label>
                    <div class="col-sm-2">
-                       <input type="text" class="form-control" name="usr_nome_curto"  required="required" value="<?php echo($usr_nome_curto); ?>" placeholder="Nome Curto" />                    
+                       <input type="text" class="form-control" name="usr_nome_curto" required="required" value="<?php echo($usr_nome_curto); ?>" placeholder="Nome Curto" />                    
                     </div>  
 	                 <span class="help-block">Preferencialmente com no máximo 10 caracteres, para economizar na impressão de relatórios</span>
             </div>
             
              <div class="form-group">
-                   <label class="control-label col-sm-2" for="usr_email">Email Principal </label>
+                   <label class="control-label col-sm-2" for="usr_email">Email Principal</label>
                    <div class="col-sm-4">   
                     <input type="text" class="form-control" required="required" id="usr_email" name="usr_email" value="<?php echo($usr_email); ?>" placeholder="Email" /><br />                  
     			   </div>
@@ -350,7 +376,7 @@
             <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_desde">Data de Entrada</label>
                   <div class="col-sm-2">
-                  	<input type="text"  value="<?php echo($usr_desde); ?>" class="data form-control" name="usr_desde" id="usr_desde"/ >                    
+                  	<input type="text"  value="<?php echo($usr_desde); ?>" required="required" class="data form-control" name="usr_desde" id="usr_desde"/ >                    
                   </div>
 			<span class="help-block">Ex.: 15/09/2010. Data estimada em que você entrou na <?php echo(NOME_GRUPO_CONSUMO); ?>.</span>
             </div>      
@@ -554,7 +580,7 @@
 			language: 'pt-BR',
 			autoclose: true
 		});
-
+		
 		$("#form_cestante").submit(validaCestante);
 	}); 
 	
