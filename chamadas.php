@@ -74,14 +74,14 @@
 		</thead>
 		<tbody>
 				<?php
-					$sql = "SELECT cha_id, cha_prodt, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, count(ped_id) as cha_qtde_pedidos, prodt_nome ";
+					$sql = "SELECT cha_id, cha_prodt, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, count(ped_id) as cha_qtde_pedidos, prodt_nome ";
 					$sql.= "FROM chamadas ";
 					$sql.= "LEFT JOIN pedidos ON cha_id = ped_cha ";	
 					$sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";	
 					$sql.= "WHERE 1 ";
 					if($cha_prodt!=-1) 	 $sql.= " AND cha_prodt = '" . $cha_prodt .  "' ";						
 					$sql.= "GROUP BY cha_id ";
-					$sql.= "ORDER BY cha_dt_entrega_original DESC, prodt_nome ";
+					$sql.= "ORDER BY cha_dt_entrega_original DESC, prodt_nome, cha_dt_max_original DESC ";
 					$sql.= "LIMIT 10 ";
 													
 					$res = executa_sql($sql);
