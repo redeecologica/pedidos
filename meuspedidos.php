@@ -17,7 +17,7 @@
 		
 		$filtro_anteriores="WHERE NOW() > cha_dt_max  ORDER BY cha_dt_entrega_original DESC, prodt_nome, cha_dt_max_original DESC LIMIT 10"; 	
 			
-        $sql = "SELECT cha_id, cha_prodt,  cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
+        $sql = "SELECT cha_id, cha_prodt, cha_dt_entrega<=NOW() as entrega_passou, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
         $sql.= "cha_dt_min cha_dt_min_original, date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, ";
         $sql.= "date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, prodt_nome, ped_fechado, ped_id ";
         $sql.= "FROM chamadas ";
@@ -118,7 +118,7 @@
 					 <td><?php echo($row['prodt_nome']); ?></td>               
 					 <td><?php echo($row['cha_dt_entrega']); ?></td>
 					 <td><?php echo($row['cha_dt_max']); ?> </td>  
-					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver produtos</a>");?></td>
+					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver chamada</a>");?></td>
                                                                                   
 					 <td>
                      <?php
@@ -129,10 +129,19 @@
                         else
                         {
 							if($row['ped_fechado']==1) echo("Você enviou pedido para esta chamada.");
-							else echo("Você criou o pedido mas não enviou.");														
-							echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
+							else echo("Você criou o pedido mas não enviou.");		
+																			
+							echo("<br><a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
 							echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-							echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
+							echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");
+							
+							
+							if($row['ped_fechado']==1 && $row['entrega_passou'] )
+							{
+								echo("&nbsp;&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido_entregue.php?");
+								echo("ped_id=" . $row['ped_id'] . "\">");
+								echo("<i class=\"glyphicon glyphicon-grain\"></i> ver entrega</a>");
+							}
                         }
 					 ?>
 					 
