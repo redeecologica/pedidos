@@ -267,15 +267,32 @@ function colaDistribuindo(colecaoDestino, primeiroItem, pastedText){
 	var splitedText = pastedText.split("\n");
 	var proxDestino = primeiroItem;
 	for(var i=0; i< splitedText.length; i++) {
-		
-		if(splitedText[i][0]=='-') splitedText[i] = "0";
-		
-		if($.isNumeric(splitedText[i].replace(",",".")))
+		if( splitedText[i].length==0 &&  i==splitedText.length-1  ) continue;
+		var valorColar = splitedText[i].split("\t")[0];
+		if(valorColar[0]=='-'  || valorColar=='') valorColar = "0";		
+		if($.isNumeric(valorColar.replace(",",".")))
 		{
-			proxDestino.val(splitedText[i]); 
+			proxDestino.val(valorColar); 
 			proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
 		}
-		
+		if(!proxDestino || colecaoDestino.index(proxDestino)==-1) break;
+		else proxDestino.focus();
+	}
+}
+
+
+function colaDistribuindoEntrega(colecaoDestino, primeiroItem, pastedText){
+	var splitedText = pastedText.split("\n");
+	var proxDestino = primeiroItem;
+	for(var i=0; i< splitedText.length; i++) {		
+		var valorColar = splitedText[i].split("\t")[0];
+		if( valorColar.length==0 &&  (i==0  ||  i==splitedText.length-1)  ) continue;
+		if(valorColar[0]=='-'  || valorColar=='') valorColar = "0";	
+		if($.isNumeric(valorColar.replace(",",".")))
+		{
+			proxDestino.val(valorColar); 
+			proxDestino = $(colecaoDestino.get(colecaoDestino.index(proxDestino)+1));
+		}
 		if(!proxDestino || colecaoDestino.index(proxDestino)==-1) break;
 		else proxDestino.focus();
 	}
@@ -311,6 +328,17 @@ $(function() {
 		colaDistribuindo($(".propaga-colar-2"), $(this), pastedText);
 		return false; // Prevent the default handler from running.
 	});
+	
+	$(".propaga-colar-entrega").on("paste", function(e){
+		var pastedText = undefined;
+		if (window.clipboardData && window.clipboardData.getData) { // IE
+			pastedText = window.clipboardData.getData('Text');
+		} else if (e.originalEvent.clipboardData && e.originalEvent.clipboardData.getData) {
+			pastedText = e.originalEvent.clipboardData.getData('text/plain');
+		}
+		colaDistribuindoEntrega($(".propaga-colar-entrega"), $(this), pastedText);
+		return false; // Prevent the default handler from running.
+	});	
 		
 	
 	$(".seleciona_produtos_fornecedor").change(function(){
@@ -344,6 +372,15 @@ $(function() {
 		});
 	});
 });
+
+
+function replicaDados(replica_origem,replica_destino){
+		elementos_origem = $('input[class^="' + replica_origem + '"]');
+		elementos_destino = $('input[class^="' + replica_destino + '"]');		
+		for(var i=0; i < elementos_origem.length; i++) {			
+			elementos_destino[i].value = elementos_origem[i].value;			
+		}
+}
 
 
 function selectElementContents(el) {
