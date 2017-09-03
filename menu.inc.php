@@ -17,7 +17,7 @@
 		  <?php  
 		  
 		   // menu de administração
-			if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]  || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] )			  
+			if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]  || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] || $_SESSION[PAP_RESP_ENTREGA] || $_SESSION[PAP_RESP_FINANCAS] )			  
 			{
            ?>
             <li class="dropdown">
@@ -75,12 +75,12 @@
 			  ?>
 
     		  <?php 
-			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_RESP_NUCLEO]  )			  
+			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_RESP_NUCLEO]   || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS])			  
 					{
 			   ?>               		
                     
 					  <?php 
-                            if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_MUTIRAO] )			  
+                            if($_SESSION[PAP_ADM] ||  $_SESSION[PAP_RESP_MUTIRAO] )			  
                             {
                        ?>
                                <li><a href="mutirao.php"><i class="glyphicon glyphicon-wrench"></i> Mutirão</a></li>  
@@ -90,13 +90,38 @@
                       
                       
 					  <?php 
-                            if( ($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_PEDIDO]) && ($_SESSION[PAP_BETA_TESTER]) )			  
+                            if( $_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS] )			  
                             {
                        ?>
-			                    <li><a href="entregas.php"><i class="glyphicon glyphicon-fullscreen"></i> Entregas</a></li>    
+			                    <li><a href="entregas.php"><i class="glyphicon glyphicon-apple"></i> Entregas</a></li>   
+                                
                       <?php 
                             } 			  
-                      ?>                                     
+                      ?> 
+                      
+                                                          
+
+					  <?php 
+                            if( $_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_FINANCAS] )			  
+                            {
+                       ?>
+			                    <li><a href="financas.php"><i class="glyphicon glyphicon-usd"></i> Finanças</a></li>    
+                      <?php 
+                            } 			  
+                      ?> 
+                      
+                      
+					  <?php 
+                            if( $_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_ENTREGA] || $_SESSION[PAP_RESP_FINANCAS] )			  
+                            {
+                       ?>
+                                <li><a href="cestantes_quadro.php"><i class="glyphicon glyphicon-th-list"></i> Quadro de Cestantes</a></li> 
+                                
+                      <?php 
+                            } 			  
+                      ?>                                                           
+
+
 	               	<li class="divider"></li>
               <?php 
 			  		} 			  
@@ -105,7 +130,7 @@
               
     
     		  <?php 
-			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] )			  
+			  		if($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] || $_SESSION[PAP_RESP_ENTREGA] || $_SESSION[PAP_RESP_FINANCAS] )			  
 					{
 			   ?>
 
@@ -141,7 +166,6 @@
           <ul class="nav navbar-nav navbar-right">
             <li class="divider-vertical"></li>
             <li><a href="ajuda.php"><i class="glyphicon glyphicon-question-sign"></i> Ajuda</a></li>
-<!--			<li><a href="contato.php"><i class="glyphicon glyphicon-comment"></i> Contato</a></li>-->
             <li class="divider-vertical"></li>
             <li class="dropdown">
               <a href="" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-user"></i> Minha Conta <b class="caret"></b></a>
