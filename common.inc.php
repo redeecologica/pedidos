@@ -539,3 +539,50 @@ function campanha_atualizacao_cadastro()
 	 
 }
 
+function get_cestantes_ativos($dt_ini, $dt_fim, $nuc_id = -1)
+{
+	$sql="	SELECT usr_id ";
+	$sql.="	FROM  ";
+	$sql.="	(  ";
+	$sql.="	SELECT usr_id, usr_archive ";
+	$sql.="	FROM usuarios u LEFT JOIN nucleos ON usr_nuc = nuc_id  ";
+	$sql.="	WHERE ";
+	if($nuc_id!=-1) $sql.= "usr_nuc =  " . prep_para_bd($nuc_id) . " AND " ;
+	$sql.="	usr_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
+	$sql.="	UNION  ";
+	$sql.="	SELECT a.usrlog_usr usr_id, usrlog_archive usr_archive ";
+	$sql.="	FROM usuarios_changelog a  ";
+	$sql.="	 INNER JOIN  ";
+	$sql.="	  (SELECT usrlog_usr, MAX(usrlog_dt_atualizacao) AS ult_atualizacao  ";
+	$sql.="	  FROM usuarios_changelog WHERE usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00") . "  ";
+	$sql.="	  GROUP BY usrlog_usr ) AS b  ";
+	$sql.="	 ON a.usrlog_usr = b.usrlog_usr AND a.usrlog_dt_atualizacao = b.ult_atualizacao  ";
+	$sql.="	 LEFT JOIN nucleos ON usrlog_nuc = nuc_id ";
+	if($nuc_id!=-1) $sql.= " WHERE usrlog_nuc =  " . prep_para_bd($nuc_id) . "  ";
+	$sql.="	UNION ";
+	$sql.="	SELECT usrlog_usr usr_id, usrlog_archive usr_archive ";
+	$sql.="	FROM usuarios_changelog  ";
+	$sql.="	LEFT JOIN nucleos ON usrlog_nuc = nuc_id  ";
+	$sql.="	WHERE ";
+	if($nuc_id!=-1) $sql.=" usrlog_nuc =  " . prep_para_bd($nuc_id) . " AND ";
+	$sql.=" usrlog_dt_atualizacao >  " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00") . " AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
+	$sql.="	) uniao_final  ";
+	$sql.="	GROUP BY usr_id  ";
+	$sql.="	HAVING MIN(usr_archive)=0  ";
+	
+	$res = executa_sql($sql);
+
+	
+	$cestantes = array();
+	
+	if($res)
+	{
+		while($row = mysqli_fetch_array($res,MYSQLI_ASSOC))
+		{
+			$cestantes[] = $row["usr_id"];
+		}
+	}
+
+	return $cestantes;
+}
+
