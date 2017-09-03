@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]  || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]);  
   top();
 ?>
 
@@ -22,7 +22,7 @@
 	?>
      <fieldset>     
      	<div class="form-group">
-  				<label for="cha_prodt">Tipo: </label>            
+  				<label for="cha_prodt">Tipo Chamada: </label>            
                  <select name="cha_prodt" id="cha_prodt" onchange="javascript:frm_filtro.submit();" class="form-control">
                         <option value="-1" <?php echo(($cha_prodt==-1)?" selected" : ""); ?> >TODOS</option>
 						<?php
@@ -101,6 +101,9 @@
         		<th>Ao Produtor</th>
 				<th>Ao Mutirão</th>
 				<th>Ao Resp. Entrega</th>
+				<th>Entrega Final</th>
+				<th>Recebido do Produtor</th>
+				<th>Previsão Pagamento ao Produtor</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -150,6 +153,17 @@
               ?>          
 
         		<td><a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">pedidos de cada núcleo</a></td>    
+                
+                
+
+                <td><a href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo($row['cha_id']);?>">entrega aos cestantes</a></td>   
+                <td><a href="rel_recebimento.php?cha_id=<?php echo($row['cha_id']);?>">entregue pelo produtor</a></td>
+                <td><a href="rel_previsao_pagamento.php?cha_id=<?php echo($row['cha_id']);?>">consolidado</a> ou <a href="rel_previsao_pagamento_detalhado.php?cha_id=<?php echo($row['cha_id']);?>">detalhado</a> </td>
+               
+
+                                
+
+                
                </tr>  
 						
          <?php

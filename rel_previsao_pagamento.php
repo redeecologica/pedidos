@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] ||  $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]);
   top();
   
  $cha_id=request_get("cha_id","");
@@ -23,7 +23,7 @@
 
 <?php 
 
-$sql="SELECT  forn_nome_curto, forn_nome_completo, SUM(prod_valor_compra*chaprod_recebido) total_fornecedor ";
+$sql="SELECT  forn_nome_curto, forn_nome_completo, SUM(prod_valor_compra*chaprod_recebido_confirmado) total_fornecedor ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";

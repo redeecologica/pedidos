@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]  || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]);
   top();
   
  $cha_id=request_get("cha_id","");
@@ -10,12 +10,6 @@
  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
  $res = executa_sql($sql);
  $row = mysqli_fetch_array($res,MYSQLI_ASSOC);
- 
- if($row["prodt_mutirao"]==0) // tipo de chamada não tem mutirão 
- {
-	// então o total recebido pela rede será o somatório do recebido pelos núcleos		
-	chaprod_recebido_get_sum_dist_quantidade($cha_id);	 	 
- }
 
  if(!$res)
  {

@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS]);
+  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR] || $_SESSION[PAP_ACOMPANHA_RELATORIOS] ||  $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]);
   top();
   
  $cha_id=request_get("cha_id","");
@@ -24,7 +24,7 @@
 <?php 
 
 
-$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, chaprod_recebido, ";
+$sql="SELECT  forn_nome_curto, prod_nome, prod_valor_compra,prod_unidade, chaprod_recebido_confirmado, ";
 $sql.="FORMAT(sum(pedprod_quantidade),1) total_demada, FORMAT(GREATEST(0,sum(pedprod_quantidade) - ifnull(est_prod_qtde_depois,0)),1) total_demada_menos_estoque ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
@@ -105,15 +105,15 @@ $res = executa_sql($sql);
 				<td><?php echo(formata_moeda($row["prod_valor_compra"]));?></td>
    
                 <td><?php echo(formata_numero_de_mysql($row["total_demada_menos_estoque"]));?></td>
-                <td><?php echo(formata_numero_de_mysql($row["chaprod_recebido"]));?></td>
+                <td><?php echo(formata_numero_de_mysql($row["chaprod_recebido_confirmado"]));?></td>
                     
-				<td><?php echo (formata_moeda($row["chaprod_recebido"] * $row["prod_valor_compra"])); ?></td>
+				<td><?php echo (formata_moeda($row["chaprod_recebido_confirmado"] * $row["prod_valor_compra"])); ?></td>
 			
 				</tr>
 				 
 				<?php
-				$total_valor_fornecedor+=$row["chaprod_recebido"] * $row["prod_valor_compra"];
-				$total_geral_rede+=$row["chaprod_recebido"] * $row["prod_valor_compra"];
+				$total_valor_fornecedor+=$row["chaprod_recebido_confirmado"] * $row["prod_valor_compra"];
+				$total_geral_rede+=$row["chaprod_recebido_confirmado"] * $row["prod_valor_compra"];
 
 
 		   }
