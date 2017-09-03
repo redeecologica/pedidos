@@ -31,7 +31,7 @@
      	<div class="form-group">
   				<label for="cha_prodt">Tipo Chamada: </label>            
                  <select name="cha_prodt" id="cha_prodt" class="form-control">
-                        <option value="-1" <?php echo(($cha_prodt==-1)?" selected" : ""); ?> >TODOS</option>
+                        <option value="-1" <?php echo(($cha_prodt==-1)?" selected" : ""); ?> >SELECIONE</option>
 						<?php
                             
                             $sql = "SELECT prodt_id, prodt_nome ";
@@ -181,7 +181,6 @@ if($res)
         
         <?php
          
-		 
 		 $filtro_chamadas= " cha_prodt = " .  prep_para_bd($cha_prodt) . " AND ";	 
 	 	 $filtro_chamadas.= " DATE(cha_dt_entrega) >= " . prep_para_bd(formata_data_para_mysql($cha_dt_ini)) . " AND ";
 	 	 $filtro_chamadas.= " DATE(cha_dt_entrega) <= " . prep_para_bd(formata_data_para_mysql($cha_dt_fim));	 	 	 	 
