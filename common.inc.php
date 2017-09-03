@@ -15,6 +15,8 @@ define('PAP_RESP_MUTIRAO',"Responsável pelo Mutirão");
 define('PAP_BETA_TESTER',"Beta Tester");
 define('PAP_ACOMPANHA_PRODUTOR',"Acompanhamento de Produtor");
 define('PAP_ACOMPANHA_RELATORIOS',"Acompanhamento Relatórios");
+define('PAP_RESP_ENTREGA',"Responsável Entrega");
+define('PAP_RESP_FINANCAS',"Responsável Finanças");
  
 
 define('ACAO_EXIBIR_LEITURA',0);
@@ -537,4 +539,3 @@ function campanha_atualizacao_cadastro()
 	 
 }
 
-?>

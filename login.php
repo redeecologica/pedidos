@@ -38,7 +38,8 @@
 			$_SESSION[PAP_BETA_TESTER] = false; 
 			$_SESSION[PAP_ACOMPANHA_PRODUTOR] = false; 
 			$_SESSION[PAP_ACOMPANHA_RELATORIOS] = false; 
-			
+			$_SESSION[PAP_RESP_FINANCAS] = false; 
+			$_SESSION[PAP_RESP_ENTREGA] = false; 
 						
 			$sql=  "SELECT pap_nome FROM papeis, usuariopapeis ";
 			$sql.= "WHERE usrp_pap = pap_id AND usrp_usr = " . prep_para_bd($row['usr_id']);	

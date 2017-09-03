@@ -9,7 +9,9 @@ INSERT INTO `papeis` (`pap_id`, `pap_nome`) VALUES
 (4, 'Responsável pelo Mutirão'),
 (5, 'Beta Tester'),
 (6, 'Acompanhamento de Produtor'),
-(7, 'Acompanhamento Relatórios');
+(7, 'Acompanhamento Relatórios'),
+(8, 'Responsável Entrega'),
+(9, 'Responsável Finanças');
 
 
 INSERT INTO `nucleos` (`nuc_id`, `nuc_nome_curto`, `nuc_nome_completo`, `nuc_email`, `nuc_entrega_horario`, `nuc_entrega_endereco`, `nuc_archive`) VALUES
