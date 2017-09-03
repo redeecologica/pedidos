@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || $_SESSION[PAP_RESP_MUTIRAO] || ($_SESSION[PAP_RESP_NUCLEO] && $_SESSION[PAP_BETA_TESTER] ) );
+  verifica_seguranca( $_SESSION[PAP_RESP_MUTIRAO]  || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]   );
   top();
 ?>
 
@@ -12,7 +12,7 @@
 		$cha_id =  request_get("cha_id","");
 		if($cha_id=="") redireciona(PAGINAPRINCIPAL);
 				 
-        $nuc_id = request_get("nuc_id",($_SESSION[PAP_RESP_NUCLEO]? $_SESSION['usr.nuc'] : -1));
+        $nuc_id = request_get("nuc_id",$_SESSION['usr.nuc']);
 		
 		if ($action<>-1) // por enquanto, vai precisar para todos os casos
 		{
@@ -58,11 +58,11 @@
 			if($res)
 			{
 				$action=ACAO_EXIBIR_LEITURA; //volta para modo visualização somente leitura
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição/entrega relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");								
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");								
 			}
 			else
 			{
-				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações de distribuição/entrega da chamada de " . $cha_dt_entrega . ".");								
+				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações de distribuição da chamada de " . $cha_dt_entrega . ".");								
 			}
 			escreve_mensagem_status();
 		
@@ -97,9 +97,18 @@
 	
   ?>	
   
+  
+  
+<ol class="breadcrumb">
+  <li><a href="mutirao.php">Mutirão</a></li>
+  <li class="active">Distribuição</li>
+</ol>
+
+
+  
   <div class="panel panel-default">
   <div class="panel-heading">
-     <strong>Informações de Distribuição/Entrega relacionada à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
+     <strong>Informações de Distribuição relacionada à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></strong>
 
   </div>
 
@@ -155,7 +164,7 @@
                         <table class="table table-striped table-bordered table-condensed table-hover">
 						<thead>
                         	<tr>
-                            	<th colspan="3">Relatório do que foi distribuído/entregue para o núcleo  <?php echo($nuc_nome_curto); ?></th>
+                            	<th colspan="3">Relatório do que foi distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
                                 <th>
                                   <a class="btn btn-primary" href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
                                 </th>
@@ -182,7 +191,7 @@
                                             </th>
 											<th>Unidade</th>
                                             <th>Pedido</th>
-											<th>Recebido</th>
+											<th>Distribuído</th>
 										</tr>
 								<?php
 								
@@ -245,6 +254,19 @@
 ?>
 	
     <form class="form-horizontal" action="distribuicao.php" method="post">
+<!--
+	<div align="right">
+                
+                       <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                       
+                       &nbsp;&nbsp;
+                       
+                       
+                       
+                       <button class="btn btn-default" type="button" onclick="javascript:location.href='distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($cha_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+	</div>     
+-->
         <fieldset> 
         
           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />
@@ -263,6 +285,15 @@
                     </thead>
                     <tbody>
               
+                        <tr>
+                            <td>&nbsp;</td><td>&nbsp;</td>
+                            <td colspan="2">
+                            <button type="button" class="btn btn-info" name="copia_produtos_pedido" id="copia_produtos_pedido" onclick="javascript:replicaDados('replica-origem','replica-destino');">
+							  <i class="glyphicon glyphicon-paste"></i> replicar do pedido
+							</button>                                                        
+                            </td>
+                        </tr>   
+                                      
 
 				<?php
  										  
@@ -287,7 +318,7 @@
                                             </th>
 											<th>Unidade</th>
                                             <th>Pedido</th>
-											<th class="coluna-quantidade">Recebido</th>
+											<th class="coluna-quantidade">Distribuído</th>
 										</tr>
 								<?php
 								
@@ -299,15 +330,22 @@
                              
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
-                            <td>                            
+                            <td>         
+                             <input type="hidden" name="total_pedido_nucleo[]" class="replica-origem" value="<?php echo($row["total_pedido_nucleo"]?formata_numero_de_mysql($row["total_pedido_nucleo"]):""); ?>">   
+                                              
                           		<?php 
 									if($row["total_pedido_nucleo"]) 
+									{
 										echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido_nucleo"]))); 
-									else echo("&nbsp;");								 
+									}
+									else
+									{
+										 echo("&nbsp;");								 
+									}
 								?> 
                              </td>                              
                             <td>
-                            <input type="text" class="form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>" name="dist_quantidade[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>" name="dist_quantidade[]"/>
                             </td>
                                                      
                             </tr>
@@ -322,16 +360,17 @@
             
            </div> 
 
+	<div align="right">
                 
-                   <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
-                   
-                   &nbsp;&nbsp;
-                   
-                   
-                   
-                   <button class="btn btn-default" type="button" onclick="javascript:location.href='distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($cha_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                                 
+                       <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                       
+                       &nbsp;&nbsp;
+                       
+                       
+                       
+                       <button class="btn btn-default" type="button" onclick="javascript:location.href='distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($cha_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+	</div>                                 
     
 
       </fieldset> 

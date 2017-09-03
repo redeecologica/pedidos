@@ -1,6 +1,6 @@
 <?php  
   require  "common.inc.php"; 
-  verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]  || $_SESSION[PAP_RESP_MUTIRAO]);
+  verifica_seguranca($_SESSION[PAP_RESP_MUTIRAO]);
   top();
 ?>
 
@@ -81,6 +81,12 @@
 		
 ?>
 
+<ol class="breadcrumb">
+  <li><a href="mutirao.php">Mutirão</a></li>
+  <li class="active">Estoque</li>
+</ol>
+
+
 <?php 
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
@@ -108,10 +114,13 @@
                     if($res && mysqli_num_rows($res)==0)
 					{
 					?>	
+
                     <div class="panel-body">
+                    <!--
 					<button type="button" class="btn btn-default btn-enviando" data-loading-text="importando..." onclick="javascript:location.href='estoque.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&est_cha=<?php echo($est_cha); ?>&importar=sim'">
             <i class="icon glyphicon glyphicon-resize-small"></i> importar estoque do último mutirão
             </button>
+            -->
             <br /><br /><br /><div class='well'> Sem produtos em estoque. Se de fato houver, clique em editar para registrar. </div><br />
             </div>
 					
@@ -119,7 +128,15 @@
 					}
 					else if($res)
                     {
-						echo("<table class='table table-striped table-bordered table-condensed table-hover'>");
+					   ?>
+
+                  <div align="right">
+         	 	<a class="btn btn-primary" href="estoque.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&est_cha=<?php echo($est_cha); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
+         	</div><br>
+            
+            
+                       	<table class="table table-striped table-bordered table-condensed table-hover">
+                  	   <?php
 
 					   $ultimo_forn = "";
                        while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
@@ -165,10 +182,10 @@
 			      ?>   
                   
                   </div>          
-
+				<div align="right">
          	 	<a class="btn btn-primary" href="estoque.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&est_cha=<?php echo($est_cha); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
-         	&nbsp;&nbsp;
-		<a class="btn btn-default" href="javascript:window.history.go(-1);"><i class="glyphicon glyphicon-arrow-left"></i> voltar</a>        
+         	</div>
+      
   
    
 	
@@ -260,7 +277,7 @@
             </div>
             
             
-		  <div class="form-group">
+		  <div class="form-group" align="right">
             <div class="controls">                 
                    <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
             <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>

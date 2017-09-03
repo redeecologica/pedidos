@@ -9,9 +9,6 @@
   <div class="panel-heading">
      <strong>Lista de Chamadas para o Mutirão</strong>
   </div>
- <div class="panel-body">   
-     <div class="well">Atenção: módulo em desenvolvimento</div>
- </div>   
  
 	<table class="table table-striped table-bordered">
 		<thead>
