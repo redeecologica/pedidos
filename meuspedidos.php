@@ -17,7 +17,7 @@
 		
 		$filtro_anteriores="WHERE NOW() > cha_dt_max  ORDER BY cha_dt_entrega_original DESC, prodt_nome, cha_dt_max_original DESC LIMIT 10"; 	
 			
-        $sql = "SELECT cha_id, cha_prodt, cha_dt_entrega<=NOW() as entrega_passou, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
+        $sql = "SELECT cha_id, cha_prodt, DATE(cha_dt_entrega)<=CURDATE() as entrega_passou, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
         $sql.= "cha_dt_min cha_dt_min_original, date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, ";
         $sql.= "date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, prodt_nome, ped_fechado, ped_id ";
         $sql.= "FROM chamadas ";

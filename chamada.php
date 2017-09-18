@@ -82,7 +82,7 @@
 			$sql.= "cha_dt_min  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_min"] . " " .  $_REQUEST["cha_hh_min"])) . ", ";
 			$sql.= "cha_dt_max  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_max"] . " " .  $_REQUEST["cha_hh_max"])) .  ", ";	
 			$sql.= "cha_taxa_percentual  = " . prep_para_bd(formata_numero_para_mysql($_REQUEST["cha_taxa_percentual"])) .  ", ";				
-			$sql.= "cha_dt_entrega  = " . prep_para_bd(formata_data_para_mysql($_REQUEST["cha_dt_entrega"]) . " 12:00:00" ) .  "  ";	
+			$sql.= "cha_dt_entrega  = " . prep_para_bd(formata_data_para_mysql($_REQUEST["cha_dt_entrega"]) . " 23:59:59" ) .  "  ";	
 			$sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";	
 			$res = executa_sql($sql);
 
