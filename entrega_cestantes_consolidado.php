@@ -173,6 +173,14 @@ if($nuc_id!=-1 && $cha_id!=-1)
 		?>		
         
 			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );"> 
+            &nbsp;&nbsp;&nbsp;&nbsp;
+
+             <a class="btn btn-default" href="entrega_cestante_incluir.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>">
+               <i class="glyphicon glyphicon-plus"></i> incluir na entrega cestante que não fez pedido
+             </a>
+							  
+                                        
+            
              <p />
 
         
