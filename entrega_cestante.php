@@ -51,15 +51,14 @@
 
 			for($i=0;$i<$n;$i++)
 			{
-				$qtde_salvar = $_REQUEST['pedprod_entregue'][$i]=="" ? 'NULL' : prep_para_bd(formata_numero_para_mysql($_REQUEST['pedprod_entregue'][$i]));
 				
-				$sql = "UPDATE pedidoprodutos  ";
-				$sql.= "SET pedprod_entregue =  " . $qtde_salvar;				
-				$sql.= " WHERE ";
-				$sql.= " pedprod_ped = " . $ped_id_bd . " AND ";
-				$sql.= " pedprod_prod = " . prep_para_bd($_REQUEST['prod_id'][$i]);
-
-				$res = executa_sql($sql);
+				$qtde_bd = $_REQUEST['pedprod_entregue'][$i]=="" ? 'NULL' : prep_para_bd(formata_numero_para_mysql($_REQUEST['pedprod_entregue'][$i]));
+				$sql = "INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_entregue) ";
+				$sql.= "VALUES ( " . $ped_id_bd . " ," . prep_para_bd($_REQUEST['prod_id'][$i]) . ", ";
+				$sql.= $qtde_bd . ") ";
+				$sql.= "ON DUPLICATE KEY UPDATE ";
+				$sql.= "pedprod_entregue = " . $qtde_bd ;
+				$res = executa_sql($sql);				
 
 			}
 
@@ -119,11 +118,14 @@
 	
   ?>	
  
- <ul class="nav nav-tabs">
+<ul class="nav nav-tabs">
   <li><a href="entregas.php">Entregas</a></li>
   <li><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
   <li class="active"><a href="#"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
+  <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
 </ul>
+
+
 <br>
   
   <div class="panel panel-default">

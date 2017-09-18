@@ -9,9 +9,8 @@
  if($nuc_id==-1) $nuc_id=$_SESSION['usr.nuc'];
  
                       
- $sql = "SELECT prodt_nome, nuc_nome_curto, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual ";
+ $sql = "SELECT prodt_nome, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual ";
  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
- $sql.= "LEFT JOIN nucleos on nuc_id = " . prep_para_bd($nuc_id) . " " ;
  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
 
 
@@ -25,24 +24,24 @@
 
 $prodt_nome = $row["prodt_nome"];
 $cha_dt_entrega = $row["cha_dt_entrega"];
-$nuc_nome_curto = $row["nuc_nome_curto"];
 $cha_taxa_percentual = $row["cha_taxa_percentual"];
 
 
 ?>
 
-<ul class="nav nav-tabs">
+ <ul class="nav nav-tabs">
   <li><a href="entregas.php">Entregas</a></li>
   <li><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
-  <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
+  <li><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
+  <li class="active"><a href="#"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
 </ul>
+
 <br>
 
 
   <div class="panel panel-default">
   <div class="panel-heading">
-     <strong>Consolidado - Entregue aos Cestantes no Núcleo <?php if($prodt_nome) echo(" - " . $prodt_nome . " - " . $cha_dt_entrega); ?></strong>
+     <strong>Divergências - Entrega no Núcleo <?php if($prodt_nome) echo(" - " . $prodt_nome . " - " . $cha_dt_entrega); ?></strong>
 
   </div>
 
@@ -58,7 +57,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
      	<div class="form-group">
   				<label for="cha_id">Chamada: </label>            
                  <select name="cha_id" id="cha_id" onchange="javascript:frm_filtro.submit();" class="form-control">
-                 	<option value="-1">SELECIONE</option>
+                 	<option value="-1">SELECIONE</option>         
                     <?php
                         
                        $sql = "SELECT cha_id, prodt_nome, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
@@ -103,7 +102,8 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
   				<label for="nuc_id">Núcleo: </label>            
                 <select name="nuc_id" id="nuc_id" onchange="javascript:frm_filtro.submit();" class="form-control">
                     <option value="-1" <?php echo(($nuc_id==-1)?" selected" : ""); ?> >SELECIONAR</option>
-                    <option value="-1">-------------</option>                     
+                    <option value="-1">-------------</option>    
+                 	<option value="0" <?php echo(($nuc_id==0)?" selected" : ""); ?> >[Todos]</option>                                               
                     <?php
                         
                         $sql = "SELECT nuc_id, nuc_nome_curto, nuc_archive ";
@@ -151,113 +151,88 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 
 if($nuc_id!=-1 && $cha_id!=-1)
 {
-	$sql="SELECT usr_nome_completo, ped_usr_associado, ped_id, ";
-	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)) AS valor_pedido, ";
-	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)) AS valor_entregue, ";
-	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (pedprod_entregue - pedprod_quantidade)),SUM(prod_valor_venda * (pedprod_entregue - pedprod_quantidade)) ) AS valor_extra ";
+
+	$sql="SELECT FORMAT(SUM(pedprod_entregue),2) as total_entregue, nuc_nome_curto, forn_nome_curto, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_unidade, ";
+	$sql.=" prod_id, FORMAT(SUM(pedprod_quantidade),0) as total_pedido, chaprod_disponibilidade, FORMAT(dist_quantidade_recebido,1) as total_recebido ";
 	$sql.="FROM chamadaprodutos ";
-	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha LEFT JOIN produtos on prod_id = chaprod_prod ";
-	$sql.="LEFT JOIN pedidos ON ped_cha = cha_id LEFT JOIN usuarios on ped_usr = usr_id ";
+	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
+	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
+	$sql.="LEFT JOIN pedidos ON ped_cha = cha_id ";
+	$sql.="LEFT JOIN nucleos ON ped_nuc = nuc_id ";
 	$sql.="LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";
-	
-	$sql.="WHERE ped_cha = " . prep_para_bd($cha_id) . " AND ped_nuc = " . prep_para_bd($nuc_id) . " ";
-	$sql.=" AND ped_fechado = '1' AND chaprod_disponibilidade <> '0' ";
-	$sql.=" AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
-	$sql.="GROUP BY usr_id, ped_id ";
-	$sql.="ORDER BY usr_nome_completo";
-	
+	$sql.="LEFT JOIN fornecedores on prod_forn = forn_id ";
+	$sql.="LEFT JOIN distribuicao ON dist_cha = chaprod_cha AND dist_prod = chaprod_prod AND ped_nuc = dist_nuc ";
+	$sql.="WHERE ped_cha= " . prep_para_bd($cha_id) . " ";
+	$sql.="AND ped_fechado = '1' ";	
+	if($nuc_id>0) $sql.="AND ped_nuc = " . prep_para_bd($nuc_id) . " ";	
+	$sql.="AND chaprod_disponibilidade <> '0' ";
+	$sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
+	$sql.="GROUP BY ped_nuc, forn_id, prod_id ";
+	$sql.=" HAVING SUM(pedprod_entregue) - total_recebido <> '0'   ";	
+	$sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, prod_unidade ";
+	 
 	$res = executa_sql($sql); 
 	
-	
-	if($res) 
+	if($res &&  mysqli_num_rows($res)>0) 
 	{	
 		?>		
         
-			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );"> 
-            &nbsp;&nbsp;&nbsp;&nbsp;
-
-             <a class="btn btn-default" href="entrega_cestante_incluir.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>">
-               <i class="glyphicon glyphicon-plus"></i> incluir na entrega cestante que não fez pedido
-             </a>
-							  
-                                        
-            
+			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );">
              <p />
-
-        
                 <table id="selectable" class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="9">Consolidado Entrega Cestantes - Núcleo <?php echo($nuc_nome_curto); ?> - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
+                        <th colspan="8">Divergências Entrega - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
                     </tr>
 					<tr>
-                    	<th>Cestante</th>
-                        <th>Associado</th>
-                        <th>Pedido (R$)</th>
-                        <th>Extra (R$)</th>
-                        <th>Entregue (R$)</th>
-                        <th>Taxa <?php echo(formata_numero_de_mysql($cha_taxa_percentual*100)); ?>% (R$)</th>   
-                        <th>Total (R$)</th>                                                
-                        <th>Ações</th>
+                    	<th>Núcleo</th>
+                        <th>Produtor</th>
+                        <th>Produto</th>
+                        <th>Unidade</th>                        
+                        <th>Pedido</th>
+                        <th>Recebido</th>
+                        <th>Entregue</th>   
+                        <th>Recebido e Não Entregue</th>
                     </tr>
                 </thead>
                 
                 <tbody>
                 <?php
 
-			   $somatorio_pedido=0;
-			   $somatorio_extra=0;
-			   $somatorio_entregue=0;
-			   $somatorio_taxa=0;
 		   			   			   
                while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                {
-				   $somatorio_pedido+=$row["valor_pedido"];
-				   $somatorio_extra+=$row["valor_extra"];
-				   $somatorio_entregue+=$row["valor_entregue"];
-				   $somatorio_taxa+=$row["ped_usr_associado"]=='0' ? $row["valor_entregue"] : $row["valor_entregue"]*$cha_taxa_percentual;
-              
                     ?>
                     <tr>                              
-                    <td><?php echo($row["usr_nome_completo"]);?></td>
-                    <td><?php echo($row["ped_usr_associado"]=='0'?"Não":"Sim"); ?></td> 
-                    <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
-                    <td><?php echo(formata_moeda($row["valor_extra"])); ?></td>
-                    <td><?php echo(formata_moeda($row["valor_entregue"])); ?></td> 
-                    <td><?php echo(formata_moeda($row["ped_usr_associado"]=='0' ? $row["valor_entregue"] : $row["valor_entregue"]*$cha_taxa_percentual)); ?></td>
-                    <td><?php echo(formata_moeda($row["ped_usr_associado"]=='0'  ? $row["valor_entregue"] : $row["valor_entregue"]*(1+$cha_taxa_percentual))); ?></td>                   
-                    <!--                      
-                    <td>
-                        <a class="btn btn-default" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-search glyphicon-white"></i> visualizar</a>
-                        
-                    </td>
-                    -->
-                    <td>
-                        <a class="btn btn-default <?php echo($row["valor_entregue"]>0? "" : "btn-danger" ); ?>" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar entrega</a>
-                    </td>
-                                        
+                    <td><?php echo($row["nuc_nome_curto"]);?></td>
+                    <td><?php echo($row["forn_nome_curto"]); ?></td> 
+                    <td><?php echo($row["prod_nome"]); ?></td>
+                    <td><?php echo($row["prod_unidade"]); ?></td>
+                    <td><?php echo(formata_numero_de_mysql($row["total_pedido"])); ?></td>
+                    <td><?php echo(formata_numero_de_mysql($row["total_recebido"])); ?></td>
+                    <td><?php echo(formata_numero_de_mysql($row["total_entregue"])); ?></td>
+                    <td class="alert alert-danger"><?php echo(formata_numero_de_mysql($row["total_recebido"] - $row["total_entregue"])); ?></td>                                        
                     </tr>
                      
                     <?php
 
                }
           ?>             
-          <tr>          
-            <th>TOTAL</th>
-            <th>&nbsp;</th>
-            <th><?php echo(formata_moeda($somatorio_pedido));?></th>
-            <th><?php echo(formata_moeda($somatorio_extra));?></th>
-            <th><?php echo(formata_moeda($somatorio_entregue));?></th>
-            <th><?php echo(formata_moeda($somatorio_taxa));?></th>
-            <th><?php echo(formata_moeda($somatorio_entregue + $somatorio_taxa));?></th>                                     
-            <th>&nbsp;</th>
-                        
-          </tr>
-                         
           </tbody></table>
        
 
         <?php 
+	}
+	else // nao possui registros
+	{
+		?>
+		
+        <div class="alert alert-success" role="alert">
+        	<i class="glyphicon glyphicon-thumbs-up"></i> Parabéns! Não foram identificadas divergências entre o que foi recebido pelo núcleo e o que foi entregue aos cestantes.
+        </div>
+        
+		<?php
+		
 	}
 
 }

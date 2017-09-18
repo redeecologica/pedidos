@@ -341,7 +341,7 @@ $res = executa_sql($sql);
                      	      	foreach ($cestante_nome as $cestante) echo("<th colspan='6' style='text-align:center'>$cestante</th>");
                              ?> 
 							<th colspan="6" style='text-align:center'>TOTAL Entregue aos Cestantes</th>
-                            <th colspan="2">TOTAL Recebido do Produtor</th>                                                         
+                            <th colspan="2">TOTAL Recebido pelo Núcleo</th>                                                         
                           </tr>
                           <tr>
 						 	 <?php
@@ -443,7 +443,7 @@ $res = executa_sql($sql);
                 <td><?php echo(formata_numero_de_mysql($total_qtde_produto_entregue));?></td>                   
 				<td><?php echo(formata_moeda($total_entregue)); ?></td>          
                 <td><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor));?></td>                   
-                <td><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue));?></td>                   
+                <td <?php if($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue !=0) echo("class='danger'");?>><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue));?></td>                   
                                                 
 				</tr>
 
@@ -504,7 +504,7 @@ $res = executa_sql($sql);
                    }                                            
                    ?>                  
             <th colspan="6"  style="text-align:center">TOTAL Entregue aos Cestantes</th>          
-            <th colspan="2">TOTAL Recebido do Produtor</th> 
+            <th colspan="2">TOTAL Recebido pelo Núcleo</th> 
             </tr>
 
            <tr>
@@ -543,7 +543,7 @@ $res = executa_sql($sql);
             <th colspan="2">R$ <?php echo(formata_moeda($total_entregue)); ?></th>
             
             <th>R$ <?php echo(formata_moeda($total_final_recebido_fornecedor)); ?></th>
-            <th>R$ <?php echo(formata_moeda($total_final_nao_distribuido)); ?></th>
+            <th <?php if($total_final_nao_distribuido !=0) echo("class='danger'");?>>R$ <?php echo(formata_moeda($total_final_nao_distribuido)); ?></th>
                       
            </tr>
 

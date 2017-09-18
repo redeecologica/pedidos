@@ -30,6 +30,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
   <li><a href="entregas.php">Entregas</a></li>
   <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
   <li><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
+  <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
 </ul>
 <br>
   
