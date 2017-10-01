@@ -9,7 +9,7 @@
  if($nuc_id==-1) $nuc_id=$_SESSION['usr.nuc'];
  
                       
- $sql = "SELECT prodt_nome, nuc_nome_curto, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual ";
+ $sql = "SELECT prodt_nome, nuc_nome_curto, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual,((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, date_format(cha_dt_prazo_contabil,'%d/%m/%Y %H:%i') cha_dt_prazo_contabil ";
  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
  $sql.= "LEFT JOIN nucleos on nuc_id = " . prep_para_bd($nuc_id) . " " ;
  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
@@ -27,6 +27,8 @@ $prodt_nome = $row["prodt_nome"];
 $cha_dt_entrega = $row["cha_dt_entrega"];
 $nuc_nome_curto = $row["nuc_nome_curto"];
 $cha_taxa_percentual = $row["cha_taxa_percentual"];
+$cha_dt_prazo_contabil = $row["cha_dt_prazo_contabil"];
+$cha_dentro_prazo = $row["cha_dentro_prazo"];
 
 
 ?>
@@ -133,6 +135,22 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
                 </select>                           
        
        
+                  <?php 
+				   if($cha_id!=-1)
+				   {
+					 ?>  
+                    &nbsp;&nbsp;
+                    <label for="cha_dt_prazo_contabil">Prazo para Edição: </label>   <?php echo($cha_dt_prazo_contabil?$cha_dt_prazo_contabil:"ainda não configurado"); ?>
+					
+					<?php 
+                        if(!$cha_dentro_prazo)
+                        {
+                            echo("<span class='alert alert-danger'>(encerrado)</span>");
+                        }
+				   }
+				 ?>
+       
+       
            </div>
            
          </fieldset>
@@ -232,8 +250,21 @@ if($nuc_id!=-1 && $cha_id!=-1)
                         
                     </td>
                     -->
-                    <td>
-                        <a class="btn btn-default <?php echo($row["valor_entregue"]>0? "" : "btn-danger" ); ?>" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar entrega</a>
+                    <td nowrap="nowrap">
+                       
+
+<?php 
+						if($cha_dentro_prazo)
+						{
+						?>
+                        <a class="btn btn-default <?php echo($row["valor_entregue"]>0? "" : "btn-danger" ); ?>" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>
+ 
+						<?php
+						}
+						?>                      
+                         <a class="btn btn-default" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-search glyphicon-white"></i> ver</a>  
+                         
+
                     </td>
                                         
                     </tr>

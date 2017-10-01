@@ -586,3 +586,31 @@ function get_cestantes_ativos($dt_ini, $dt_fim, $nuc_id = -1)
 	return $cestantes;
 }
 
+
+function echo_digitos_significativos($numero,$se_zero="-")
+{
+	if($numero<0)
+	{
+		echo("-");
+		$numero*=-1;
+	}
+	if($numero>0)
+	{
+		$cont=0;
+		$fracao = $numero - floor(round($numero,0));	
+
+		while(abs($fracao) > 0.00001)
+		{	
+			$fracao=$fracao*10.0;	
+			$cont++;	
+			$fracao=$fracao - floor(round($fracao,0));	
+		}
+		
+		echo(number_format($numero,$cont,',','.'));		
+	}
+	else
+	{
+		echo($se_zero);
+	}
+}
+

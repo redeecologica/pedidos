@@ -19,7 +19,8 @@
 		
 		if ($action<>-1) // por enquanto, vai precisar para todos os casos
 		{
-		  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_prodt, prodt_nome, nuc_id, nuc_nome_curto, usr_nome_completo FROM chamadas ";
+		  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, ";
+		  $sql.= " cha_prodt, prodt_nome, nuc_id, nuc_nome_curto, usr_nome_completo FROM chamadas ";
 		  $sql.= " LEFT JOIN produtotipos ON cha_prodt = prodt_id ";
 		  $sql.= " LEFT JOIN pedidos ON ped_cha = cha_id ";
 		  $sql.= " LEFT JOIN nucleos ON ped_nuc = nuc_id ";		
@@ -36,9 +37,15 @@
 			$nuc_id = $row["nuc_id"];
 			$nuc_nome_curto = $row["nuc_nome_curto"];
 			$usr_nome_completo = $row["usr_nome_completo"];			
-			
+			$cha_dentro_prazo = $row["cha_dentro_prazo"];
 		  }
 		}	
+		
+		if( ($action == ACAO_SALVAR || $action == ACAO_EXIBIR_EDICAO) && (!$cha_dentro_prazo))
+		{			
+			adiciona_mensagem_status(MSG_TIPO_AVISO,"Não posui permissão para edição.");
+			redireciona("entregas.php");
+		}		
 	
 				
 		if ($action == ACAO_SALVAR) // salvar formulário preenchido
@@ -98,7 +105,7 @@
 <?php 
 
 	$sql="SELECT pedprod_entregue, forn_nome_curto, forn_nome_completo, usr_nome_curto, ped_usr_associado, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_id,  ";
-	$sql.="prod_unidade, IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, FORMAT(pedprod_entregue - pedprod_quantidade,2) AS pedprod_extra, chaprod_disponibilidade ";
+	$sql.="prod_unidade, IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, (pedprod_entregue - pedprod_quantidade) AS pedprod_extra, chaprod_disponibilidade ";
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -112,7 +119,6 @@
 	$sql.="AND chaprod_disponibilidade <> '0' ";
 	$sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
 	$sql.="ORDER BY forn_nome_curto, prod_nome, prod_unidade, usr_nome_curto ";
-	
 	$res = executa_sql($sql);
 
 	
@@ -121,12 +127,13 @@
 <ul class="nav nav-tabs">
   <li><a href="entregas.php">Entregas</a></li>
   <li><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
+  <li class="active"><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
   <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
 </ul>
 
 
 <br>
+
   
   <div class="panel panel-default">
   <div class="panel-heading">
@@ -141,7 +148,12 @@
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
+ 
+  
  <div class="panel-body">
+
+  <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-arrow-left"></i> voltar</button>
+
  
                 <form class="form-inline" method="get" name="frm_filtro" id="frm_filtro">
                     
@@ -157,10 +169,7 @@
                 <table class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="3">Relatório do que foi distribuído/entregue para cestante <?php echo($usr_nome_completo); ?></th>
-                        <th colspan="2">
-                          <a class="btn btn-primary" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&ped_id=<?php echo($ped_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
-                        </th>
+                        <th colspan="5">Relatório do que foi distribuído/entregue para cestante <?php echo($usr_nome_completo); ?></th>
                     </tr>
                 </thead>
                 
@@ -197,41 +206,18 @@
                     <td><?php echo($row["prod_unidade"]); ?></td>  
                     <td>                            
                         <?php 
-                            if($row["pedprod_quantidade"]) 
-                            {
-                                echo(get_hifen_se_zero(formata_numero_de_mysql($row["pedprod_quantidade"]))); 
-                            }
-                            else
-                            {
-                                echo("-");
-                            }
-                         
+                            echo_digitos_significativos($row["pedprod_quantidade"]);
                         ?> 
                      </td>                                                    				
                     <td>                            
                         <?php 
-                            if($row["pedprod_entregue"]) 
-                            {
-                                echo(get_hifen_se_zero(formata_numero_de_mysql($row["pedprod_entregue"]))); 
-                            }
-                            else
-                            {
-                                echo("-");
-                            }
-                         
+                            echo_digitos_significativos($row["pedprod_entregue"]);                         
                         ?> 
                      </td> 
                      
                     <td>                            
                         <?php 
-                            if($row["pedprod_extra"]) 
-                            {
-                                echo(get_hifen_se_zero(formata_numero_de_mysql($row["pedprod_extra"]))); 
-                            }
-                            else
-                            {
-                                echo("-");
-                            }
+                            echo_digitos_significativos($row["pedprod_extra"]);
                          
                         ?> 
                      </td>                      
@@ -342,15 +328,13 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>    
-                               <input type="hidden" name="pedprod_quantidade[]" class="replica-origem" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):""); ?>">                        
+                               <input type="hidden" name="pedprod_quantidade[]" class="replica-origem" value="<?php  echo_digitos_significativos($row["pedprod_quantidade"],"");?>">                        
                           		<?php 
-									if($row["pedprod_quantidade"]) 
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["pedprod_quantidade"]))); 
-									else echo("-");								 
+									echo_digitos_significativos($row["pedprod_quantidade"]);
 								?> 
                              </td>                              
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_entregue"]?formata_numero_de_mysql($row["pedprod_entregue"]):""); ?>" name="pedprod_entregue[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php  echo_digitos_significativos($row["pedprod_entregue"],"")?>" name="pedprod_entregue[]"/>
                             </td>
                             
                                                 

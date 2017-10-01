@@ -73,10 +73,10 @@
 
 <?php 
 
-	$sql = "SELECT prod_id, prod_nome, FORMAT(chaprod_recebido,1) chaprod_recebido, ";
-	$sql.= " FORMAT(chaprod_recebido_confirmado,1) chaprod_recebido_confirmado,SUM(pedprod_quantidade) total_demanda, ";
+	$sql = "SELECT prod_id, prod_nome, chaprod_recebido, ";
+	$sql.= " chaprod_recebido_confirmado,SUM(pedprod_quantidade) total_demanda, ";
 	$sql.= " est_prod_qtde_depois total_estoque, prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, ";
-	$sql.= " FORMAT( GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))), 1) total_pedido ";
+	$sql.= " GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))) total_pedido ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
@@ -297,22 +297,22 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>                          							
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_demanda"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_demanda"]); ?> 
                              </td>   
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_estoque"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_estoque"]); ?> 
                              </td>                                
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_pedido"]); ?> 
                              </td>              
 							<td>                            
-                          		<?php echo($row["chaprod_recebido"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido"])):"&nbsp;"); ?> 
+                          		<?php if($row["chaprod_recebido"]) echo_digitos_significativos($row["chaprod_recebido"]); else echo("&nbsp;"); ?> 
                              </td>
 							<td>   
-                          		<?php echo(isset($receb_nucleos[$row["prod_id"]]) ? get_hifen_se_zero(formata_numero_de_mysql($receb_nucleos[$row["prod_id"]])):"&nbsp;"); ?>
+                          		<?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]]); else echo("&nbsp;"); ?>
                              </td>
 							<td>                            
-                          		<?php echo($row["chaprod_recebido_confirmado"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido_confirmado"])):"&nbsp;"); ?> 
+                          		<?php if($row["chaprod_recebido_confirmado"]) echo_digitos_significativos($row["chaprod_recebido_confirmado"]); else echo("&nbsp;");  ?> 
                              </td>               
                                  
                             </tr>
@@ -437,17 +437,17 @@
 							<tr> 
                             <input type="hidden" name="chaprod_prod[]" value="<?php echo($row["prod_id"]); ?>"/>
                             
-                            <input type="hidden" name="total_pedido[]" class="replica-origem-pedido" value="<?php echo($row["total_pedido"]?formata_numero_de_mysql($row["total_pedido"]):""); ?>">  
-                            <input type="hidden" name="total_mutirao[]" class="replica-origem-mutirao" value="<?php echo($row["chaprod_recebido"]?formata_numero_de_mysql($row["chaprod_recebido"]):""); ?>">		
-                            <input type="hidden" name="total_nucleo[]" class="replica-origem-nucleo" value="<?php echo(isset($receb_nucleos[$row["prod_id"]])?formata_numero_de_mysql($receb_nucleos[$row["prod_id"]]):""); ?>">  
+                            <input type="hidden" name="total_pedido[]" class="replica-origem-pedido" value="<?php echo_digitos_significativos($row["total_pedido"],""); ?>">  
+                            <input type="hidden" name="total_mutirao[]" class="replica-origem-mutirao" value="<?php echo_digitos_significativos($row["chaprod_recebido"],""); ?>">		
+                            <input type="hidden" name="total_nucleo[]" class="replica-origem-nucleo" value="<?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo(""); ?>">  
                             
                              
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
-                            <td><?php echo(formata_numero_de_mysql($row["total_demanda"]));?></td>                            
-                            <td><?php echo(formata_numero_de_mysql($row["total_estoque"]));?></td>
+                            <td><?php echo_digitos_significativos($row["total_demanda"]);?></td>                            
+                            <td><?php echo_digitos_significativos($row["total_estoque"]);?></td>
                             <td>
-								<?php echo(formata_numero_de_mysql($row["total_pedido"]));?>
+								<?php echo_digitos_significativos($row["total_pedido"]);?>
                                
                             </td>
                             
@@ -456,19 +456,19 @@
 							{
 								?>								
                                 <td>                            
-                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row[$recebimento_campo]?formata_numero_de_mysql($row[$recebimento_campo]):""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
+                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row[$recebimento_campo],""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
                                 </td>
-                                 <td><?php echo(isset($receb_nucleos[$row["prod_id"]]) ? get_hifen_se_zero(formata_numero_de_mysql($receb_nucleos[$row["prod_id"]])):"&nbsp;"); ?></td>
-                                 <td><?php echo(formata_numero_de_mysql($row["chaprod_recebido_confirmado"]));?> </td> 
+                                 <td><?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo("&nbsp;"); ?></td>
+                                 <td><?php echo_digitos_significativos($row["chaprod_recebido_confirmado"]);?> </td> 
                                 <?php
 							}
 							else if ($recebimento_campo=="chaprod_recebido_confirmado")
 							{
 								?>					
-							  	<td><?php echo(formata_numero_de_mysql($row["chaprod_recebido"]));?> </td>
-                                <td><?php echo(isset($receb_nucleos[$row["prod_id"]]) ? get_hifen_se_zero(formata_numero_de_mysql($receb_nucleos[$row["prod_id"]])):"&nbsp;"); ?></td>
+							  	<td><?php echo_digitos_significativos($row["chaprod_recebido"]);?> </td>
+                                <td><?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo("&nbsp;"); ?></td>
                                 <td>                            
-                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row[$recebimento_campo]?formata_numero_de_mysql($row[$recebimento_campo]):""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
+                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row[$recebimento_campo],""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
                                 </td>
 
                                 <?php							

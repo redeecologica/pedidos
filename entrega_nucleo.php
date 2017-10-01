@@ -19,7 +19,8 @@
 		
 		if ($action<>-1) // por enquanto, vai precisar para todos os casos
 		{
-		  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_prodt, prodt_nome, nuc_id, nuc_nome_curto, nuc_nome_completo FROM chamadas ";
+		  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, ";
+		  $sql.= " cha_prodt, prodt_nome, nuc_id, nuc_nome_curto, nuc_nome_completo FROM chamadas ";
 		  $sql.= " LEFT JOIN produtotipos ON cha_prodt = prodt_id ";
 		  $sql.= " LEFT JOIN pedidos ON ped_cha = cha_id";
 		  $sql.= " LEFT JOIN nucleos ON ped_nuc = nuc_id ";		
@@ -35,10 +36,16 @@
 			$prodt_nome = $row["prodt_nome"];
 			$nuc_id = $row["nuc_id"];
 			$nuc_nome_curto = $row["nuc_nome_curto"];
-			$nuc_nome_completo = $row["nuc_nome_completo"];			
-			
+			$nuc_nome_completo = $row["nuc_nome_completo"];	
+			$cha_dentro_prazo = $row["cha_dentro_prazo"];				
 		  }
 		}	
+		
+		if( ($action == ACAO_SALVAR || $action == ACAO_EXIBIR_EDICAO) && (!$cha_dentro_prazo))
+		{			
+			adiciona_mensagem_status(MSG_TIPO_AVISO,"Não posui permissão para edição.");
+			redireciona("entregas.php");
+		}
 	
 				
 		if ($action == ACAO_SALVAR) // salvar formulário preenchido
@@ -103,8 +110,8 @@
 
 	$sql="SELECT forn_nome_curto, forn_nome_completo, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_id, prod_unidade, chaprod_disponibilidade, ";
 	$sql.=" IFNULL(FORMAT(SUM(pedprod_quantidade),ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(SUM(pedprod_quantidade),0)) as pedprod_quantidade, ";
-	$sql.=" IFNULL(FORMAT(dist_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(dist_quantidade,0)) AS dist_quantidade, ";
-	$sql.=" IFNULL(FORMAT(dist_quantidade_recebido,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(dist_quantidade_recebido,0)) AS dist_quantidade_recebido ";
+	$sql.=" dist_quantidade AS dist_quantidade, ";
+	$sql.=" dist_quantidade_recebido AS dist_quantidade_recebido ";
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -127,7 +134,7 @@
   
 <ul class="nav nav-tabs">
   <li><a href="entregas.php">Entregas</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
+  <li class="active"><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
   <li><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
   <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
 </ul>
@@ -142,11 +149,16 @@
 
   
   <?php   
+	
+		
 
  if($action==ACAO_EXIBIR_LEITURA)  //visualização somente leitura
  {
  ?>	  
  <div class="panel-body">
+
+  <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-arrow-left"></i> voltar</button>
+
  
                 <form class="form-inline" method="get" name="frm_filtro" id="frm_filtro">
                     
@@ -162,10 +174,7 @@
                 <table class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="3">Relatório do que foi entregue ao núcleo <?php echo($nuc_nome_completo); ?></th>
-                        <th colspan="2">
-                          <a class="btn btn-primary" href="entrega_nucleo.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
-                        </th>
+                        <th colspan="5">Relatório do que foi entregue ao núcleo <?php echo($nuc_nome_completo); ?></th>
                     </tr>
                 </thead>
                 
@@ -215,29 +224,13 @@
                      </td>                                                    				
                     <td>                            
                         <?php 
-                            if($row["dist_quantidade"]) 
-                            {
-                                echo(get_hifen_se_zero(formata_numero_de_mysql($row["dist_quantidade"]))); 
-                            }
-                            else
-                            {
-                                echo("-");
-                            }
-                         
+							echo_digitos_significativos($row["dist_quantidade"]);                         
                         ?> 
                      </td> 
                      
                     <td>                            
                         <?php 
-                            if($row["dist_quantidade_recebido"]) 
-                            {
-                                echo(get_hifen_se_zero(formata_numero_de_mysql($row["dist_quantidade_recebido"]))); 
-                            }
-                            else
-                            {
-                                echo("-");
-                            }
-                         
+							echo_digitos_significativos($row["dist_quantidade_recebido"]);                         
                         ?> 
                      </td>                      
                          
@@ -363,23 +356,19 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>    
-                               <input type="hidden" name="pedprod_quantidade[]" class="replica-origem-demanda" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):""); ?>">                        
-                          		<?php 
-									if($row["pedprod_quantidade"]) 
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["pedprod_quantidade"]))); 
-									else echo("-");								 
+                               <input type="hidden" name="pedprod_quantidade[]" class="replica-origem-demanda" value="<?php echo_digitos_significativos($row["pedprod_quantidade"],""); ?>">                        
+                          		<?php 						 
+									echo_digitos_significativos($row["pedprod_quantidade"]);
 								?> 
                              </td>                              
                             <td>    
-                               <input type="hidden" name="dist_quantidade[]" class="replica-origem-distribuicao" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>">                        
+                               <input type="hidden" name="dist_quantidade[]" class="replica-origem-distribuicao" value="<?php echo_digitos_significativos($row["dist_quantidade"],""); ?>">                        
                           		<?php 
-									if($row["dist_quantidade"]) 
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["dist_quantidade"]))); 
-									else echo("-");								 
+									echo_digitos_significativos($row["dist_quantidade"]);					 
 								?> 
                              </td> 
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade_recebido"]?formata_numero_de_mysql($row["dist_quantidade_recebido"]):""); ?>" name="dist_quantidade_recebido[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row["dist_quantidade_recebido"],""); ?>" name="dist_quantidade_recebido[]"/>
                             </td>
                             
                                                 
