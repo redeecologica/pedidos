@@ -188,7 +188,7 @@ if($res)
 // recebido pelo nucleo
 
 $sql="SELECT prod_id, ";
-$sql.=" FORMAT(SUM(dist_quantidade_recebido),1) dist_quantidade_recebido ";	
+$sql.=" dist_quantidade_recebido, dist_just_dif_entrega ";	
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 $sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -204,14 +204,15 @@ if($res_recebido)
 {
 	while($row = mysqli_fetch_array($res_recebido,MYSQLI_ASSOC))
 	{
-		$recebido[$row["prod_id"]] = $row["dist_quantidade_recebido"];	
+		$recebido[$row["prod_id"]] = $row["dist_quantidade_recebido"];
+		$dist_just_dif_entrega[$row["prod_id"]] = $row["dist_just_dif_entrega"];	
 	}
 }	
 
 
 // entregue
 
-$sql="SELECT FORMAT(pedprod_entregue,2) as pedprod_entregue, nuc_nome_curto, forn_nome_curto, usr_nome_curto, ped_usr_associado, prod_nome, prod_valor_venda, prod_valor_venda_margem,  ";
+$sql="SELECT pedprod_entregue, nuc_nome_curto, forn_nome_curto, usr_nome_curto, ped_usr_associado, prod_nome, prod_valor_venda, prod_valor_venda_margem,  ";
 $sql.="prod_unidade, prod_id, IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, chaprod_disponibilidade ";
 $sql.="FROM chamadaprodutos ";
 $sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
@@ -283,6 +284,8 @@ $res = executa_sql($sql);
 		   $total_recebido_fornecedor=0.0;
 		   $total_nao_distribuido=0.0;
 		   
+		   $tem_item_a_justificar=false;  
+		   
 		   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		   {
 	   		   $total_qtde_recebido_fornecedor=isset($recebido[$row["prod_id"]])? $recebido[$row["prod_id"]] : 0;
@@ -341,7 +344,7 @@ $res = executa_sql($sql);
                      	      	foreach ($cestante_nome as $cestante) echo("<th colspan='6' style='text-align:center'>$cestante</th>");
                              ?> 
 							<th colspan="6" style='text-align:center'>TOTAL Entregue aos Cestantes</th>
-                            <th colspan="2">TOTAL Recebido pelo Núcleo</th>                                                         
+                            <th colspan="3">TOTAL Recebido pelo Núcleo</th>                                                         
                           </tr>
                           <tr>
 						 	 <?php
@@ -354,7 +357,9 @@ $res = executa_sql($sql);
 								}
                              ?> 
                              <th>pedido</th><th>R$</th><th>extra</th><th>R$</th><th>entregue</th><th>R$</th>
-                             <th>recebido</th><th nowrap="nowrap">recebido e não distribuído</th>
+                             <th>recebido</th>
+                             <th nowrap="nowrap">recebido e não distribuído</th>
+                             <th>justificativa</th>
                              
                           </tr>                        
                           
@@ -405,7 +410,9 @@ $res = executa_sql($sql);
 
 						if($row["pedprod_entregue"]>0)
 						{																	
-	                        echo("<td>" . formata_numero_de_mysql($row["pedprod_entregue"]) .  "</td>");	
+	                        echo("<td>");
+							echo_digitos_significativos($row["pedprod_entregue"]);
+							echo("</td>");	
     	                    echo("<td>" . formata_moeda($a_pagar_entregue) .  "</td>");	
 						}
 						else
@@ -442,8 +449,25 @@ $res = executa_sql($sql);
 				<td><?php echo(formata_moeda($total_entregue - $total)); ?></td>             
                 <td><?php echo(formata_numero_de_mysql($total_qtde_produto_entregue));?></td>                   
 				<td><?php echo(formata_moeda($total_entregue)); ?></td>          
-                <td><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor));?></td>                   
-                <td <?php if($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue !=0) echo("class='danger'");?>><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue));?></td>                   
+				<td><?php echo_digitos_significativos($total_qtde_recebido_fornecedor);?></td>                                   
+                <!--<td><?php echo(formata_numero_de_mysql($total_qtde_recebido_fornecedor));?></td> -->
+				<?php
+                    $classe=""; 
+                    if($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue !=0)
+                    {
+						if($dist_just_dif_entrega[$row["prod_id"]])
+						{
+							$classe="info";
+						}
+						else
+						{							
+	                        $classe = "danger"; 
+							$tem_item_a_justificar=true;
+						}
+                    }
+                ?>                                
+                <td class="<?php echo($classe);?>"><?php echo_digitos_significativos($total_qtde_recebido_fornecedor - $total_qtde_produto_entregue);?></td>               
+				<td><?php echo($dist_just_dif_entrega[$row["prod_id"]]);?></td>                       
                                                 
 				</tr>
 
@@ -504,7 +528,7 @@ $res = executa_sql($sql);
                    }                                            
                    ?>                  
             <th colspan="6"  style="text-align:center">TOTAL Entregue aos Cestantes</th>          
-            <th colspan="2">TOTAL Recebido pelo Núcleo</th> 
+            <th colspan="3">TOTAL Recebido pelo Núcleo</th> 
             </tr>
 
            <tr>
@@ -518,7 +542,8 @@ $res = executa_sql($sql);
                    }                                            
                    ?>                  
             <th>recebido</th>
-            <th>recebido e não distribuído</th>            
+            <th>recebido e não distribuído</th>
+            <th>&nbsp;</th>            
             
            </tr>
            
@@ -543,7 +568,17 @@ $res = executa_sql($sql);
             <th colspan="2">R$ <?php echo(formata_moeda($total_entregue)); ?></th>
             
             <th>R$ <?php echo(formata_moeda($total_final_recebido_fornecedor)); ?></th>
-            <th <?php if($total_final_nao_distribuido !=0) echo("class='danger'");?>>R$ <?php echo(formata_moeda($total_final_nao_distribuido)); ?></th>
+            <?php
+				$classe=""; 
+				if($total_final_nao_distribuido !=0)
+				{
+					$classe = $tem_item_a_justificar ? "danger" : "info"; 
+				}
+			?>
+            <th class="<?php echo($classe);?>">R$ <?php echo(formata_moeda($total_final_nao_distribuido)); ?>
+             </th>
+            <th>&nbsp;</th>
+            
                       
            </tr>
 
@@ -570,6 +605,7 @@ $res = executa_sql($sql);
 
             <th>&nbsp;</th>
             <th>&nbsp;</th>            
+			<th>&nbsp;</th>
 
           </tr>
 
@@ -594,7 +630,8 @@ $res = executa_sql($sql);
             <th colspan="2">R$ <?php echo(formata_moeda($total_entregue)); ?></th>            
               
             <th>&nbsp;</th>
-            <th>&nbsp;</th>            
+            <th>&nbsp;</th> 
+            <th>&nbsp;</th>           
                           
             
            </tr>

@@ -152,8 +152,9 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 if($nuc_id!=-1 && $cha_id!=-1)
 {
 
-	$sql="SELECT FORMAT(SUM(pedprod_entregue),2) as total_entregue, nuc_nome_curto, forn_nome_curto, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_unidade, ";
-	$sql.=" prod_id, FORMAT(SUM(pedprod_quantidade),0) as total_pedido, chaprod_disponibilidade, FORMAT(dist_quantidade_recebido,1) as total_recebido ";
+	$sql="SELECT IFNULL(SUM(pedprod_entregue),0) as total_entregue, nuc_nome_curto, forn_nome_curto, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_unidade, ";
+	$sql.=" prod_id, IFNULL(SUM(pedprod_quantidade),0) as total_pedido, chaprod_disponibilidade, IFNULL(dist_quantidade_recebido,0) as total_recebido, ";
+	$sql.=" dist_just_dif_entrega, prod_id, nuc_id ";
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -168,21 +169,34 @@ if($nuc_id!=-1 && $cha_id!=-1)
 	$sql.="AND chaprod_disponibilidade <> '0' ";
 	$sql.="AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega  ";
 	$sql.="GROUP BY ped_nuc, forn_id, prod_id ";
-	$sql.=" HAVING SUM(pedprod_entregue) - total_recebido <> '0'   ";	
+	$sql.=" HAVING IFNULL(SUM(pedprod_entregue),0) - total_recebido <> '0'   ";	
 	$sql.="ORDER BY nuc_nome_curto, forn_nome_curto , prod_nome, prod_unidade ";
-	 
 	$res = executa_sql($sql); 
+
+
+	if($res &&  mysqli_num_rows($res)>0) 
+	{	
+		?>	     	
+	
+	 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );">
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <?php
+	}
+     ?>
+     
+     <a target="_blank" class="btn btn-default" href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($nuc_id);?>"><i class="glyphicon glyphicon-new-window"></i> ver em nova janela relatório final entrega</a>
+        <p />
+	
+	<?php
 	
 	if($res &&  mysqli_num_rows($res)>0) 
 	{	
-		?>		
-        
-			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );">
-             <p />
+		?>	      
+			
                 <table id="selectable" class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="8">Divergências Entrega - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
+                        <th colspan="10">Divergências Entrega - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
                     </tr>
 					<tr>
                     	<th>Núcleo</th>
@@ -193,6 +207,8 @@ if($nuc_id!=-1 && $cha_id!=-1)
                         <th>Recebido</th>
                         <th>Entregue</th>   
                         <th>Recebido e Não Entregue</th>
+                        <th>Justificativa Diferença</th>
+                        <th>Atualizar</th>
                     </tr>
                 </thead>
                 
@@ -208,10 +224,12 @@ if($nuc_id!=-1 && $cha_id!=-1)
                     <td><?php echo($row["forn_nome_curto"]); ?></td> 
                     <td><?php echo($row["prod_nome"]); ?></td>
                     <td><?php echo($row["prod_unidade"]); ?></td>
-                    <td><?php echo(formata_numero_de_mysql($row["total_pedido"])); ?></td>
-                    <td><?php echo(formata_numero_de_mysql($row["total_recebido"])); ?></td>
-                    <td><?php echo(formata_numero_de_mysql($row["total_entregue"])); ?></td>
-                    <td class="alert alert-danger"><?php echo(formata_numero_de_mysql($row["total_recebido"] - $row["total_entregue"])); ?></td>                                        
+                    <td><?php echo_digitos_significativos($row["total_pedido"]); ?></td>
+                    <td><?php echo_digitos_significativos($row["total_recebido"]); ?></td>
+                    <td><?php echo_digitos_significativos($row["total_entregue"]); ?></td>
+                    <td class="alert alert-<?php echo($row["dist_just_dif_entrega"] ? "info" : "danger"); ?>"><?php echo_digitos_significativos($row["total_recebido"] - $row["total_entregue"]); ?></td>
+                    <td><?php echo($row["dist_just_dif_entrega"]); ?></td>
+                    <td><a href="entrega_divergencia_justificativa.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id . "&prod_id=" . $row["prod_id"]  . "&nuc_id=" .  $row["nuc_id"]  . "&back_url=entrega_divergencias.php" ); ?>" class="btn btn-default"><i class="glyphicon glyphicon-edit" title="atualizar justificativa"></i></a></td>                    
                     </tr>
                      
                     <?php

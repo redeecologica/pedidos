@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS `distribuicao` (
   `dist_prod` mediumint(6) unsigned NOT NULL,
   `dist_quantidade` decimal(7,2) DEFAULT NULL,
   `dist_quantidade_recebido` DECIMAL( 7, 2 ) NULL DEFAULT NULL,
+  `dist_just_dif_entrega` VARCHAR(200) NULL, 
   PRIMARY KEY (`dist_cha`,`dist_nuc`,`dist_prod`),
   KEY `fk_dist_cha_idx` (`dist_cha`),
   KEY `fk_dist_nuc_idx` (`dist_nuc`),
