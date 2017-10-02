@@ -66,8 +66,8 @@
           
 <?php
 
-		$sql="SELECT FORMAT(pedprod_entregue,2) AS pedprod_entregue, forn_nome_curto, forn_nome_completo, forn_link_info, usr_nome_curto, ped_usr_associado, prod_id, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_id, prod_retornavel, prod_descricao, ";
-		$sql.="prod_unidade, IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0)) as pedprod_quantidade, FORMAT(pedprod_entregue - pedprod_quantidade,2) AS pedprod_extra, chaprod_disponibilidade, FORMAT(cha_taxa_percentual,2) as cha_taxa_percentual ";
+		$sql="SELECT pedprod_entregue, forn_nome_curto, forn_nome_completo, forn_link_info, usr_nome_curto, ped_usr_associado, prod_id, prod_nome, prod_valor_venda, prod_valor_venda_margem, prod_id, prod_retornavel, prod_descricao, ";
+		$sql.="prod_unidade, pedprod_quantidade, (pedprod_entregue - pedprod_quantidade) AS pedprod_extra, chaprod_disponibilidade, FORMAT(cha_taxa_percentual,2) as cha_taxa_percentual ";
 		$sql.="FROM chamadaprodutos ";
 		$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 		$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -116,7 +116,7 @@
 					?>
 					 
 							<tr>
-							  <th colspan="6">
+							  <th colspan="7">
 							  
 							  		<?php 
 									echo($row["forn_nome_completo"]);
@@ -145,8 +145,8 @@
 				<td><?php echo($row["prod_unidade"]);?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"]) ); ?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"]) ); ?></td> 
-				<td><?php echo(formata_numero_de_mysql($row["pedprod_quantidade"]) ); ?></td>
-				<td><?php echo(formata_numero_de_mysql($row["pedprod_entregue"]) ); ?></td>                
+				<td><?php echo_digitos_significativos($row["pedprod_quantidade"]); ?></td>
+				<td class="<?php if($row["pedprod_quantidade"]!=$row["pedprod_entregue"]) echo("info");?>"><?php echo_digitos_significativos($row["pedprod_entregue"]); ?></td>                
                     
 				<td><?php echo (formata_moeda($row["pedprod_entregue"] * ( $ped_usr_associado==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"]) ) ); ?></td>    
 				
@@ -186,17 +186,6 @@
 		   <?php
 		} 
    
-	  ?> 
-      
-    <div class="form-group" align="right hidden-print">
-   	<a name="botao_editar"></a>
-	     <div class="text-error hidden-print">O prazo limite para edição do pedido foi <?php echo($cha_dt_max);?>.</div>
-	
-    </div>
-		
-
-<?php 
-
 	
 
 
