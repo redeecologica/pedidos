@@ -10,7 +10,15 @@
 		if($action==-1) redireciona(PAGINAPRINCIPAL);
 
 		$cha_id =  request_get("cha_id",-1);
-		//if($cha_id=="") redireciona(PAGINAPRINCIPAL);	
+		 if($cha_id==-1)
+		 {
+			 if(isset($_SESSION['cha_id_pref']))
+			 {
+				$cha_id=$_SESSION['cha_id_pref'];	 
+			 }
+		 }
+		 $_SESSION['cha_id_pref']=$cha_id;
+		 
 		
 		$recebimento =  request_get("recebimento","previa"); 
 		// recebimento pode ser previa ou final

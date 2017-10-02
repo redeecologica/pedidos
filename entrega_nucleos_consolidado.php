@@ -4,7 +4,16 @@
   
   top();
   
- $cha_id=request_get("cha_id",-1); 
+ $cha_id=request_get("cha_id",-1);
+ if($cha_id==-1)
+ {
+	 if(isset($_SESSION['cha_id_pref']))
+	 {
+		$cha_id=$_SESSION['cha_id_pref'];	 
+	 }
+ }
+ $_SESSION['cha_id_pref']=$cha_id;
+ 
 
                       
  $sql = "SELECT prodt_nome, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, date_format(cha_dt_prazo_contabil,'%d/%m/%Y %H:%i') cha_dt_prazo_contabil ";

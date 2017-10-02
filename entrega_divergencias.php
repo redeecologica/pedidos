@@ -5,6 +5,16 @@
   top();
   
  $cha_id=request_get("cha_id",-1); 
+ if($cha_id==-1)
+ {
+	 if(isset($_SESSION['cha_id_pref']))
+	 {
+		$cha_id=$_SESSION['cha_id_pref'];	 
+	 }
+ }
+ $_SESSION['cha_id_pref']=$cha_id;
+ 
+  
  $nuc_id=request_get("nuc_id",$_SESSION['usr.nuc']); 
  if($nuc_id==-1) $nuc_id=$_SESSION['usr.nuc'];
  
