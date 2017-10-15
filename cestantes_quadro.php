@@ -7,9 +7,6 @@
  $dt_ini=request_get("dt_ini",date('01/m/Y')); 
  $dt_fim=request_get("dt_fim",date('d/m/Y', strtotime('last day of this month'))); 
  
- //$dt_ini=request_get("dt_ini",date("01/01/2017")); 
- //$dt_fim=request_get("dt_fim",date("31/01/2017")); 
-
  $nuc_id=request_get("nuc_id",$_SESSION['usr.nuc']); 
 
 
@@ -150,12 +147,14 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 	{
 		$sql = "";
 		$sql .= "SELECT usr_id, ";
+		$sql .= "       usr_nome_curto, ";
 		$sql .= "       usr_nome_completo, ";
 		$sql .= "       usr_archive, ";
 		$sql .= "       usr_associado, ";
 		$sql .= "       usr_nuc, ";
 		$sql .= "       dados.nuc_nome_curto ";
 		$sql .= "FROM   (SELECT usr_id, ";
+		$sql .= "               usr_nome_curto, ";
 		$sql .= "               usr_nome_completo, ";
 		$sql .= "               usr_archive, ";
 		$sql .= "               usr_associado, ";
@@ -168,6 +167,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
+		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
@@ -195,18 +195,20 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "              ON usr_nuc = nuc_id ";
 		$sql .= "WHERE  usr_id IN  ( " . implode(",",$cestantes_ativos) . ") ";
 		$sql .= "GROUP  BY usr_id, ";
+		$sql .= "          usr_nome_curto, ";	
 		$sql .= "          usr_nome_completo, ";
 		$sql .= "          usr_archive, ";
 		$sql .= "          usr_associado, ";
 		$sql .= "          usr_nuc, ";
 		$sql .= "          nuc_nome_curto ";
-		$sql .= "ORDER  BY usr_nome_completo" ;
+		$sql .= "ORDER  BY usr_nome_curto " ;
 
-		$res_cestantes = executa_sql($sql); 
-			
+		$res_cestantes = executa_sql($sql);
+					
 		
 		
 		$sql = "SELECT usr_id, ";
+		$sql .= "       usr_nome_curto, ";
 		$sql .= "       usr_nome_completo, ";
 		$sql .= "       usr_archive, ";
 		$sql .= "       usr_associado, ";
@@ -215,6 +217,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "       usr_dt_atualizacao, ";		
 		$sql .= "       DATE_FORMAT(usr_dt_atualizacao,'%d/%m/%Y %H:%i:%s') usr_dt_atualizacao_formatada ";
 		$sql .= "FROM   (SELECT usr_id, ";
+		$sql .= "               usr_nome_curto, ";
 		$sql .= "               usr_nome_completo, ";
 		$sql .= "               usr_archive, ";
 		$sql .= "               usr_associado, ";
@@ -228,6 +231,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
+		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
@@ -247,6 +251,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                      ON usrlog_nuc = nuc_id ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT usrlog_usr            usr_id, ";
+		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
@@ -261,13 +266,14 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . " ) dados ";
 		$sql .= "WHERE  usr_id IN  ( " . implode(",",$cestantes_ativos) . ") ";
 		$sql .= "GROUP  BY usr_id, ";
+		$sql .= "          usr_nome_curto, ";
 		$sql .= "          usr_nome_completo, ";
 		$sql .= "          usr_archive, ";
 		$sql .= "          usr_associado, ";
 		$sql .= "          usr_nuc, ";
 		$sql .= "          nuc_nome_curto ";
 		$sql .= "ORDER  BY usr_id, ";
-		$sql .= "          usr_dt_atualizacao DESC" ;		
+		$sql .= "          usr_dt_atualizacao DESC, usr_nome_curto DESC " ;		
 		
 		$res_cestantes_versoes = executa_sql($sql); 			
 		$cestantes_versoes = array();	
@@ -317,7 +323,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 
 
 		/*primeiro: pegar lista de chamadas pertientes*/
-		$sql="SELECT usr_nome_completo, ped_usr, ped_usr_associado, ped_id, cha_id, cha_taxa_percentual, ";
+		$sql="SELECT usr_nome_curto, usr_nome_completo, ped_usr, ped_usr_associado, ped_id, cha_id, cha_taxa_percentual, ";
 		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)),2) AS valor_pedido, ";
 		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)),2) AS valor_entregue, ";
 		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (pedprod_entregue - pedprod_quantidade)),SUM(prod_valor_venda * (pedprod_entregue - pedprod_quantidade)) ),2) AS valor_extra ";
@@ -377,6 +383,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 							<th rowspan="2">#</th>
 							<th rowspan="2">Cód.</th>
 							<th rowspan="2">Núcleo</th>
+							<th rowspan="2">Nome</th>
 							<th rowspan="2">Nome Completo</th>                                          
 							<th rowspan="2">Ativo</th>
 							<th rowspan="2">Associado</th>
@@ -434,6 +441,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 						   }
 						   ?>							                                                          
 							<td><?php echo($cestante["nuc_nome_curto"]);?></td>
+							<td><?php echo($cestante["usr_nome_curto"]);?></td>
 							<td><?php echo($cestante["usr_nome_completo"]);?></td>
 							<td class="<?php echo($cestante["usr_archive"]=='1'?"label-warning":""); ?>">
 								<?php echo($cestante["usr_archive"]=='1'?"Não":"Sim"); ?>
@@ -495,7 +503,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
               
               
               <tr>
-              <th colspan="6" class="col_alterna_visivel_cestante">TOTAL</th>
+              <th colspan="7" class="col_alterna_visivel_cestante">TOTAL</th>
 			 <?php		 
                  $total_geral_entregue=0;
 				 $total_geral_taxa=0;

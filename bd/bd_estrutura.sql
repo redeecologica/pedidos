@@ -373,6 +373,7 @@ CREATE TABLE IF NOT EXISTS `usuarios_changelog` (
   `usrlog_nuc` mediumint(6) unsigned NOT NULL,
   `usrlog_associado` tinyint(1) DEFAULT '0' COMMENT '1 - associado, 0 - nao_associado',
   `usrlog_email` varchar(120) NOT NULL,
+  `usrlog_nome_curto` varchar(120) DEFAULT NULL,  
   `usrlog_nome_completo` varchar(120) DEFAULT NULL,
   `usrlog_atividades` VARCHAR(600) NOT NULL DEFAULT 'a preencher',
   `usrlog_archive` tinyint(2) DEFAULT '0',
@@ -387,7 +388,7 @@ CREATE TABLE IF NOT EXISTS `usuarios_changelog` (
 --  -------------------
 -- Triggers para atualizacao da tabela de usuarios_changelog, a cada atualizacao de certos campos na tabela usuarios
 
-CREATE TRIGGER `insert_usuarios_changelog` AFTER INSERT ON `usuarios` FOR EACH ROW INSERT INTO usuarios_changelog (usrlog_usr, usrlog_nuc, usrlog_associado, usrlog_email, usrlog_nome_completo, usrlog_atividades, usrlog_archive, usrlog_dt_atualizacao)  VALUES (NEW.usr_id, NEW.usr_nuc, NEW.usr_associado, NEW.usr_email, NEW.usr_nome_completo, NEW.usr_atividades, NEW.usr_archive, NEW.usr_dt_atualizacao);
+CREATE TRIGGER `insert_usuarios_changelog` AFTER INSERT ON `usuarios` FOR EACH ROW INSERT INTO usuarios_changelog (usrlog_usr, usrlog_nuc, usrlog_associado, usrlog_email, usrlog_nome_curto, usrlog_nome_completo, usrlog_atividades, usrlog_archive, usrlog_dt_atualizacao)  VALUES (NEW.usr_id, NEW.usr_nuc, NEW.usr_associado, NEW.usr_email, NEW.usr_nome_curto, NEW.usr_nome_completo, NEW.usr_atividades, NEW.usr_archive, NEW.usr_dt_atualizacao);
 
 DELIMITER //
 DROP TRIGGER IF EXISTS `update_usuarios_changelog`//
@@ -395,8 +396,8 @@ CREATE TRIGGER `update_usuarios_changelog`
     AFTER UPDATE ON `usuarios`
     FOR EACH ROW
 BEGIN
-   IF NOT (OLD.usr_nuc = NEW.usr_nuc AND OLD.usr_associado = NEW.usr_associado AND OLD.usr_email = NEW.usr_email  AND OLD.usr_nome_completo = NEW.usr_nome_completo AND OLD.usr_atividades = NEW.usr_atividades AND OLD.usr_archive = NEW.usr_archive) THEN 
-	INSERT INTO usuarios_changelog (usrlog_usr, usrlog_nuc, usrlog_associado, usrlog_email, usrlog_nome_completo, usrlog_atividades, usrlog_archive, usrlog_dt_atualizacao)  VALUES (NEW.usr_id, NEW.usr_nuc, NEW.usr_associado, NEW.usr_email, NEW.usr_nome_completo, NEW.usr_atividades, NEW.usr_archive, NEW.usr_dt_atualizacao);
+   IF NOT (OLD.usr_nuc = NEW.usr_nuc AND OLD.usr_associado = NEW.usr_associado AND OLD.usr_email = NEW.usr_email  AND OLD.usr_nome_curto = NEW.usr_nome_curto AND  OLD.usr_nome_completo = NEW.usr_nome_completo AND OLD.usr_atividades = NEW.usr_atividades AND OLD.usr_archive = NEW.usr_archive) THEN 
+	INSERT INTO usuarios_changelog (usrlog_usr, usrlog_nuc, usrlog_associado, usrlog_email, usrlog_nome_curto, usrlog_nome_completo, usrlog_atividades, usrlog_archive, usrlog_dt_atualizacao)  VALUES (NEW.usr_id, NEW.usr_nuc, NEW.usr_associado, NEW.usr_email, NEW.usr_nome_curto, NEW.usr_nome_completo, NEW.usr_atividades, NEW.usr_archive, NEW.usr_dt_atualizacao);
    END IF;
 END//
 DELIMITER ;
