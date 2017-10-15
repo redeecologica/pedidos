@@ -330,11 +330,11 @@
                             <td>    
                                <input type="hidden" name="pedprod_quantidade[]" class="replica-origem" value="<?php  echo_digitos_significativos($row["pedprod_quantidade"],"");?>">                        
                           		<?php 
-									echo_digitos_significativos($row["pedprod_quantidade"]);
+									echo_digitos_significativos($row["pedprod_quantidade"],"");
 								?> 
                              </td>                              
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php  echo_digitos_significativos($row["pedprod_entregue"],"")?>" name="pedprod_entregue[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php  if($row["pedprod_entregue"]) echo_digitos_significativos($row["pedprod_entregue"],"0");?>" name="pedprod_entregue[]"/>
                             </td>
                             
                                                 
