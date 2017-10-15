@@ -5,57 +5,50 @@
 
 ?>
 
-<div class="panel panel-default">
-  <div class="panel-heading">
-     <strong>Lista de Chamadas para o Mutirão</strong>
-  </div>
- 
-	<table class="table table-striped table-bordered">
-		<thead>
-			<tr>            
-				<th>#</th>
-				<th>Tipo</th>
-        		<th>Data de Entrega</th>
-				<th>1) Estoque</th>
-				<th>2) Recebimento</th>                
-				<th>3) Distribuição</th>  
-				<th>Relatório Consolidado</th>                  
-                              
-			</tr>
-		</thead>
-		<tbody>
-				<?php
-					$sql = "SELECT cha_id, cha_prodt, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, prodt_nome ";
-					$sql.= "FROM chamadas ";
-					$sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";	
-					$sql.= "WHERE prodt_mutirao = '1' ";
-					$sql.= "ORDER BY cha_dt_entrega_original DESC ";
-					$sql.= "LIMIT 10 ";
-													
-					$res = executa_sql($sql);
-					$contador = 0;
-				    if($res)
-					{
-					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
-				     {
-				?>				 
-				  <tr>
-                  	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['prodt_nome']);?></td>               
-					 <td><?php echo($row['cha_dt_entrega']);?></td>
-                     <td><a href="estoque.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&est_cha=<?php echo($row['cha_id']);?>">estoque</a></td> 
-                     <td><a href="recebimento.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">recebimento</a></td>  
-                     <td><a href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($row['cha_id']);?>">distribuicao</a></td>                      
-                     <td><a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">relatório</a></td>                      
-				  </tr>
-				<?php 
-				     }
-				   }
-				?>
-		</tbody>
-	</table>
- </div>   
- 
+
+<ul class="nav nav-tabs">
+  <li class="active"><a href="#">Mutirão</a></li>
+  <li><a href="estoque_pre.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pré-Mutirão</a></li>
+  <li><a href="recebimento.php"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
+  <li><a href="distribuicao_consolidado.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+  <li><a href="estoque_pos.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pós-Mutirão</a></li>
+  <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
+
+</ul>
+
+
+<br>
+<br>
+     <div class="panel panel-primary">
+      <div class="panel-heading">Instruções para Registro do Mutirão</div>
+      <div class="panel-body">
+         <ul>
+          <li>
+		  Acesse a aba "Estoque Pré-Mutirão" para registrar o estoque existente antes do mutirão.
+          </li>
+          <br>
+          <li>
+          Acesse a aba "Recebimento" para registrar o que foi recebido no mutirão.
+          </li>     
+           <br>     
+          <li>
+          Acesse a aba "Distribuição" para registrar o que foi distribuído para cada núcleo.
+          </li>
+           <br>          
+          <li>
+          Acesse a aba "Estoque Pós-Mutirão" para registrar o que ficou de estoque depois do mutirão.
+          </li>
+           <br>          
+          <li>
+          Acesse a aba "Divergências" para analisar divergências nos registros.
+          </li>          
+         </ul> 
+         <br>
+		<span class="glyphicon glyphicon-alert"></span> Para cada chamada existe um prazo definido por Finanças para finalização destes registros.
+          
+      </div>
+    </div>
+    
 
 <?php 
  

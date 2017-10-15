@@ -50,12 +50,12 @@ if($res)
 }
 
 $sql="SELECT  forn_nome_curto, prod_nome, prod_unidade, nuc_nome_curto, ";
-$sql.=" FORMAT(chaprod_recebido,1) chaprod_recebido, ";
-$sql.=" FORMAT(estoque_anterior.est_prod_qtde_depois,1) estoque_anterior_depois, ";
-$sql.=" FORMAT(estoque_anterior.est_prod_qtde_antes,1) estoque_anterior_antes, ";
-$sql.=" FORMAT(estoque_atual.est_prod_qtde_depois,1) estoque_atual_depois, ";
-$sql.=" FORMAT(estoque_atual.est_prod_qtde_antes,1) estoque_atual_antes, ";
-$sql.=" FORMAT(dist_quantidade,1) distribuido_nucleo, ";
+$sql.=" chaprod_recebido chaprod_recebido, ";
+$sql.=" estoque_anterior.est_prod_qtde_depois estoque_anterior_depois, ";
+$sql.=" estoque_anterior.est_prod_qtde_antes estoque_anterior_antes, ";
+$sql.=" estoque_atual.est_prod_qtde_depois estoque_atual_depois, ";
+$sql.=" estoque_atual.est_prod_qtde_antes estoque_atual_antes, ";
+$sql.=" dist_quantidade distribuido_nucleo, ";
 //$sql.=" FORMAT(sum(pedprod_quantidade),1) total_nucleo ";
 $sql.=" SUM(IFNULL(FORMAT(pedprod_quantidade,ceiling(log10(0.0001 + cast(reverse(cast(truncate((prod_multiplo_venda - truncate(prod_multiplo_venda,0)) *1000,0) as CHAR)) as UNSIGNED)))) , FORMAT(pedprod_quantidade,0))) as total_nucleo ";
 $sql.="FROM chamadaprodutos ";
@@ -121,8 +121,16 @@ $res = executa_sql($sql);
 								   {
 									   	echo("<th>Pedido</th> <th>Distribuído</th>");									   
 								   }                                           
-								   echo("<th>Estoque Pré-Mutirão Esperado</th> <th>Estoque Pré-Mutirão Real</th> <th>Pedido pelos Núcleos</th> <th>Pedido ao Produtor</th> <th>Entregue pelo Produtor</th> <th>Total Distribuído</th><th>Estoque Pós-Mutirão Esperado</th><th>Estoque Pós-Mutirão Real</th>"); 
-        	                       ?>            
+								   echo(""); 
+        	                       ?>
+                                   <th>Estoque Pré-Mutirão Esperado</th>
+                                   <th>Estoque Pré-Mutirão Real</th>
+                                   <th>Pedido pelos Núcleos</th>
+                                   <th>Pedido ao Produtor</th>
+                                   <th>Entregue pelo Produtor</th>
+                                   <th>Total Distribuído</th>
+                                   <th>Estoque Pós-Mutirão Esperado</th>
+                                   <th>Estoque Pós-Mutirão Real</th>        
                         </tr>                        
                      </thead>           		   
                     <tbody>
@@ -142,38 +150,43 @@ $res = executa_sql($sql);
                    for ($i = 0; $i < count($nucleos); $i++)
                    {
 						if($i>0) $row = mysqli_fetch_array($res,MYSQLI_ASSOC);																	
-                        echo("<td>" . get_hifen_se_zero(formata_numero_de_mysql($row["total_nucleo"])) .  "</td>");	
-						echo("<td>" . ($row["distribuido_nucleo"] ? get_hifen_se_zero(formata_numero_de_mysql($row["distribuido_nucleo"])) : "&nbsp;") .  "</td>");	
+                        echo("<td>");
+						echo_digitos_significativos($row["total_nucleo"]);
+						echo("</td>");	
+						echo("<td>");
+						if($row["distribuido_nucleo"]) echo_digitos_significativos($row["distribuido_nucleo"]); else echo("&nbsp;"); 
+						echo("</td>");	
 						
 						$total_qtde_produto+=$row["total_nucleo"];
 						$total_distribuido+=$row["distribuido_nucleo"];
                    }                                            
                    ?> 
                 
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["estoque_anterior_depois"])));?></td>
-                <td><?php echo($row["estoque_atual_antes"] ? get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_antes"])) : "&nbsp;");?></td>
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($total_qtde_produto)));?></td>
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql(max(0,$total_qtde_produto - $row["estoque_anterior_depois"]))));?></td>
+                <td><?php echo_digitos_significativos($row["estoque_anterior_depois"]);?></td>
+                <td><?php if($row["estoque_atual_antes"]) echo_digitos_significativos($row["estoque_atual_antes"]); else echo("&nbsp;");?></td>
+                <td><?php echo_digitos_significativos($total_qtde_produto);?></td>
+                <td><?php echo_digitos_significativos(max(0,$total_qtde_produto - $row["estoque_anterior_depois"]));?></td>
                 <td>
-				<?php echo($row["chaprod_recebido"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido"])) : "&nbsp;" );?>
+				<?php if($row["chaprod_recebido"]) echo_digitos_significativos($row["chaprod_recebido"]); else echo("&nbsp;");?>
                 </td>  <!-- o que de fato chegou do produtor -->
                 
-                <td><?php echo(get_hifen_se_zero(formata_numero_de_mysql($total_distribuido)));?></td> 
+                <td><?php echo_digitos_significativos($total_distribuido);?></td> 
                 
-                <td><?php 
+                <?php 
 					$estoque_esperado=0;					
-					if($row["chaprod_recebido"])
+					if($row["chaprod_recebido"] || $total_distribuido > 0 )
 					{
-						$estoque_esperado = max(0, $row["chaprod_recebido"] + $row["estoque_atual_antes"] - $total_distribuido);
+						$estoque_esperado = $row["chaprod_recebido"] + $row["estoque_atual_antes"] - $total_distribuido;
 					}
 					else 
 					{
-						$estoque_esperado = max(0, $row["estoque_anterior_depois"] - $total_qtde_produto);
-					}
-					
-					echo(get_hifen_se_zero(formata_numero_de_mysql($estoque_esperado)));?></td> 
+						$estoque_esperado = $row["estoque_anterior_depois"] - $total_qtde_produto;
+					}					
+					?>
+                    
+                <td<?php if($estoque_esperado<0) echo(" class='danger'");?> ><?php echo_digitos_significativos($estoque_esperado);?></td> 
                 
-                <td><?php echo($row["estoque_atual_depois"] ? get_hifen_se_zero(formata_numero_de_mysql($row["estoque_atual_depois"])) : "&nbsp;");?></td>                
+                <td><?php if($row["estoque_atual_depois"]) echo_digitos_significativos($row["estoque_atual_depois"]); else echo("&nbsp;");?></td>                
                 
 				</tr>
 				 

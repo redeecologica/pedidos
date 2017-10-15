@@ -27,10 +27,10 @@
 
 <?php 
 
-	$sql = "SELECT prod_id, prod_nome, FORMAT(chaprod_recebido,1) chaprod_recebido, ";
-	$sql.= " FORMAT(chaprod_recebido_confirmado,1) chaprod_recebido_confirmado,SUM(pedprod_quantidade) total_demanda, ";
+	$sql = "SELECT prod_id, prod_nome, chaprod_recebido, ";
+	$sql.= " chaprod_recebido_confirmado, SUM(pedprod_quantidade) total_demanda, ";
 	$sql.= " est_prod_qtde_depois total_estoque, prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, ";
-	$sql.= " FORMAT( GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))), 1) total_pedido ";
+	$sql.= " GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))) total_pedido ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
@@ -46,7 +46,7 @@
 	
 
 	$sql="SELECT prod_id, ";
-	$sql.=" FORMAT(SUM(dist_quantidade_recebido),1) dist_quantidade_recebido ";	
+	$sql.=" SUM(dist_quantidade_recebido) dist_quantidade_recebido ";	
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
 	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -119,7 +119,7 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Demanda</th>
-											<th>Estoque</th>                                                                                        
+											<th nowrap="nowrap">Estoque<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>                                                                                        
 											<th>Pedido</th>
 											<th>Recebido<br/>Mutirão</th>
                                             <th>Recebido<br/>Núcleos</th>
@@ -134,22 +134,22 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>                          							
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_demanda"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_demanda"]); ?> 
                              </td>   
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_estoque"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_estoque"]); ?> 
                              </td>                                
 							<td>                            
-                          		<?php echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido"]))); ?> 
+                          		<?php echo_digitos_significativos($row["total_pedido"]); ?> 
                              </td>              
 							<td>                            
-                          		<?php echo($row["chaprod_recebido"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido"])):"&nbsp;"); ?> 
+                          		<?php if($row["chaprod_recebido"]) echo_digitos_significativos($row["chaprod_recebido"]); else echo("&nbsp;") ; ?> 
                              </td>
 							<td>   
-                          		<?php echo(isset($receb_nucleos[$row["prod_id"]]) ? get_hifen_se_zero(formata_numero_de_mysql($receb_nucleos[$row["prod_id"]])):"&nbsp;"); ?>
+                          		<?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]]); else echo("&nbsp;"); ?>
                              </td>
 							<td>                            
-                          		<?php echo($row["chaprod_recebido_confirmado"] ? get_hifen_se_zero(formata_numero_de_mysql($row["chaprod_recebido_confirmado"])):"&nbsp;"); ?> 
+                          		<?php if($row["chaprod_recebido_confirmado"]) echo_digitos_significativos($row["chaprod_recebido_confirmado"]); else echo("&nbsp;"); ?> 
                              </td>               
                                  
                             </tr>

@@ -58,7 +58,13 @@
 			if($res)
 			{
 				$action=ACAO_EXIBIR_LEITURA; //volta para modo visualização somente leitura
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");								
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de distribuição relacionadas à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");
+				
+				if(isset($_POST['back_url']))
+				{
+					redireciona($_POST['back_url']);
+				}
+																
 			}
 			else
 			{
@@ -80,8 +86,8 @@
 
 <?php 
 
-	$sql = "SELECT prod_id, prod_nome, prod_unidade, FORMAT(dist_quantidade,1) dist_quantidade, ";
-	$sql.= " forn_nome_curto, forn_nome_completo, forn_id, FORMAT(SUM(pedprod_quantidade),1) total_pedido_nucleo ";
+	$sql = "SELECT prod_id, prod_nome, prod_unidade, dist_quantidade, ";
+	$sql.= " forn_nome_curto, forn_nome_completo, forn_id, SUM(pedprod_quantidade) total_pedido_nucleo ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
@@ -99,12 +105,14 @@
   
   
   
-<ol class="breadcrumb">
+<ul class="nav nav-tabs">
   <li><a href="mutirao.php">Mutirão</a></li>
-  <li class="active">Distribuição</li>
-</ol>
-
-
+  <li><a href="estoque.php"><i class="glyphicon glyphicon-bed"></i> Estoque</a></li>
+  <li><a href="recebimento.php"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
+  <li class="active"><a href="distribuicao_consolidado.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+  <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
+</ul>
+<br>
   
   <div class="panel panel-default">
   <div class="panel-heading">
@@ -120,12 +128,18 @@
  ?>	  
  <div class="panel-body">
  
+<button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-arrow-left"></i> voltar</button> 
+ 
                 <form class="form-inline" action="distribuicao.php" name="frm_filtro" id="frm_filtro">
                     
                      <fieldset>
                            <input type="hidden" name="action" value="<?php echo(ACAO_EXIBIR_LEITURA); ?>" /> 
-                           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />                     
-						   <div class="form-group">
+                           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />     
+						   <input type="hidden" name="back_url" id="back_url" value="<?php echo(isset($_POST['back_url']) ? $_POST['back_url'] : ""); ?>" />    
+					          <?php if( ! isset($_POST['back_url'])) echo("<script>document.getElementById(\"back_url\").value = document.referrer;</script>"); ?>
+                           
+						   <!--
+                           <div class="form-group">
                              <label for="nuc_id">Núcleo: </label>            
                                 <select name="nuc_id" id="nuc_id" onchange="javascript:frm_filtro.submit();" class="form-control">
                                     <option value="-1" <?php echo( ($nuc_id)==-1?" selected" : ""); ?> >SELECIONE</option>
@@ -148,6 +162,7 @@
                                     ?>                        
                                 </select> 
                               </div>                          
+                              -->
                      </fieldset>
                 </form>						
                 
@@ -164,10 +179,7 @@
                         <table class="table table-striped table-bordered table-condensed table-hover">
 						<thead>
                         	<tr>
-                            	<th colspan="3">Relatório do que foi distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
-                                <th>
-                                  <a class="btn btn-primary" href="distribuicao.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&nuc_id=<?php echo($nuc_id); ?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> editar</a>
-                                </th>
+                            	<th colspan="4">Distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
                             </tr>
                         </thead>
                         
@@ -205,7 +217,7 @@
                           		<?php 
 									if($row["total_pedido_nucleo"]) 
 									{
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido_nucleo"]))); 
+										echo_digitos_significativos($row["total_pedido_nucleo"]); 
 									}
 									else
 									{
@@ -218,7 +230,7 @@
                           		<?php 
 									if($row["dist_quantidade"]) 
 									{
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["dist_quantidade"]))); 
+										echo_digitos_significativos($row["dist_quantidade"]); 
 									}
 									else
 									{
@@ -254,6 +266,17 @@
 ?>
 	
     <form class="form-horizontal" action="distribuicao.php" method="post">
+    
+    
+	<div class="panel-body">
+    
+             <div align="right">
+                <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando entrega...">
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                   &nbsp;&nbsp;
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                    </div>    
+    </div>    
 <!--
 	<div align="right">
                 
@@ -272,6 +295,8 @@
           <input type="hidden" name="cha_id" value="<?php echo($cha_id); ?>" />
           <input type="hidden" name="nuc_id" value="<?php echo($nuc_id); ?>" />          
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
+		   <input type="hidden" name="back_url" id="back_url" value="<?php echo(isset($_POST['back_url']) ? $_POST['back_url'] : ""); ?>" />    
+          <?php if( ! isset($_POST['back_url'])) echo("<script>document.getElementById(\"back_url\").value = document.referrer;</script>"); ?>
             
 
                 
@@ -331,12 +356,12 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td>         
-                             <input type="hidden" name="total_pedido_nucleo[]" class="replica-origem" value="<?php echo($row["total_pedido_nucleo"]?formata_numero_de_mysql($row["total_pedido_nucleo"]):""); ?>">   
+                             <input type="hidden" name="total_pedido_nucleo[]" class="replica-origem" value="<?php echo_digitos_significativos($row["total_pedido_nucleo"],""); ?>">   
                                               
                           		<?php 
 									if($row["total_pedido_nucleo"]) 
 									{
-										echo(get_hifen_se_zero(formata_numero_de_mysql($row["total_pedido_nucleo"]))); 
+										echo_digitos_significativos($row["total_pedido_nucleo"]); 
 									}
 									else
 									{
@@ -345,7 +370,7 @@
 								?> 
                              </td>                              
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo($row["dist_quantidade"]?formata_numero_de_mysql($row["dist_quantidade"]):""); ?>" name="dist_quantidade[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row["dist_quantidade"],""); ?>" name="dist_quantidade[]"/>
                             </td>
                                                      
                             </tr>
@@ -369,7 +394,7 @@
                        
                        
                        
-                       <button class="btn btn-default" type="button" onclick="javascript:location.href='distribuicao.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&cha_id=<?php echo($cha_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                       <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
 	</div>                                 
     
 

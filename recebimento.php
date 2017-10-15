@@ -7,7 +7,7 @@
 <?php
 
 		$action = request_get("action",-1);
-		if($action==-1) redireciona(PAGINAPRINCIPAL);
+		if($action==-1) $action=ACAO_EXIBIR_LEITURA;
 
 		$cha_id =  request_get("cha_id",-1);
 		 if($cha_id==-1)
@@ -30,19 +30,21 @@
 
 		if ($cha_id<>-1) 
 		{
-		  $sql = "SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_prodt, prodt_nome FROM chamadas ";
-		  $sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";
-		  $sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";
+		  $sql = "SELECT prodt_nome, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, date_format(cha_dt_prazo_contabil,'%d/%m/%Y %H:%i') cha_dt_prazo_contabil, cha_prodt ";
+		  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
+		  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
 		  
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		  {				  
+			$prodt_nome = $row["prodt_nome"];
 			$cha_dt_entrega = $row["cha_dt_entrega"];
 			$cha_prodt = $row["cha_prodt"];
-			$prodt_nome = $row["prodt_nome"];
-			
+			$cha_taxa_percentual = $row["cha_taxa_percentual"];
+			$cha_dt_prazo_contabil = $row["cha_dt_prazo_contabil"];
+			$cha_dentro_prazo = $row["cha_dentro_prazo"];			 			
 		  }
-		}	
+		}
 		
 				
 		if ($action == ACAO_SALVAR) // salvar formulário preenchido
@@ -127,10 +129,14 @@
 		if($recebimento == "previa")
 		{
 			?>
-                <ol class="breadcrumb">
-                  <li> <a href="mutirao.php">Mutirão</a></li>
-                  <li class="active">Recebimento</li>
-                </ol>            
+            <ul class="nav nav-tabs">
+              <li><a href="mutirao.php">Mutirão</a></li>
+              <li><a href="estoque.php"><i class="glyphicon glyphicon-bed"></i> Estoque</a></li>
+              <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
+              <li><a href="distribuicao_consolidado.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+              <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
+            </ul>      
+            <br>
             <?php			
 		}
 		else
@@ -141,6 +147,7 @@
                   <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Confirmação Entrega dos Produtores</a></li>
                   <li><a href="financas_prazos.php"><i class="glyphicon glyphicon-calendar"></i> Configuração Prazos</a></li>  
                 </ul>
+                <br>
             <?php
 		}
 		
@@ -187,6 +194,7 @@
                         
                        $sql = "SELECT cha_id, prodt_nome, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
                         $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
+						if($recebimento=="previa") $sql.= "WHERE prodt_mutirao = '1' ";
                         $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 10";
 						
                         $res_cha = executa_sql($sql);
@@ -221,8 +229,20 @@
                     ?>                        
                  </select>    
 		</div>                 
-
-		&nbsp;&nbsp;
+			<?php 
+				   if($cha_id!=-1 && $recebimento == "previa")
+				   {
+					 ?>  
+                    &nbsp;&nbsp;
+                    <label for="cha_dt_prazo_contabil">Prazo para Edição: </label>   <?php echo($cha_dt_prazo_contabil?$cha_dt_prazo_contabil:"ainda não configurado"); ?>
+					
+					<?php 
+                        if(!$cha_dentro_prazo)
+                        {
+                            echo("<span class='alert alert-danger'>(encerrado)</span>");
+                        }
+				   }
+				 ?>
            
          </fieldset>
     </form>
@@ -259,10 +279,10 @@
                         <table class='table table-striped table-bordered table-condensed table-hover'>
                             <thead>
  <tr>
-                            <th colspan="5">Recebimento - <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
+                            <th colspan="5">Informações de Recebimento - <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
                             <th colspan="3"><a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&recebimento=<?php echo($recebimento); ?>"><i class="glyphicon glyphicon-edit"></i> editar</a></th>
                             
-    
+
                             
                         </tr>                            
                             	
@@ -290,7 +310,7 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Demanda</th>
-											<th>Estoque</th>                                                                                        
+											<th nowrap="nowrap">Estoque<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>                                                                                        
 											<th>Pedido</th>
 											<th>Recebido<br/>Mutirão</th>
                                             <th>Recebido<br/>Núcleos</th>
@@ -351,6 +371,17 @@
 
     <form class="form-horizontal" action="recebimento.php" method="post">
 
+
+    
+	<div class="panel-body">
+    
+             <div align="right">
+                <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando recebimento...">
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                   &nbsp;&nbsp;
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                    </div>    
+    </div>  
 
         <fieldset>
         
@@ -431,7 +462,7 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Demanda</th>
-											<th>Estoque</th>                                            
+											<th nowrap="nowrap">Estoque<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>
 											<th>Pedido</th>
 											<th>Recebido<br/>Mutirão</th>
                                             <th>Recebido<br/>Núcleos</th>     
@@ -464,7 +495,7 @@
 							{
 								?>								
                                 <td>                            
-                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row[$recebimento_campo],""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
+                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php if($row[$recebimento_campo]) echo_digitos_significativos($row[$recebimento_campo],"0"); ?>" name="<?php echo($recebimento_campo);?>[]"/>
                                 </td>
                                  <td><?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo("&nbsp;"); ?></td>
                                  <td><?php echo_digitos_significativos($row["chaprod_recebido_confirmado"]);?> </td> 
@@ -476,7 +507,7 @@
 							  	<td><?php echo_digitos_significativos($row["chaprod_recebido"]);?> </td>
                                 <td><?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo("&nbsp;"); ?></td>
                                 <td>                            
-                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row[$recebimento_campo],""); ?>" name="<?php echo($recebimento_campo);?>[]"/>
+                                <input type="text" class="replica-destino form-control propaga-colar" style="font-size:18px; text-align:center;" value="<?php if($row[$recebimento_campo]) echo_digitos_significativos($row[$recebimento_campo],"0"); ?>" name="<?php echo($recebimento_campo);?>[]"/>
                                 </td>
 
                                 <?php							
@@ -496,15 +527,12 @@
                        
         
             
-                <span class="pull-right">
-                	  <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando...">
-            <i class="glyphicon glyphicon-ok"></i> salvar alterações</button>
-                &nbsp;&nbsp;
-                   
-                   <button class="btn btn-default" type="button" onclick="javascript:window.history.go(-1);"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                   
-                </span>
-                
+             <div align="right">
+                <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando recebimento...">
+            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                   &nbsp;&nbsp;
+                   <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                    </div>                    
 	             
                    
                    
