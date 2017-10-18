@@ -35,12 +35,13 @@ $cha_dt_prazo_contabil = $row["cha_dt_prazo_contabil"];
 $cha_dentro_prazo = $row["cha_dentro_prazo"];
 
 ?>
-
+              
 <ul class="nav nav-tabs">
   <li><a href="mutirao.php">Mutirão</a></li>
-  <li><a href="estoque.php"><i class="glyphicon glyphicon-bed"></i> Estoque</a></li>
+  <li><a href="estoque_pre.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pré-Mutirão</a></li>
   <li><a href="recebimento.php"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+  <li class="active"><a href="#"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>
+  <li><a href="estoque_pos.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pós-Mutirão</a></li>  
   <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
 </ul>
 <br>

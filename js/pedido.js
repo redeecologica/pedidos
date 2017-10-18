@@ -107,9 +107,12 @@ function formataTotalProdEPedido(valorInformado, item) {
   }
 })(jQuery);	
 
-function enforceNumeric (e,enforceInt) {
+function enforceNumeric (e, enforceInt) {
+	
 	var code = (e.keyCode ? e.keyCode : e.which);
 	var functional = false;
+	
+	if (typeof(enforceInt) === "undefined") { enforceInt = false; }
 
 	//0 to 9
 	if((code >= 48 && code <= 57) || (code >= 96 && code <= 105)) functional = true;
@@ -402,3 +405,9 @@ function selectElementContents(el) {
         range.select();
     }
 }
+
+
+$(function() {	
+	$(".numero-positivo").bind('keydown', enforceNumeric);
+	
+}); 

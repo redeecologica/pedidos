@@ -131,11 +131,12 @@
 			?>
             <ul class="nav nav-tabs">
               <li><a href="mutirao.php">Mutirão</a></li>
-              <li><a href="estoque.php"><i class="glyphicon glyphicon-bed"></i> Estoque</a></li>
+              <li><a href="estoque_pre.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pré-Mutirão</a></li>
               <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
               <li><a href="distribuicao_consolidado.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+              <li><a href="estoque_pos.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pós-Mutirão</a></li>
               <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
-            </ul>      
+            </ul>
             <br>
             <?php			
 		}
@@ -280,8 +281,18 @@
                             <thead>
  <tr>
                             <th colspan="5">Informações de Recebimento - <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
-                            <th colspan="3"><a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&recebimento=<?php echo($recebimento); ?>"><i class="glyphicon glyphicon-edit"></i> editar</a></th>
                             
+                            <th colspan="3">
+							<?php 
+							if($recebimento == "final" || ($recebimento=="previa" && $cha_dentro_prazo) )
+							{
+								?>
+								<a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&recebimento=<?php echo($recebimento); ?>"><i class="glyphicon glyphicon-edit"></i> editar</a>
+								<?php 
+							}
+							else echo("&nbsp;");
+							?>
+                            </th>
 
                             
                         </tr>                            
@@ -354,9 +365,19 @@
                
 			      ?>       
                   </div>      
+                  
+			   <?php 
+                if($recebimento == "final" || ($recebimento=="previa" && $cha_dentro_prazo) )
+                {
+                    ?>
+                        <span class="pull-right"><a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&recebimento=<?php echo($recebimento) ;?>"><i class="glyphicon glyphicon-edit"></i> editar</a>    
+                        </span>
+                         
+                    <?php 
+                }
+                ?>
+                                  
 
-    <span class="pull-right"><a class="btn btn-primary" href="recebimento.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&cha_id=<?php echo($cha_id); ?>&recebimento=<?php echo($recebimento) ;?>"><i class="glyphicon glyphicon-edit"></i> editar</a>    
-    </span>
 
    
 	
@@ -525,18 +546,14 @@
                
 			      ?>             
                        
-        
-            
-             <div align="right">
-                <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando recebimento...">
-            <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
-                   &nbsp;&nbsp;
-                   <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                    </div>                    
-	             
-                   
-                   
-                                 
+              
+                 <div align="right">
+                    <button type="submit"  class="btn btn-primary btn-enviando" data-loading-text="salvando recebimento...">
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                       &nbsp;&nbsp;
+                       <button class="btn btn-default" type="button" onclick="javascript:location.href=document.referrer;"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                        </div>                    
+                                        
       </fieldset> 
     </form>
  
