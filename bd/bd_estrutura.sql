@@ -137,6 +137,8 @@ CREATE TABLE IF NOT EXISTS `estoque` (
   `est_prod` mediumint(6) unsigned NOT NULL DEFAULT '0',
   `est_prod_qtde_antes` decimal(7,2) DEFAULT NULL,
   `est_prod_qtde_depois` decimal(7,2) DEFAULT NULL,
+  `est_obs_antes` VARCHAR(200) NULL,
+  `est_obs_depois` VARCHAR(200) NULL,  
   PRIMARY KEY (`est_cha`,`est_prod`),
   KEY `fk_est_cha_idx` (`est_cha`),
   KEY `fk_est_prod_idx` (`est_prod`)
