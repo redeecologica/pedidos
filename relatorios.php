@@ -104,6 +104,7 @@
 				<th>Entrega Final</th>
 				<th>Recebido do Produtor</th>
 				<th>Previsão Pagamento ao Produtor</th>
+                <th>Funcionalidades</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -159,7 +160,11 @@
                 <td><a href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo($row['cha_id']);?>">entrega aos cestantes</a></td>   
                 <td><a href="rel_recebimento.php?cha_id=<?php echo($row['cha_id']);?>">entregue pelo produtor</a></td>
                 <td><a href="rel_previsao_pagamento.php?cha_id=<?php echo($row['cha_id']);?>">consolidado</a> ou <a href="rel_previsao_pagamento_detalhado.php?cha_id=<?php echo($row['cha_id']);?>">detalhado</a> </td>
-               
+                
+                <td>
+                  <a href="entrega_nucleos_consolidado.php?cha_id=<?php echo($row['cha_id']);?>">módulo entrega</a><br>
+                  <a href="financas_prazo.php?action=1&cha_id=<?php echo($row['cha_id']);?>">prazo finanças</a>
+                </td>             
 
                                 
 
