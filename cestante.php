@@ -459,19 +459,30 @@
                         <select name="usr_nuc" id="usr_nuc" class="form-control">
                             <option value="-1">SELECIONAR</option>
                             <?php
-                                $sql = "SELECT nuc_id, nuc_nome_curto ";
+                                $sql = "SELECT nuc_id, nuc_nome_curto, nuc_archive ";
                                 $sql.= "FROM nucleos ";
                                 $sql.= "ORDER BY nuc_archive, nuc_nome_curto ";
                                 $res2 = executa_sql($sql);
                                 if($res2)
                                 {
+								  $arquivados=0;
                                   while ($row = mysqli_fetch_array($res2,MYSQLI_ASSOC)) 
                                   {
+									 if(!$arquivados)
+									 {
+										 if($row["nuc_archive"]==1) 
+										 {
+											 echo("<option value='-1'>-------------</option>");									 
+											 $arquivados=1;
+										 }
+									 }									 
                                      echo("<option value='" . $row['nuc_id'] . "'");
                                      if($row['nuc_id']==$usr_nuc) echo(" selected");
-                                     echo (">" . $row['nuc_nome_curto'] . "</option>");
+                                     echo (">" . $row['nuc_nome_curto'] . "</option>");									 
                                   }
                                 }
+								
+								
                             ?>                        
                         </select>                
                       </div>                  

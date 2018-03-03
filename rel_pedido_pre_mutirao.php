@@ -180,7 +180,7 @@ $res = executa_sql($sql);
 					}
 					else 
 					{
-						$estoque_esperado = $row["estoque_anterior_depois"] - $total_qtde_produto;
+						$estoque_esperado = max($row["estoque_anterior_depois"] - $total_qtde_produto,0);
 					}					
 					?>
                     

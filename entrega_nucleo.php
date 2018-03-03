@@ -78,10 +78,8 @@
 				$action=ACAO_EXIBIR_LEITURA; //volta para modo visualização somente leitura
 				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"As informações de entrega relacionada à chamada de " . $cha_dt_entrega . " foram salvas com sucesso.");
 
-				// nova abordagem:
 				if(isset($_POST['back_url']))
 				{
-					//redireciona("rel_entrega_cestantes_nucleo.php?cha_id=" . $cha_id . "&nuc_id=" . $nuc_id );
 					redireciona($_POST['back_url']);
 				}
 				
@@ -368,7 +366,7 @@
 								?> 
                              </td> 
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php echo_digitos_significativos($row["dist_quantidade_recebido"],""); ?>" name="dist_quantidade_recebido[]"/>
+                            <input type="text" class="replica-destino form-control propaga-colar-entrega" style="font-size:18px; text-align:center;" value="<?php if($row["dist_quantidade_recebido"]) echo_digitos_significativos($row["dist_quantidade_recebido"],"0"); ?>" name="dist_quantidade_recebido[]"/>
                             </td>
                             
                                                 

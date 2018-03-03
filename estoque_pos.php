@@ -264,7 +264,7 @@
 					   $ultimo_forn = "";
                        while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                        {
-						    if(!($row["est_prod_qtde_depois"] ||  $row["est_obs_depois"]  ||   $row["restante"]!=0 ) )
+						    if(!( ($row["est_prod_qtde_depois"]&& $row["est_prod_qtde_depois"]!=0) ||  $row["est_obs_depois"]  ||   $row["restante"]!=0 ) )
 							{
 								continue;								
 							}

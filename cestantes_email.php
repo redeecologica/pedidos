@@ -85,10 +85,10 @@
 					  echo("<textarea rows='40' class='form-control col-md-10'>");
 					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				     {
-						 echo($row["usr_email"] . ", ");
-						 if(strlen($row["usr_email_alternativo"])> 3)
+						 echo(trim($row["usr_email"]) . ", ");
+						 if(strlen(trim($row["usr_email_alternativo"]))> 3)
 						 {
-							 echo($row["usr_email_alternativo"] . ", ");
+							 echo(str_replace(array("\r", "\n"), '', trim($row["usr_email_alternativo"])) . ", ");
 						 }						 
 				     }
 				    	echo("</textarea>");

@@ -95,6 +95,8 @@
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{
+			$algum_erro=false;
+			
 			$n = isset($_REQUEST['pedprod_quantidade_prod']) ? sizeof($_REQUEST['pedprod_quantidade_prod']) : 0;
 			
 			for($i=0;$i<$n;$i++)
@@ -106,6 +108,7 @@
 				$sql.= "ON DUPLICATE KEY UPDATE ";
 				$sql.= "pedprod_quantidade = " . $qtde_bd ;
 				$res = executa_sql($sql);
+				if(!$res) $algum_erro=true;
 			}
 			
 			// atualiza data de ultima atualização do pedido
@@ -114,23 +117,25 @@
 			$sql.= "WHERE ped_id = $ped_id_bd";
 			$res = executa_sql($sql);
 			
+			if(!$res) $algum_erro=true;			
 			
 			
 			$sql = "SELECT ped_fechado FROM pedidos WHERE ped_id = $ped_id_bd";
 			$res = executa_sql($sql);
+			if(!$res) $algum_erro=true;
 			$ped_fechado=0;
 			if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 			{
 				$ped_fechado=$row['ped_fechado'];
 			}
 			
-			if($res) 
+			if(!$algum_erro) 
 			{
 				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Informações do pedido atualizadas com sucesso.");
 				if(!$ped_fechado) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Não se esqueça de enviar o pedido (botão verde abaixo da lista de produtos)");
 				$action=ACAO_EXIBIR_LEITURA;
 			}
-			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar o pedido.");				 			
+			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Ocorreu algum erro ao salvar o pedido. Confira os dados do pedido salvo.");				 			
  	
 			 			 
 		}
@@ -373,7 +378,7 @@
 
 ?>
 
-<form action="pedido.php" method="post" class="form-horizontal">
+<form method="post" class="form-horizontal">
   <fieldset>
           <input type="hidden" name="ped_id" value="<?php echo($ped_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />

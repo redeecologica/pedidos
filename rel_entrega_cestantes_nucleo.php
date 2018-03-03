@@ -590,8 +590,8 @@ $res = executa_sql($sql);
                    for ($i = 0; $i < count($cestante_nome); $i++)
                    {
 					   $valor_taxa = $cestante_associado[$i] ? $cha_taxa_percentual : 0;
-					   $total+=$cestante_valor[$i]*$valor_taxa;
-					   $total_entregue+=$cestante_valor_entregue[$i]*$valor_taxa;
+					   $total+=round($cestante_valor[$i]*$valor_taxa,2);
+					   $total_entregue+=round($cestante_valor_entregue[$i]*$valor_taxa,2);
 					   
                        echo("<td colspan='2'> R$ " . formata_moeda($cestante_valor[$i]*$valor_taxa) .  "</td>");
 					   echo("<td colspan='2'> R$ " . formata_moeda(($cestante_valor_entregue[$i] - $cestante_valor[$i])*$valor_taxa) .  "</td>");	
@@ -616,8 +616,8 @@ $res = executa_sql($sql);
 				  $total_entregue=0.0;
                    for ($i = 0; $i < count($cestante_nome); $i++)
                    {	
-				   	$valor_final = $cestante_associado[$i] ? $cestante_valor[$i]*(1+$cha_taxa_percentual ): $cestante_valor[$i];
-				   	$valor_final_entregue = $cestante_associado[$i] ? $cestante_valor_entregue[$i]*(1+$cha_taxa_percentual ): $cestante_valor_entregue[$i];					
+				   	$valor_final = $cestante_associado[$i] ? round($cestante_valor[$i]*(1+$cha_taxa_percentual ),2): $cestante_valor[$i];
+				   	$valor_final_entregue = $cestante_associado[$i] ? round($cestante_valor_entregue[$i]*(1+$cha_taxa_percentual ),2): $cestante_valor_entregue[$i];					
 					$total+=$valor_final;
 					$total_entregue+=$valor_final_entregue;
                         echo("<th colspan='2' align='center'> R$ " . formata_moeda($valor_final) .  "</th>");	
