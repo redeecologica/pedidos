@@ -84,16 +84,17 @@
 <?php 
 
 	$sql = "SELECT prod_id, prod_nome, chaprod_recebido, ";
-	$sql.= " chaprod_recebido_confirmado,SUM(pedprod_quantidade) total_demanda, ";
-	$sql.= " est_prod_qtde_depois total_estoque, prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, ";
-	$sql.= " GREATEST(0,(SUM(pedprod_quantidade) - IF(est_prod_qtde_depois IS NULL, 0, est_prod_qtde_depois))) total_pedido ";
+	$sql.= " chaprod_recebido_confirmado,SUM(pedprod_quantidade) total_demanda, estoque_atual.est_prod_qtde_antes estoque_pre_real, ";
+	$sql.= " estoque_anterior.est_prod_qtde_depois estoque_pre_esperado, prod_unidade, forn_nome_curto, forn_nome_completo, forn_id, ";
+	$sql.= " GREATEST(0,(SUM(pedprod_quantidade) - IF(estoque_anterior.est_prod_qtde_depois IS NULL, 0, estoque_anterior.est_prod_qtde_depois))) total_pedido ";
 	$sql.= " FROM chamadaprodutos ";
 	$sql.= "LEFT JOIN produtos on chaprod_prod = prod_id ";
 	$sql.= "LEFT JOIN chamadas on chaprod_cha = cha_id "; 
 	$sql.= "LEFT JOIN fornecedores on prod_forn  = forn_id ";
 	$sql.= "LEFT JOIN pedidos ON ped_cha = cha_id "; 
 	$sql.= "LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";					
-	$sql.= "LEFT JOIN estoque ON est_prod = chaprod_prod AND est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";	
+	$sql.= "LEFT JOIN estoque estoque_anterior ON estoque_anterior.est_prod = chaprod_prod AND estoque_anterior.est_cha = " . prep_para_bd(get_chamada_anterior($cha_id)) . " ";	
+	$sql.= "LEFT JOIN estoque estoque_atual ON estoque_atual.est_prod = chaprod_prod AND estoque_atual.est_cha = cha_id ";		
 	$sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND ped_fechado = '1' ";
 	$sql.= "AND chaprod_cha = " . prep_para_bd($cha_id) . " AND chaprod_disponibilidade > 0  ";
 	$sql.= "GROUP BY forn_id, prod_id ";
@@ -280,7 +281,7 @@
                         <table class='table table-striped table-bordered table-condensed table-hover'>
                             <thead>
  <tr>
-                            <th colspan="5">Informações de Recebimento - <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
+                            <th colspan="6">Informações de Recebimento - <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
                             
                             <th colspan="3">
 							<?php 
@@ -321,7 +322,8 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Demanda</th>
-											<th nowrap="nowrap">Estoque<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>                                                                                        
+											<th>Estoque Pré Esperado<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>                         
+											<th>Estoque Pré Real<?php adiciona_popover_descricao("Descrição", "Estoque real encontrado pelo mutirão atual"); ?></th>                                                                                                                                    
 											<th>Pedido</th>
 											<th>Recebido<br/>Mutirão</th>
                                             <th>Recebido<br/>Núcleos</th>
@@ -339,7 +341,10 @@
                           		<?php echo_digitos_significativos($row["total_demanda"]); ?> 
                              </td>   
 							<td>                            
-                          		<?php echo_digitos_significativos($row["total_estoque"]); ?> 
+                          		<?php echo_digitos_significativos($row["estoque_pre_esperado"]); ?> 
+                             </td>                                
+							<td>                            
+                          		<?php echo_digitos_significativos($row["estoque_pre_real"]); ?> 
                              </td>                                
 							<td>                            
                           		<?php echo_digitos_significativos($row["total_pedido"]); ?> 
@@ -419,11 +424,11 @@
                         <table class='table table-striped table-bordered table-condensed table-hover'>
 						   <thead>
                             <tr>
-                            	<th colspan="8">Registro do que foi recebido referente à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
+                            	<th colspan="9">Registro do que foi recebido referente à chamada de <?php echo($prodt_nome . " - " . $cha_dt_entrega); ?></th>
                             </tr>
 	                  		</thead>
                              <tr>
-                            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+                            <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                             <td>
                              
                             <span class='btn-popover' data-content='Clique para preencher com os dados do pedido' data-html='true' data-trigger='hover'>
@@ -483,7 +488,8 @@
                                             </th>
 											<th>Unidade</th>
 											<th>Demanda</th>
-											<th nowrap="nowrap">Estoque<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>
+											<th>Estoque Pré Esperado<?php adiciona_popover_descricao("Descrição", "Estoque informado pelo mutirão anterior e que deu base à encomenda"); ?></th>                         
+											<th>Estoque Pré Real<?php adiciona_popover_descricao("Descrição", "Estoque real encontrado pelo mutirão atual"); ?></th>                                                                                                                                    
 											<th>Pedido</th>
 											<th>Recebido<br/>Mutirão</th>
                                             <th>Recebido<br/>Núcleos</th>     
@@ -505,7 +511,13 @@
                             <td><?php echo($row["prod_nome"]);?></td>
                             <td><?php echo($row["prod_unidade"]); ?></td>
                             <td><?php echo_digitos_significativos($row["total_demanda"]);?></td>                            
-                            <td><?php echo_digitos_significativos($row["total_estoque"]);?></td>
+							<td>                            
+                          		<?php echo_digitos_significativos($row["estoque_pre_esperado"]); ?> 
+                             </td>                                
+							<td>                            
+                          		<?php echo_digitos_significativos($row["estoque_pre_real"]); ?> 
+                             </td>  
+                             
                             <td>
 								<?php echo_digitos_significativos($row["total_pedido"]);?>
                                
