@@ -108,9 +108,14 @@
   <li><a href="mutirao.php">Mutirão</a></li>
   <li><a href="estoque_pre.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pré-Mutirão</a></li>
   <li><a href="recebimento.php"><i class="glyphicon glyphicon-road"></i> Recebimento</a></li>
-  <li class="active"><a href="distribuicao_consolidado.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
+  <li class="active"><a href="distribuicao_consolidado_por_produtor.php"><i class="glyphicon glyphicon-fullscreen"></i> Distribuição</a></li>  
   <li><a href="estoque_pos.php"><i class="glyphicon glyphicon-bed"></i> Estoque Pós-Mutirão</a></li>
   <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
+</ul>
+<br>
+<ul class="nav nav-tabs">
+  <li><a href="distribuicao_consolidado_por_produtor.php">Distribuição por Produto</a></li>
+  <li class="active"><a href="distribuicao_consolidado.php">Distribuição por Núcleo</a></li>
 </ul>
 <br>
   

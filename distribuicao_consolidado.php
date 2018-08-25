@@ -45,6 +45,13 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
   <li><a href="mutirao_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
 </ul>
 <br>
+
+<ul class="nav nav-tabs">
+  <li><a href="distribuicao_consolidado_por_produtor.php">Distribuição por Produto</a></li>
+  <li class="active"><a href="distribuicao_consolidado.php">Distribuição por Núcleo</a></li>
+</ul>
+
+<br>
   
   <div class="panel panel-default">
   <div class="panel-heading">
@@ -139,7 +146,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 
 if($cha_id!=-1)
 {
-	$sql="SELECT nuc_nome_completo, nuc_id, ";
+	$sql="SELECT nuc_nome_curto, nuc_id, ";
 	$sql.=" SUM(prod_valor_compra * pedprod_quantidade) AS valor_pedido ";
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha LEFT JOIN produtos on prod_id = chaprod_prod ";
@@ -150,7 +157,7 @@ if($cha_id!=-1)
 	$sql.=" AND ped_fechado = '1' AND chaprod_disponibilidade <> '0' ";
 	$sql.=" AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
 	$sql.="GROUP BY nuc_id ";
-	$sql.="ORDER BY nuc_nome_completo";
+	$sql.="ORDER BY nuc_nome_curto";
 	$res = executa_sql($sql); 
 
 	$sql="SELECT nuc_id, ";
@@ -215,7 +222,7 @@ if($cha_id!=-1)
               
                     ?>
                     <tr>                              
-                    <td><?php echo($row["nuc_nome_completo"]);?></td>
+                    <td><?php echo($row["nuc_nome_curto"]);?></td>
                     <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
                     <td><?php echo(formata_moeda($valor_distribuido)); ?></td>
                     <!--<td><?php echo(formata_moeda($valor_recebido)); ?></td>-->
