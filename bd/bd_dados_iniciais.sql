@@ -24,6 +24,12 @@ INSERT INTO `usuariopapeis` (`usrp_usr`, `usrp_pap`, `usrp_por_usr`) VALUES
 (1, 1, 1);
 
 
+INSERT INTO `nucleotipos` (`nuct_id`, `nuct_nome`) VALUES 
+(NULL, 'Mensal'),
+(NULL, 'Semanal'),
+(NULL, 'Quinzenal');
+
+
 INSERT INTO `temp_senhas` (`pass_id`, `pass_nome`) VALUES
 (1, 'abacate2'),
 (2, 'abacaxi1'),

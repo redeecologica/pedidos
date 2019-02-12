@@ -39,6 +39,7 @@ DROP TABLE IF EXISTS `produtos`;
 DROP TABLE IF EXISTS `pedidos`;
 DROP TABLE IF EXISTS `nucleofornecedores`;
 
+DROP TABLE IF EXISTS `nucleotipos`;
 
 --
 -- Table structure for table `nucleofornecedores`
@@ -196,6 +197,7 @@ CREATE TABLE IF NOT EXISTS `nucleos` (
   `nuc_entrega_horario` varchar(100) DEFAULT NULL,
   `nuc_entrega_endereco` varchar(1000) DEFAULT NULL,
   `nuc_archive` tinyint(2) DEFAULT '0',
+  `nuc_nuct` smallint(2) unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`nuc_id`),
   KEY `nuc_id` (`nuc_id`),
   KEY `nuc_id_2` (`nuc_id`)
@@ -386,6 +388,18 @@ CREATE TABLE IF NOT EXISTS `usuarios_changelog` (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
 --
+
+
+-- Table structure for table `nucleotipos`
+--
+
+CREATE TABLE IF NOT EXISTS `nucleotipos` (
+  `nuct_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
+  `nuct_nome` varchar(50) NOT NULL,
+  PRIMARY KEY (`nuct_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+
 
 --  -------------------
 -- Triggers para atualizacao da tabela de usuarios_changelog, a cada atualizacao de certos campos na tabela usuarios
