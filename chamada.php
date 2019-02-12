@@ -243,7 +243,8 @@
              
              <div class="col-sm-9">
 				<?php
-					$sql =  "SELECT nuc_id, nuc_nome_curto, chanuc_nuc FROM nucleos ";
+					$sql =  "SELECT nuc_id, nuc_nome_curto, chanuc_nuc, ucase(left(nuct_nome,3)) as sigla_tipo_nucleo FROM nucleos ";
+					$sql.= " LEFT JOIN nucleotipos on nuc_nuct = nuct_id ";
 					$sql.= "LEFT JOIN chamadanucleos on chanuc_nuc =  nuc_id AND chanuc_cha = " . prep_para_bd($cha_id) . " ";
 					$sql.= "WHERE nuc_archive='0' ORDER BY nuc_nome_curto ";
 					$res = executa_sql($sql);					
@@ -266,7 +267,7 @@
 							{
 								echo(" checked='checked' ");
 							}
-							echo("value='" . $row["nuc_id"] . "'>" . $row["nuc_nome_curto"] );
+							echo("value='" . $row["nuc_id"] . "'>[" . $row["sigla_tipo_nucleo"] . "] " . $row["nuc_nome_curto"] );
 							echo("</label>");				
 							if($cont == $por_coluna + ($resto >= $coluna)  )
 							{

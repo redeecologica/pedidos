@@ -34,6 +34,11 @@
 <br><br>
 <a href="produtotipos.php">Administrar tipos de produto/chamada</a>
 
+<hr/>
+
+<h4>Tipos de Núcleos</h4>
+
+<a href="nucleotipos.php">Administrar tipos de núcleo</a>
 
 
 </div>
