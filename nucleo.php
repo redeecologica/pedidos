@@ -18,15 +18,12 @@
 			$nuc_email = "";
 			$nuc_entrega_horario = "";
 			$nuc_entrega_endereco = "";
-			$nuc_archive = "";
-			$nuc_nuct = "";
-			$nuct_nome = "";
-			
+			$nuc_archive = "";		
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{
 			
- 			 $campos = array('nuc_nome_completo','nuc_nome_curto','nuc_entrega_horario','nuc_entrega_endereco','nuc_email','nuc_archive','nuc_nuct');  			
+ 			 $campos = array('nuc_nome_completo','nuc_nome_curto','nuc_entrega_horario','nuc_entrega_endereco','nuc_email','nuc_archive');  			
 			 $sql=prepara_sql_atualizacao("nuc_id",$campos,"nucleos");
      		 $res = executa_sql($sql);
 			 if($nuc_id=="") $nuc_id=id_inserido();	
@@ -71,9 +68,7 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição		
 		{
-		  $sql = "SELECT nucleos.*, nuct_nome FROM nucleos ";
-		  $sql.= " LEFT JOIN nucleotipos ON nuc_nuct = nuct_id ";
-		  $sql.= " WHERE nuc_id=". prep_para_bd($nuc_id) ;
+		  $sql = "SELECT * FROM nucleos WHERE nuc_id=". prep_para_bd($nuc_id) ;
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		  {		  
@@ -83,8 +78,7 @@
 			$nuc_entrega_horario = $row["nuc_entrega_horario"];
 			$nuc_entrega_endereco = $row["nuc_entrega_endereco"];			
 			$nuc_archive = $row["nuc_archive"];
-			$nuc_nuct = $row["nuc_nuct"];
-			$nuct_nome = $row["nuct_nome"];
+		
 		   }
 		   
 		   
@@ -140,9 +134,6 @@
     		<tr>
 				<th>Situação:</th> <td><?php echo( ($nuc_archive==1)?"Inativo":"Ativo"); ?></td>
 			</tr>                                           
-    		<tr>
-				<th>Tipo:</th> <td><?php echo($nuct_nome); ?></td>
-			</tr> 
         </tbody>
     
  </table>
@@ -299,38 +290,7 @@
                         <option value="1" <?php echo(($nuc_archive==1)?" selected" : ""); ?> >Inativo</option>            
                     </select>   
                   </div>
-            </div>
-            
-            
-   
-                 <div class="form-group">
-                   <label class="control-label col-sm-2" for="nuc_nuct">Tipo</label>
-                   <div class="col-sm-2">                
-                     <select name="nuc_nuct" id="nuc_nuct" class="form-control">
-                       	<option value="-1">SELECIONAR</option>
-						<?php
-                            
-                            $sql = "SELECT nuct_id, nuct_nome ";
-                            $sql.= "FROM nucleotipos ";
-                            $sql.= "ORDER BY nuct_nome ";
-                            $res = executa_sql($sql);
-                            if($res)
-                            {
-                              while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
-                              {
-                                 echo("<option value='" . $row['nuct_id'] . "'");
-                                 if($row['nuct_id']==$nuc_nuct) echo(" selected");
-                                 echo (">" . $row['nuct_nome'] . "</option>");
-                              }
-                            }
-                        ?>            
-                     </select>                       
-                   </div>
-                 </div>
-                 
-                 
-            
-                          
+            </div>  
 	</div>  <!-- div panel-body --> 
 
    		<div class="panel-footer">          

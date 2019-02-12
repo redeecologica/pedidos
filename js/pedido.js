@@ -227,13 +227,6 @@ function validaNucleo(){
 		$("#nuc_email").focus();
 		return false;
 	}
-	
-	if ($("#nuc_nuct").val() == -1) {
-		alert("Por favor, selecione o tipo de Núcleo antes de salvar suas alterações.");
-		$("#nuc_nuct").focus();
-		return false;
-	}
-		
 }
 
 function validaProduto(){
