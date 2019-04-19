@@ -75,7 +75,8 @@
 			<tr>
 				<th>#</th>
 				<th>Núcleo</th>
-				<th>Associado</th>                
+				<th>Associado</th>
+                <th>Tipo</th>                
         		<th>Nome Completo</th>
 				<th>Nome Curto</th>
 				<th>Email</th>
@@ -85,8 +86,10 @@
 		<tbody>
 				<?php
 					
-					$sql = "SELECT usr_id, usr_associado, usr_nome_curto, usr_nome_completo, usr_email, usr_archive, nuc_nome_curto ";
-					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";	
+					$sql = "SELECT usr_id, usr_associado, asso_nome, usr_nome_curto, usr_nome_completo, usr_email, usr_archive, nuc_nome_curto ";
+					$sql.= "FROM usuarios ";
+					$sql.= "LEFT JOIN nucleos ON usr_nuc = nuc_id ";
+					$sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";
 					$sql.= "WHERE 1 ";
 					if($usr_archive!=-1) $sql.= " AND usr_archive = ' " . $usr_archive .  " ' ";
 					if($usr_nuc!=-1) 	 $sql.= " AND usr_nuc = '" . $usr_nuc .  "' ";						
@@ -104,7 +107,8 @@
 				  <tr <?php echo( $classe_arquivado); ?>>
                   	 <td><?php echo(++$contador);?></td>               
 					 <td><?php echo($row['nuc_nome_curto']);?></td>   
-					 <td><?php echo($row['usr_associado']? "Sim" : "Não"); ?></td>                                    
+					 <td><?php echo($row['usr_associado']? "Sim" : "Não"); ?></td>    
+                     <td><?php echo($row['asso_nome']);?></td>                                
 					 <td><a href="cestante.php?action=0&amp;usr_id=<?php echo( $row['usr_id']);?>"><?php echo($icone_arquivado);?> <?php echo($row['usr_nome_completo']);?></a></td>
                      <td><?php echo($row['usr_nome_curto']);?></td> 
 					 <td><?php echo($row['usr_email']);?> </td>                     

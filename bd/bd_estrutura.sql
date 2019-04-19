@@ -349,6 +349,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `usr_id` mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
   `usr_nuc` mediumint(6) unsigned NOT NULL,
   `usr_associado` tinyint(1) DEFAULT '0' COMMENT '1 - associado, 0 - nao_associado',
+  `usr_asso` SMALLINT(2) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'tipo de associacao',
   `usr_email` varchar(120) NOT NULL,
   `usr_email_alternativo` varchar(800) DEFAULT NULL,
   `usr_senha` varchar(45) DEFAULT NULL,

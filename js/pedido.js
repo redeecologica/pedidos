@@ -216,6 +216,12 @@ function validaCestante(){
 			return false;
 		}
 	}
+	
+	if ($("#usr_asso").val() == -1) {
+		alert("Por favor, selecione o tipo de associação antes de salvar suas alterações.");
+		$("#usr_asso").focus();
+		return false;
+	}	
 }
 
 function validaNucleo(){

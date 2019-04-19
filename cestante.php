@@ -42,6 +42,7 @@
 			$usr_archive = "";		
 			$nuc_nome_curto = "";		
 			$usr_associado=0;
+			$usr_asso=-1;
 			$usr_desde="";	
 			$usr_atividades="";							
 		}
@@ -92,7 +93,8 @@
 					 $sql.= trim(prep_para_bd(request_get("usr_email_alternativo",""))) . ", ";	
 					 $sql.= prep_para_bd(request_get("usr_nuc","")) . ", ";
 					 $sql.= prep_para_bd(request_get("usr_archive","")) . ", ";
-					 $sql.= prep_para_bd(request_get("usr_associado","")) . ", ";				 
+					 $sql.= prep_para_bd(request_get("usr_associado","")) . ", ";
+					 $sql.= prep_para_bd(request_get("usr_ass","")) . ", "; 
 					 $sql.= trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
 					 $sql.= $bd_usr_desde . " ) ";
 					 					 
@@ -108,7 +110,8 @@
 					 $sql.="usr_email_alternativo = " . trim(prep_para_bd(request_get("usr_email_alternativo",""))) . ", ";	
 					 $sql.="usr_nuc = " . prep_para_bd(request_get("usr_nuc","")) . ", ";
 					 $sql.="usr_archive = " . prep_para_bd(request_get("usr_archive","")) . ", ";
-					 $sql.="usr_associado = " . prep_para_bd(request_get("usr_associado","")) . ", ";				 
+					 $sql.="usr_associado = " . prep_para_bd(request_get("usr_associado","")) . ", ";
+					 $sql.="usr_asso = " . prep_para_bd(request_get("usr_asso","")) . ", ";				 
 					 $sql.="usr_atividades = " . trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
 					 $sql.="usr_desde = " . $bd_usr_desde . " ";
 					 $sql.="WHERE usr_id = " . prep_para_bd(request_get("usr_id",""));
@@ -172,7 +175,8 @@
 				$usr_nuc = request_get('usr_nuc',"");
 				$usr_archive = request_get('usr_archive',"");		
 				$nuc_nome_curto = "";		
-				$usr_associado=request_get('usr_associado',0);	
+				$usr_associado=request_get('usr_associado',0);
+				$usr_asso=request_get('usr_asso',-1);	
 				$usr_desde=request_get('usr_desde',"");	
 				$usr_atividades=request_get('usr_atividades',"");					
 							
@@ -186,7 +190,13 @@
 
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
-		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, usr_associado, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto, usr_atividades FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id WHERE usr_id=". prep_para_bd($usr_id);
+		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, ";
+		  $sql.= "usr_associado, usr_asso, asso_nome, asso_descricao, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, ";
+		  $sql.= "usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto, usr_atividades ";
+		  $sql.= "FROM usuarios ";
+		  $sql.= "LEFT JOIN nucleos ON usr_nuc = nuc_id ";
+		  $sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";		  
+		  $sql.= "WHERE usr_id=". prep_para_bd($usr_id);
  		  $res = executa_sql($sql);
   	      if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		  {		  
@@ -198,7 +208,10 @@
 			$usr_endereco = $row["usr_endereco"];
 			$usr_nuc = $row["usr_nuc"];						
 			$usr_archive = $row["usr_archive"];
-			$usr_associado = $row["usr_associado"];			
+			$usr_associado = $row["usr_associado"];
+			$usr_asso = $row["usr_asso"];
+			$asso_nome = $row["asso_nome"];
+			$asso_descricao = $row["asso_descricao"];
 			$nuc_nome_curto = $row['nuc_nome_curto'];
 			$usr_sem_senha_acesso = $row['usr_sem_senha_acesso'];
 			$usr_desde = $row['usr_desde'];
@@ -219,10 +232,10 @@
   </div>
  <div class="panel-body">
 
-<table class="table-condensed table-info-cadastro">
+<table class="table-condensed table-info-cadastro" style="width: inherit !important;">
 		<tbody>
     		<tr>
-				<th>Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
+				<th style="width: 1%; white-space: nowrap;">Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
 			</tr>	    
     		<tr>
 				<th>Nome Curto:</th> <td><?php echo($usr_nome_curto); ?></td>
@@ -254,6 +267,13 @@
 				<th>Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
 			</tr> 
     		<tr>
+				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
+			</tr>  
+    		<tr>
+				<th>Tipo Associação:</th> <td><?php echo( $asso_nome); ?>  <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?></td>
+			</tr>                        
+                       
+    		<tr>
 				<th>Situação:</th> 
                 <td>
 					<?php echo( ($usr_archive==1)?"Inativo":"Ativo"); ?>
@@ -273,11 +293,7 @@
                  
                 </td>
 			</tr>                                    
-    		<tr>
-				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
-			</tr>            
-                       
-            
+                        
             
         </tbody>    
   </table>
@@ -488,22 +504,10 @@
                       </div>                  
                     </div>  
     
-           
-                     <div class="form-group">
-                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
-                       <div class="col-sm-2">                
-                         <select name="usr_archive" id="usr_archive" class="form-control">
-                            <option value="0" <?php echo( ($usr_archive)==0?" selected" : ""); ?> >Ativo</option>
-                            <option value="1" <?php echo( ($usr_archive)==1?" selected" : "");?> >Inativo</option>            
-                         </select>                       
-                                                     
-                       </div>
-                     </div>
-                                         
-              
+             
                      <div class="form-group">
                        <label class="control-label col-sm-2" for="usr_associado">Associado</label>
-                       <div class="col-sm-2">                
+                       <div class="col-sm-3">                
                          <select name="usr_associado" id="usr_associado" class="form-control">
                             <option value="1" <?php echo( ($usr_associado)==1?" selected" : ""); ?> >Associado</option>
                             <option value="0" <?php echo( ($usr_associado)==0?" selected" : ""); ?> >Não Associado</option>            
@@ -511,6 +515,51 @@
                        </div>
                      </div>                 
 
+
+
+
+                     <div class="form-group">
+                      <label class="control-label col-sm-2" for="usr_nuc">Tipo Associação</label>
+                      <div class="col-sm-3">                                       
+                        <select name="usr_asso" id="usr_asso" class="form-control">
+                            <option value="-1">SELECIONAR</option>
+                            <?php
+							    $help_tipos = "";
+                                $sql = "SELECT asso_id, asso_nome, asso_descricao ";
+                                $sql.= "FROM associacaotipos ";
+                                $sql.= "ORDER BY asso_nome ";
+                                $res2 = executa_sql($sql);
+                                if($res2)
+                                {
+                                  while ($row = mysqli_fetch_array($res2,MYSQLI_ASSOC)) 
+                                  {
+                                     echo("<option value='" . $row['asso_id'] . "'");
+                                     if($row['asso_id']==$usr_asso) echo(" selected");
+                                     echo (">" . $row['asso_nome'] . "</option>");	
+									 $help_tipos.="<b>" . $row['asso_nome'] . "</b>: ";
+									 $help_tipos.=$row['asso_descricao'] . "<br><br>";
+                                  }
+                                }
+                            ?>                        
+                        </select>
+                      </div>     
+                      <?php adiciona_popover_descricao("Tipos de Associação", $help_tipos); ?>             
+                    </div>  
+                    
+
+
+           
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
+                       <div class="col-sm-2">                
+                         <select name="usr_archive" id="usr_archive" class="form-control">
+                            <option value="0" <?php echo( ($usr_archive)==0?" selected" : ""); ?> >Ativo</option>
+                            <option value="1" <?php echo( ($usr_archive)==1?" selected" : "");?> >Inativo</option>            
+                         </select>                   
+                       </div>
+                     </div>
+                     
+                     
 
             <?php    
 				  } // fim do if tem permissão edição
@@ -520,6 +569,8 @@
                       <input type="hidden" name="usr_nuc" value="<?php echo($usr_nuc); ?>">
                       <input type="hidden" name="usr_archive" value="<?php echo($usr_archive); ?>">
                       <input type="hidden" name="usr_associado" value="<?php echo($usr_associado); ?>">
+                      <input type="hidden" name="usr_asso" value="<?php echo($usr_asso); ?>">
+                      
                                                    
                      <div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
@@ -527,20 +578,32 @@
                        	<span class="well well-sm"><?php echo($nuc_nome_curto); ?></span>
                       </div>                  
                     </div>  
-    
-           
-                     <div class="form-group">
-                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
-                       <div class="col-sm-2">                
-							<span class="well well-sm"><?php echo(($usr_archive)==0?"Ativo" : "Não Ativo"); ?></span>
-	                  </div>
-                     </div>              
+        
                      <div class="form-group">
                        <label class="control-label col-sm-2" for="usr_associado">Associado</label>
                        <div class="col-sm-2">                
 							<span class="well well-sm"><?php echo(($usr_associado)==1?"Sim" : "Não"); ?></span>
                        </div>
                      </div>                 
+                     
+
+                     <div class="form-group">
+                      <label class="control-label col-sm-2" for="usr_nuc">Tipo Associação</label>
+                      <div class="col-sm-2">                                       
+                       	<span class="well well-sm"><?php echo($asso_nome); ?></span> <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?>
+                      </div>                  
+                    </div>  
+
+
+           
+                     <div class="form-group">
+                       <label class="control-label col-sm-2" for="usr_archive">Situação</label>
+                       <div class="col-sm-2">                
+							<span class="well well-sm"><?php echo(($usr_archive)==0?"Ativo" : "Não Ativo"); ?></span>
+	                  </div>
+                     </div>     
+                     
+                                          
 		
             <?php		  
 				  } // fim do if (tem permissão)
