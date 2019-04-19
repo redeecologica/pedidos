@@ -40,6 +40,7 @@ DROP TABLE IF EXISTS `pedidos`;
 DROP TABLE IF EXISTS `nucleofornecedores`;
 
 DROP TABLE IF EXISTS `nucleotipos`;
+DROP TABLE IF EXISTS `associacaotipos`;
 
 --
 -- Table structure for table `nucleofornecedores`
@@ -398,6 +399,21 @@ CREATE TABLE IF NOT EXISTS `nucleotipos` (
   `nuct_nome` varchar(50) NOT NULL,
   PRIMARY KEY (`nuct_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+
+
+
+-- Table structure for table `associacaotipos`
+--
+
+CREATE TABLE IF NOT EXISTS `associacaotipos` (
+  `asso_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
+  `asso_nome` varchar(50) NOT NULL,
+  `asso_descricao` varchar(600) DEFAULT NULL,  
+  PRIMARY KEY (`asso_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+
 
 
 

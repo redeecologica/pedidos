@@ -31,14 +31,16 @@
 <h4>Produtos</h4>
 
 <a href="rel_produtos_ao_longo_do_ano.php">Consultar produtos disponíveis / pedidos ao longo do ano</a>
-<br><br>
+<br>
 <a href="produtotipos.php">Administrar tipos de produto/chamada</a>
 
 <hr/>
 
-<h4>Tipos de Núcleos</h4>
+<h4>Tipos de Núcleos e de Associação</h4>
 
 <a href="nucleotipos.php">Administrar tipos de núcleo</a>
+<br>
+<a href="associacaotipos.php">Administrar tipos de associação</a>
 
 
 </div>

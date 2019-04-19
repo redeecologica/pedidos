@@ -13,6 +13,8 @@ INSERT INTO `papeis` (`pap_id`, `pap_nome`) VALUES
 (8, 'Responsável Entrega'),
 (9, 'Responsável Finanças');
 
+INSERT INTO associacaotipos(`asso_nome`)
+VALUES ('Tipo Associacao 1');
 
 INSERT INTO `nucleos` (`nuc_id`, `nuc_nome_curto`, `nuc_nome_completo`, `nuc_email`, `nuc_entrega_horario`, `nuc_entrega_endereco`, `nuc_archive`) VALUES
 (1, 'Núcleo Teste', 'Nucleo Teste Início Sistema', 'nucleo@mudar.com', '10h às 12h', 'Rua Tal, 123 - Bairro', 0);
