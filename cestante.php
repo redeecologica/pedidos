@@ -83,7 +83,7 @@
 				 if($usr_id=="")
 				 {						 
 					 $sql="INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_contatos, usr_endereco, usr_email, usr_email_alternativo,  ";
-					 $sql.="usr_nuc, usr_archive, usr_associado, usr_atividades, usr_desde) ";
+					 $sql.="usr_nuc, usr_archive, usr_associado, usr_asso, usr_atividades, usr_desde) ";
 					 $sql.=" VALUES ( ";					 
 					 $sql.=trim(prep_para_bd(request_get("usr_nome_completo",""))) . ", ";
 					 $sql.=trim(prep_para_bd(request_get("usr_nome_curto",""))) . ", ";
@@ -94,7 +94,7 @@
 					 $sql.= prep_para_bd(request_get("usr_nuc","")) . ", ";
 					 $sql.= prep_para_bd(request_get("usr_archive","")) . ", ";
 					 $sql.= prep_para_bd(request_get("usr_associado","")) . ", ";
-					 $sql.= prep_para_bd(request_get("usr_ass","")) . ", "; 
+					 $sql.= prep_para_bd(request_get("usr_asso","")) . ", "; 
 					 $sql.= trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
 					 $sql.= $bd_usr_desde . " ) ";
 					 					 
