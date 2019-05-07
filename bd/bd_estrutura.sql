@@ -440,6 +440,8 @@ DELIMITER ;
 
 -----------
 
+ALTER TABLE `pedidos` ADD UNIQUE( `ped_usr`, `ped_cha`);
+
 
 --
 -- Constraints for dumped tables
