@@ -151,19 +151,25 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "       usr_nome_completo, ";
 		$sql .= "       usr_archive, ";
 		$sql .= "       usr_associado, ";
+		$sql .= "       usr_asso, ";		
 		$sql .= "       usr_nuc, ";
-		$sql .= "       dados.nuc_nome_curto ";
+		$sql .= "       dados.nuc_nome_curto, ";
+		$sql .= "       dados.asso_nome ";		
 		$sql .= "FROM   (SELECT usr_id, ";
 		$sql .= "               usr_nome_curto, ";
 		$sql .= "               usr_nome_completo, ";
 		$sql .= "               usr_archive, ";
 		$sql .= "               usr_associado, ";
+		$sql .= "               usr_asso, ";		
 		$sql .= "               usr_nuc, ";
 		$sql .= "               nuc_nome_curto, ";
+		$sql .= "               asso_nome, ";	
 		$sql .= "               usr_dt_atualizacao ";
 		$sql .= "        FROM   usuarios u ";
 		$sql .= "               LEFT JOIN nucleos ";
 		$sql .= "                      ON usr_nuc = nuc_id ";
+		$sql .= "               LEFT JOIN associacaotipos ";
+		$sql .= "                      ON usr_asso = asso_id ";		
 		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
@@ -171,8 +177,10 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
+		$sql .= "               usrlog_asso           usr_asso, ";		
 		$sql .= "               usrlog_nuc            usr_nuc, ";
 		$sql .= "               nuc_nome_curto, ";
+		$sql .= "               asso_nome, ";		
 		$sql .= "               usrlog_dt_atualizacao usr_dt_atualizacao ";
 		$sql .= "        FROM   usuarios_changelog a ";
 		$sql .= "               INNER JOIN (SELECT usrlog_usr, ";
@@ -182,6 +190,8 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                           GROUP  BY usrlog_usr) AS b ";
 		$sql .= "                       ON a.usrlog_usr = b.usrlog_usr ";
 		$sql .= "                          AND a.usrlog_dt_atualizacao = b.ult_atualizacao ";
+		$sql .= "               LEFT JOIN associacaotipos ";
+		$sql .= "                      ON usrlog_asso = asso_id ";			
 		$sql .= "               LEFT JOIN nucleos ";
 		$sql .= "                      ON usrlog_nuc = nuc_id) AS dados ";
 		$sql .= "       INNER JOIN (SELECT usrlog_usr, ";
@@ -193,14 +203,18 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                  AND dados.usr_dt_atualizacao = c.ult_atualizacao ";
 		$sql .= "       LEFT JOIN nucleos ";
 		$sql .= "              ON usr_nuc = nuc_id ";
+		$sql .= "       LEFT JOIN associacaotipos ";
+		$sql .= "              ON usr_asso = asso_id ";			
 		$sql .= "WHERE  usr_id IN  ( " . implode(",",$cestantes_ativos) . ") ";
 		$sql .= "GROUP  BY usr_id, ";
 		$sql .= "          usr_nome_curto, ";	
 		$sql .= "          usr_nome_completo, ";
 		$sql .= "          usr_archive, ";
 		$sql .= "          usr_associado, ";
+		$sql .= "          usr_asso, ";		
 		$sql .= "          usr_nuc, ";
-		$sql .= "          nuc_nome_curto ";
+		$sql .= "          nuc_nome_curto, ";
+		$sql .= "          asso_nome ";		
 		$sql .= "ORDER  BY usr_nome_curto " ;
 
 		$res_cestantes = executa_sql($sql);
@@ -212,8 +226,10 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "       usr_nome_completo, ";
 		$sql .= "       usr_archive, ";
 		$sql .= "       usr_associado, ";
+		$sql .= "       usr_asso, ";		
 		$sql .= "       usr_nuc, ";
 		$sql .= "       nuc_nome_curto, ";
+		$sql .= "       asso_nome, ";		
 		$sql .= "       usr_dt_atualizacao, ";		
 		$sql .= "       DATE_FORMAT(usr_dt_atualizacao,'%d/%m/%Y %H:%i:%s') usr_dt_atualizacao_formatada ";
 		$sql .= "FROM   (SELECT usr_id, ";
@@ -221,13 +237,17 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               usr_nome_completo, ";
 		$sql .= "               usr_archive, ";
 		$sql .= "               usr_associado, ";
+		$sql .= "               usr_asso, ";		
 		$sql .= "               usr_nuc, ";
 		$sql .= "               nuc_nome_curto, ";
+		$sql .= "               asso_nome, ";		
 		$sql .= "               usr_dt_atualizacao, ";		
 		$sql .= "               DATE_FORMAT(usr_dt_atualizacao,'%d/%m/%Y %H:%i:%s') usr_dt_atualizacao_formatada ";
 		$sql .= "        FROM   usuarios u ";
 		$sql .= "               LEFT JOIN nucleos ";
 		$sql .= "                      ON usr_nuc = nuc_id ";
+		$sql .= "               LEFT JOIN associacaotipos ";
+		$sql .= "                      ON usr_asso = asso_id ";			
 		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
@@ -235,8 +255,10 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
+		$sql .= "               usrlog_asso           usr_asso, ";		
 		$sql .= "               usrlog_nuc            usr_nuc, ";
 		$sql .= "               nuc_nome_curto, ";
+		$sql .= "               asso_nome, ";		
 		$sql .= "               usrlog_dt_atualizacao usr_dt_atualizacao, ";		
 		$sql .= "               DATE_FORMAT(usrlog_dt_atualizacao,'%d/%m/%Y %H:%i:%s') usr_dt_atualizacao_formatada ";
 		$sql .= "        FROM   usuarios_changelog a ";
@@ -249,19 +271,25 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                          AND a.usrlog_dt_atualizacao = b.ult_atualizacao ";
 		$sql .= "               LEFT JOIN nucleos ";
 		$sql .= "                      ON usrlog_nuc = nuc_id ";
+		$sql .= "               LEFT JOIN associacaotipos ";
+		$sql .= "                      ON usrlog_asso = asso_id ";			
 		$sql .= "        UNION ";
 		$sql .= "        SELECT usrlog_usr            usr_id, ";
 		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
 		$sql .= "               usrlog_nome_completo  usr_nome_completo, ";
 		$sql .= "               usrlog_archive        usr_archive, ";
 		$sql .= "               usrlog_associado      usr_associado, ";
+		$sql .= "               usrlog_asso           usr_asso, ";		
 		$sql .= "               usrlog_nuc            usr_nuc, ";
 		$sql .= "               nuc_nome_curto, ";
+		$sql .= "               asso_nome, ";		
 		$sql .= "               usrlog_dt_atualizacao usr_dt_atualizacao, ";		
 		$sql .= "               DATE_FORMAT(usrlog_dt_atualizacao,'%d/%m/%Y %H:%i:%s') usr_dt_atualizacao_formatada ";
 		$sql .= "        FROM   usuarios_changelog ";
 		$sql .= "               LEFT JOIN nucleos ";
 		$sql .= "                      ON usrlog_nuc = nuc_id ";
+		$sql .= "               LEFT JOIN associacaotipos ";
+		$sql .= "                      ON usrlog_asso = asso_id ";			
 		$sql .= "        WHERE  usrlog_dt_atualizacao > " . prep_para_bd(formata_data_para_mysql($dt_ini));
 		$sql .= "               AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . " ) dados ";
 		$sql .= "WHERE  usr_id IN  ( " . implode(",",$cestantes_ativos) . ") ";
@@ -270,8 +298,10 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "          usr_nome_completo, ";
 		$sql .= "          usr_archive, ";
 		$sql .= "          usr_associado, ";
+		$sql .= "          usr_asso, ";		
 		$sql .= "          usr_nuc, ";
-		$sql .= "          nuc_nome_curto ";
+		$sql .= "          nuc_nome_curto, ";
+		$sql .= "          asso_nome ";		
 		$sql .= "ORDER  BY usr_id, ";
 		$sql .= "          usr_dt_atualizacao DESC, usr_nome_curto DESC " ;		
 		
@@ -322,7 +352,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		
 
 
-		/*primeiro: pegar lista de chamadas pertientes*/
+		/*primeiro: pegar lista de chamadas pertinentes*/
 		$sql="SELECT usr_nome_curto, usr_nome_completo, ped_usr, ped_usr_associado, ped_id, cha_id, cha_taxa_percentual, ";
 		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)),2) AS valor_pedido, ";
 		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)),2) AS valor_entregue, ";
@@ -387,6 +417,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 							<th rowspan="2">Nome Completo</th>                                          
 							<th rowspan="2">Ativo</th>
 							<th rowspan="2">Associado</th>
+							<th rowspan="2">Tipo Associação</th>                            
 							<th rowspan="2" class="alterna_visivel_cestante">Data Atualização</th>
 
 							 <?php
@@ -449,6 +480,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 							<td class="<?php echo($cestante["usr_associado"]=='0'?"label-warning":""); ?>">
 								<?php echo($cestante["usr_associado"]=='0'?"Não":"Sim"); ?>
 							 </td> 
+                             <td><?php echo($cestante["asso_nome"]);?></td>
 							<td class="alterna_visivel_cestante">
 								<?php echo(count($cestantes_versoes[$row["usr_id"]])>1 ? $cestante["usr_dt_atualizacao_formatada"] : "&nbsp;");?>                      
                             </td>
