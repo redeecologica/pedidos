@@ -94,8 +94,11 @@
 
 				<?php
 					
-					$sql = "SELECT ped_id, ped_cha, nucleos.nuc_id cest_nuc_id, usr_id, usr_email, usr_nome_curto, nucleo_entrega.nuc_nome_curto entrega_nuc_nome_curto, nucleos.nuc_nome_curto cest_nuc_nome_curto, ped_fechado, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, usr_archive FROM usuarios ";
+					$sql = "SELECT ped_id, ped_cha, nucleos.nuc_id cest_nuc_id, usr_id, usr_email, usr_nome_curto, nucleo_entrega.nuc_nome_curto entrega_nuc_nome_curto, ";
+					$sql.= "nucleos.nuc_nome_curto cest_nuc_nome_curto, ped_fechado, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, asso_nome, usr_archive ";
+					$sql.= "FROM usuarios ";
 					$sql.= "LEFT JOIN pedidos ON ped_usr = usr_id  AND ped_cha = " . prep_para_bd($ped_cha) .  " ";	
+					$sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";
 					$sql.= "LEFT JOIN nucleos ON usr_nuc = nucleos.nuc_id ";	
 					$sql.= "LEFT JOIN nucleos nucleo_entrega ON ped_nuc = nucleo_entrega.nuc_id ";
 					$sql.= "WHERE  (usr_archive = '0' or ( ped_id is not NULL) ) ";
@@ -123,6 +126,7 @@
                             <th>#</th>
                             <th>Núcleo</th>
                             <th>Cestante</th>
+                            <th>Tipo Associação</th>
                             <th>Email</th>
                             <th>Última Atualização</th>
                             <th>Status do Pedido</th>		
@@ -145,7 +149,8 @@
                          <td><?php 
 						 	echo($row['usr_nome_curto']); 
 							if($row['usr_archive']) echo(" <span class='label label-danger'>inativo</span>");?>
-                         </td>                                    
+                         </td>   
+                         <td><?php echo($row['asso_nome']);?></td>                                   
 						 <td><?php echo($row['usr_email']);?></td>                                                             
                          <td><?php echo($row['ped_dt_atualizacao']); ?></td>      
                          <td>
