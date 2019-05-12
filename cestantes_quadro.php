@@ -535,7 +535,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
               
               
               <tr>
-              <th colspan="7" class="col_alterna_visivel_cestante">TOTAL</th>
+              <th colspan="8" class="col_alterna_visivel_cestante">TOTAL</th>
 			 <?php		 
                  $total_geral_entregue=0;
 				 $total_geral_taxa=0;
@@ -589,13 +589,13 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
         e.preventDefault();
         $('.alterna_visivel_cestante').toggle();
 
-		if($('.col_alterna_visivel_cestante').attr('colspan')==6)
+		if($('.col_alterna_visivel_cestante').attr('colspan')==8)
 		{
-			$('.col_alterna_visivel_cestante').attr('colspan','7');
+			$('.col_alterna_visivel_cestante').attr('colspan','9');
 		}
 		else
 		{
-			$('.col_alterna_visivel_cestante').attr('colspan','6');
+			$('.col_alterna_visivel_cestante').attr('colspan','8');
 		}
 		
     });

@@ -235,7 +235,7 @@ $res = executa_sql($sql);
 
 		if($res && isset($cestante_pedido))
 		{
-			$num_colunas=4 + 6*(count($cestante_nome)+1) + 2;
+			$num_colunas=4 + 6*(count($cestante_nome)+1) + 3;
 			$total=0;
 			$total_entregue=0;
 								   
