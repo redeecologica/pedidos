@@ -12,7 +12,7 @@
 
   verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION["usr.id"]== $ped_usr );
   
-  if($action==ACAO_CONFIRMAR_PEDIDO || $action==ACAO_CANCELAR_PEDIDO  || $action==ACAO_SALVAR || $action==ACAO_EXIBIR_EDICAO  )
+  if($action==ACAO_CONFIRMAR_PEDIDO || $action==ACAO_CANCELAR_PEDIDO  || $action==ACAO_SALVAR || $action==ACAO_EXIBIR_EDICAO || $action==ACAO_SALVAR_E_CONFIRMAR_PEDIDO  )
   {
      verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || ($_SESSION["usr.id"]== $ped_usr && pedido_esta_dentro_do_prazo($ped_id) ) );
   }  
@@ -24,46 +24,9 @@
 <?php
 
 		$pedido_enviado=false;
-					
-		if ( $action == ACAO_CONFIRMAR_PEDIDO) // confirmar/enviar pedido
-		{
-			$sql = "UPDATE pedidos SET ";
-			$sql.= "ped_fechado = '1' ";
-			$sql.= "WHERE ped_id = $ped_id_bd";
-			$res = executa_sql($sql);
-			
-			if($res) 
-			{
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi enviado com sucesso.");
-				$pedido_enviado=true;
-			}
-			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar enviar o pedido.");
-			
-//			if($_SESSION["usr.id"]== )					redireciona("meuspedidos.php");
-
-			$action=ACAO_EXIBIR_LEITURA; // para visualizar no modo somente leitura
-	
-		}
-		else if ($action == ACAO_CANCELAR_PEDIDO) // cancelar pedido
-		{
-			$sucesso_cancelar=1;
-			
-			 
-			$sql = "UPDATE pedidos SET ped_fechado ='0' ";
-			$sql.= "WHERE ped_id = $ped_id_bd";
-			$res = executa_sql($sql);
-			
-			if(!$res) $sucesso_cancelar=0;
-			 
-			if($sucesso_cancelar) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi cancelado com sucesso.");
-			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar cancelar o pedido.");
-			
-//			redireciona('meuspedidos.php');
-			
-			$action=ACAO_EXIBIR_LEITURA; // para visualizar no modo edição	
-		}
+		$pos_action=-1;
 		
-
+		
 		if ( $action == ACAO_INCLUIR) // exibe formulário vazio para salvar novo registro
 		{
 			// já cria o pedido, sem produtos associados
@@ -90,10 +53,11 @@
 				$ped_id = id_inserido();
 			}
 			
-			$action = ACAO_EXIBIR_EDICAO; // depois de pré-incluir pedido, exibe para edição
+			$pos_action = ACAO_EXIBIR_EDICAO; // depois de pré-incluir pedido, exibe para edição
 			
 		}
-		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
+		
+		if ($action == ACAO_SALVAR || $action == ACAO_SALVAR_E_CONFIRMAR_PEDIDO) // salvar formulário preenchido
 		{
 			$algum_erro=false;
 			
@@ -132,15 +96,53 @@
 			if(!$algum_erro) 
 			{
 				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Informações do pedido atualizadas com sucesso.");
-				if(!$ped_fechado) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Não se esqueça de enviar o pedido (botão verde abaixo da lista de produtos)");
-				$action=ACAO_EXIBIR_LEITURA;
+				if(!($ped_fechado || $action== ACAO_SALVAR_E_CONFIRMAR_PEDIDO)) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Não se esqueça de enviar o pedido (botão verde abaixo da lista de produtos)");
+				$pos_action=ACAO_EXIBIR_LEITURA;
 			}
 			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Ocorreu algum erro ao salvar o pedido. Confira os dados do pedido salvo.");				 			
  	
 			 			 
 		}
-
-
+		
+		
+		if ( $action == ACAO_CONFIRMAR_PEDIDO || $action == ACAO_SALVAR_E_CONFIRMAR_PEDIDO) // confirmar/enviar pedido
+		{
+			$sql = "UPDATE pedidos SET ";
+			$sql.= "ped_fechado = '1' ";
+			$sql.= "WHERE ped_id = $ped_id_bd";
+			$res = executa_sql($sql);
+			
+			if($res) 
+			{
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi enviado <i class='glyphicon glyphicon-send glyphicon-white'></i> com sucesso.");
+				$pedido_enviado=true;
+			}
+			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar enviar o pedido.");
+			
+			$pos_action=ACAO_EXIBIR_LEITURA; // para visualizar no modo somente leitura
+	
+		}
+		else if ($action == ACAO_CANCELAR_PEDIDO) // cancelar pedido
+		{
+			$sucesso_cancelar=1;
+			
+			 
+			$sql = "UPDATE pedidos SET ped_fechado ='0' ";
+			$sql.= "WHERE ped_id = $ped_id_bd";
+			$res = executa_sql($sql);
+			
+			if(!$res) $sucesso_cancelar=0;
+			 
+			if($sucesso_cancelar) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi cancelado com sucesso.");
+			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar cancelar o pedido.");
+	
+			$pos_action=ACAO_EXIBIR_LEITURA; // para visualizar no modo edição	
+		}
+		
+		if($pos_action!=-1)
+		{
+			$action = $pos_action;
+		}
 		if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO)  // exibir para visualização, ou exibir para edição
 		{
 			$sql = "SELECT (cha_dt_max<now()) somente_leitura, usr_nome_curto, ped_usr, ped_usr_associado, usr_nome_completo, usr_contatos, prodt_nome, ";
@@ -378,7 +380,7 @@
 
 ?>
 
-<form method="post" class="form-horizontal">
+<form method="post" name='form_pedido' class="form-horizontal">
   <fieldset>
           <input type="hidden" name="ped_id" value="<?php echo($ped_id); ?>" />
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
@@ -513,9 +515,29 @@
 			      ?>    
             
       		<div align="right">
-               <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                               &nbsp;&nbsp;
-                               <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar pedido</button>            
+                               <?php
+							   if(!$ped_fechado)
+							   {
+							   ?>
+                               <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                                   &nbsp;&nbsp;                               
+                                   <button class="btn btn-lg btn-success btn-enviando" data-loading-text="salvando e enviando pedido..." type="button" onclick="javascript:document.form_pedido.action.value='<?php echo(ACAO_SALVAR_E_CONFIRMAR_PEDIDO);?>';document.form_pedido.submit();"><i class="glyphicon glyphicon-send glyphicon-white"></i> salvar e ENVIAR pedido</button> 
+                                  &nbsp;&nbsp;
+                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> somente salvar pedido</button>    
+                               <?php
+							   }
+							   else
+							   {
+							   ?>
+                                 Pedido já enviado. Mas você pode salvar novas atualizações até a chamada encerrar.
+                               <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
+                                     &nbsp;&nbsp;                          
+                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar pedido</button>                                   
+							   <?php
+							   } //end if ped_fechado
+							   ?>                               
+                                                              
+                                          
             </div>
 
 		

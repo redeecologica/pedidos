@@ -28,6 +28,7 @@ define('ACAO_EXCLUIR',4);
 
 define('ACAO_CONFIRMAR_PEDIDO',5);
 define('ACAO_CANCELAR_PEDIDO',6);
+define('ACAO_SALVAR_E_CONFIRMAR_PEDIDO',7);
 
 define('MSG_TIPO_ERRO',3);
 define('MSG_TIPO_AVISO',2);
