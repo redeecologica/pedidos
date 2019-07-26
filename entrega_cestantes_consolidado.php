@@ -182,7 +182,7 @@ if($nuc_id!=-1 && $cha_id!=-1)
 	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)) AS valor_pedido, ";
 	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)) AS valor_entregue, ";
 	$sql.=" SUM(pedprod_entregue) AS total_itens_entregues, ";
-	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (pedprod_entregue - IFNULL(pedprod_quantidade,0))),SUM(prod_valor_venda * (pedprod_entregue - IFNULL(pedprod_quantidade,0))) ) AS valor_extra ";
+	$sql.="IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (IFNULL(pedprod_entregue,0) - IFNULL(pedprod_quantidade,0))),SUM(prod_valor_venda * (IFNULL(pedprod_entregue,0) - IFNULL(pedprod_quantidade,0))) ) AS valor_extra ";
 	$sql.="FROM chamadaprodutos ";
 	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha LEFT JOIN produtos on prod_id = chaprod_prod ";
 	$sql.="LEFT JOIN pedidos ON ped_cha = cha_id LEFT JOIN usuarios on ped_usr = usr_id ";
@@ -267,7 +267,7 @@ if($nuc_id!=-1 && $cha_id!=-1)
 						if($cha_dentro_prazo)
 						{
 						?>
-                        <a class="btn btn-default <?php echo( ($row["valor_entregue"]>0  || $row["valor_extra"]!=0 || $row["total_itens_entregues"]>0) ? "": "btn-danger"  ); ?>" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>
+                        <a class="btn btn-default <?php echo( ($row["valor_entregue"]>0  || $row["valor_extra"]>0 || $row["total_itens_entregues"]>0) ? "": "btn-danger"  ); ?>" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>
  
 						<?php
 						}
