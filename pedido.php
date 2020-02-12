@@ -474,13 +474,13 @@
 								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Pedido mínimo: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}
 								else
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Pedido mínimo: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
                             <?php 
 								}								
 							?>

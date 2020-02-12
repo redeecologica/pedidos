@@ -141,7 +141,7 @@
 				<th>Venda com Margem:</th><td>R$ <?php echo($prod_valor_venda_margem); ?></td>
 			</tr>     
     		<tr>
-				<th>Pedido Mínimo:</th> <td><?php echo($prod_multiplo_venda); ?></td>
+				<th>Múltiplo do Produto para Venda:</th> <td><?php echo($prod_multiplo_venda); ?></td>
 			</tr>                               
     		<tr>
 				<th>Peso Bruto Estimado:</th> <td><?php if(!is_null($prod_peso_bruto)) echo ($prod_peso_bruto . ' g' ); ?></td>
@@ -337,11 +337,11 @@
           
             
       		 <div class="form-group">
-                <label class="control-label col-sm-2" for="prod_multiplo_venda">Pedido Mínimo</label>
+                <label class="control-label col-sm-2" for="prod_multiplo_venda">Múltiplo do Produto para Venda</label>
                   <div class="col-sm-2">                    
 					<input type="text" required="required"  class="form-control numero" name="prod_multiplo_venda" value="<?php echo($prod_multiplo_venda); ?>" />                    
                   </div>
-                  <span class="help-block">Informar valor com no máximo 2 casas decimais.</span>
+                  <span class="help-block">Ex: 0,5. Informar valor com no máximo 2 casas decimais.</span>
 
             </div>
             
