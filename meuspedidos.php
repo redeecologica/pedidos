@@ -95,7 +95,7 @@
         if($res && mysqli_num_rows($res))
         {			
 			?>
-		    <legend>Chamadas anteriores (últimas dez chamadas)</legend>
+		    <legend>Chamadas anteriores (últimas dez chamadas)</legend> 
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -159,9 +159,93 @@
 
 
     ?>
+    <a name="historico"></a>
+    <legend>Histórico Completo de Pedidos Enviados</legend> 
+         
+    <?php
+    if (request_get("carrega_historico",'')=='on')
+	{
+		
+        $sql = "SELECT cha_id, cha_prodt, DATE(cha_dt_entrega)<=CURDATE() as entrega_passou, cha_dt_entrega cha_dt_entrega_original, date_format(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, ";
+        $sql.= "cha_dt_min cha_dt_min_original, date_format(cha_dt_min,'%d/%m/%Y %H:%i') cha_dt_min, cha_dt_max cha_dt_max_original, ";
+        $sql.= "date_format(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, prodt_nome, ped_fechado, ped_id ";
+        $sql.= "FROM pedidos ";
+        $sql.= "LEFT JOIN chamadas ON cha_id = ped_cha AND ped_usr = " . prep_para_bd($_SESSION['usr.id']) . " ";	
+        $sql.= "LEFT JOIN produtotipos ON cha_prodt = prodt_id ";	
+		$sql.= "LEFT JOIN usuarios on usr_id = " . prep_para_bd($_SESSION['usr.id']) . " ";
+		$sql.= "WHERE ped_fechado=1 AND ped_usr = " . prep_para_bd($_SESSION['usr.id']) . " ";	
+		$sql.= "ORDER BY cha_dt_entrega_original DESC ";		
+	
+        $res = executa_sql($sql);      
+        $contador = 0;
+        if($res && mysqli_num_rows($res))
+        {			
+			?>
+            <table class="table table-bordered table-condensed">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Tipo</th>
+                        <th>Entrega</th>
+                        <th>Prazo envio do Pedido</th>
+                        <th>Chamada</th>
+                        <th>Seu Pedido</th>
+                    </tr>
+                </thead>
+                <tbody>		    
+            <?php
+			$contador=0;
+			while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
+			{				
+					?>
+				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
+                  	 <td><?php echo(++$contador); ?></td>               
+					 <td><?php echo($row['prodt_nome']); ?></td>               
+					 <td><?php echo($row['cha_dt_entrega']); ?></td>
+					 <td><?php echo($row['cha_dt_max']); ?> </td>  
+					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver chamada</a>");?></td>
+                                                                                  
+					 <td>
+                     <?php
+						echo("<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=" . ACAO_EXIBIR_LEITURA);
+						echo("&amp;ped_id=" . $row['ped_id'] . "\">");
+						echo("<i class=\"glyphicon glyphicon-search\"></i> ver pedido</a>");						
+						
+						if($row['entrega_passou'] )
+						{
+							echo("&nbsp;&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido_entregue.php?");
+							echo("ped_id=" . $row['ped_id'] . "\">");
+							echo("<i class=\"glyphicon glyphicon-grain\"></i> ver entrega</a>");
+						}
+					 ?>
+					 
+                     </td>     
+                     
+				  </tr>
+				<?php 
+			   }
+			?>
+            </tbody>
+        </table>
+		<?php 
+       }
+	   else
+	   {
+		   echo("Você não possui histórico de pedidos.<hr>");
+	   }
 
+
+    		
+	}
+	else
+	{
+    ?>
+     <a href="meuspedidos.php?carrega_historico=on#historico"  class="btn btn-default"><i class="glyphicon glyphicon-refresh"></i> carregar histórico</a>
 
 <?php 
+	}
+	
+	
  
 	footer();
 ?>
