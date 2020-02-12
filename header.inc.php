@@ -19,7 +19,7 @@
 		}
 	</script>    
 	<script src="js/bootstrap-3.3.6.min.js"></script>
-	<script src="js/pedido.js?ver=1.8.5"></script>
+	<script src="js/pedido.js?ver=1.8.6"></script>
 	<script src="js/bootstrap-datepicker.min.js" charset="UTF-8"></script>
     <script src="js/locales/bootstrap-datepicker.pt-BR.js" charset="UTF-8"></script>
     <script src="js/jquery.maskedinput.min.js" charset="UTF-8"></script>    

@@ -8,16 +8,18 @@ function calculaTotalPedido(e){
 		return;
 	}
 	if (!$.isNumeric(valorInformado)){
-		alert("Por favor, informe uma quantidade válida para o pedido.");
+		$(this).val('0');		
 		$(this).focus();
+		alert("Por favor, informe uma quantidade válida para o pedido.");
 		$('#totalprod_'+item).text("0,0");
 		formataTotalProdEPedido(0, item);
 		return;
 	}
 	var multiploValido = $('#multiploprod_'+item).val();
 	if(	(valorInformado*100)%(multiploValido*100)!=0){
-		alert('A quantidade informada deve ser um múltiplo de '+multiploValido.replace(".",",")+".");
+		$(this).val('0,0');
 		$(this).focus();
+		alert('A quantidade informada deve ser um múltiplo de '+multiploValido.replace(".",",")+".");		
 		$('#totalprod_'+item).text("0,0");
 		formataTotalProdEPedido(0, item);
 		return;
