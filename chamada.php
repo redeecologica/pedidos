@@ -19,13 +19,13 @@
 			$cha_dt_max = "";
 			$cha_hh_min = "";
 			$cha_hh_max = "";
-			$cha_dt_entrega = "";
-			$cha_taxa_percentual = formata_moeda(TAXA_ASSOCIADO);
-			$sql = "SELECT prodt_nome FROM produtotipos WHERE prodt_id= ". prep_para_bd($cha_prodt) . " ";
+			$cha_dt_entrega = "";			
+			$sql = "SELECT prodt_nome, prodt_taxa_percentual_padrao FROM produtotipos WHERE prodt_id= ". prep_para_bd($cha_prodt) . " ";
 			$res = executa_sql($sql);
 			if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 			{				  
 				$prodt_nome = $row["prodt_nome"];
+				$cha_taxa_percentual = formata_moeda($row["prodt_taxa_percentual_padrao"]);
 			}
 			
 		}
@@ -191,7 +191,7 @@
 
             <div class="form-group">
                <label class="control-label col-sm-2" for="prodt_nome">Tipo</label>
-                 <div class="col-sm-2">
+                 <div class="col-sm-4">
                    <span class="well well-sm"><?php echo($prodt_nome); ?></span>
                   </div>
             </div>

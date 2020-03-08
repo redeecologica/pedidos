@@ -19,12 +19,13 @@
 				<th>#</th>
 				<th>Nome</th>                
                 <th>Associado à funcionalidade Mutirão?</th>                
+				<th>Taxa Percentual Padrão</th>                  
 			</tr>
 		</thead>
 		<tbody>
 				<?php
 					
-					$sql = "SELECT prodt_id, prodt_nome, prodt_mutirao ";
+					$sql = "SELECT prodt_id, prodt_nome, prodt_mutirao, FORMAT(prodt_taxa_percentual_padrao,2) as prodt_taxa_percentual_padrao ";
 					$sql.= "FROM produtotipos ";
 					$sql.= "ORDER BY prodt_nome ";
 								
@@ -40,6 +41,7 @@
                   	 <td><?php echo(++$contador);?></td>               
 					 <td><a href="produtotipo.php?action=0&amp;prodt_id=<?php echo($row['prodt_id']);?>"><?php echo($row['prodt_nome']);?></a></td>
 					 <td><?php echo($row['prodt_mutirao'] == 1 ? "Sim": "Não" );?></td>                   
+                     <td><?php echo(formata_moeda($row['prodt_taxa_percentual_padrao']));?></td>
 
 				  </tr>
 				<?php 

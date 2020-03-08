@@ -292,6 +292,7 @@ CREATE TABLE IF NOT EXISTS `produtotipos` (
   `prodt_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
   `prodt_nome` varchar(50) NOT NULL,
   `prodt_mutirao` TINYINT( 2 ) UNSIGNED NOT NULL DEFAULT '0',
+  `prodt_taxa_percentual_padrao` DECIMAL(4,2) NOT NULL DEFAULT '0', 
   PRIMARY KEY (`prodt_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 
