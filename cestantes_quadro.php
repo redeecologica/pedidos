@@ -104,13 +104,13 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 	$sql.="	FROM usuarios u LEFT JOIN nucleos ON usr_nuc = nuc_id  ";
 	$sql.="	WHERE ";
 	if($nuc_id!=-1) $sql.= "usr_nuc =  " . prep_para_bd($nuc_id) . " AND " ;
-	$sql.="	usr_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+	$sql.="	usr_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59" ) . "  ";
 	$sql.="	UNION  ";
 	$sql.="	SELECT a.usrlog_usr usr_id, usrlog_archive usr_archive ";
 	$sql.="	FROM usuarios_changelog a  ";
 	$sql.="	 INNER JOIN  ";
 	$sql.="	  (SELECT usrlog_usr, MAX(usrlog_dt_atualizacao) AS ult_atualizacao  ";
-	$sql.="	  FROM usuarios_changelog WHERE usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_ini)) . "  ";
+	$sql.="	  FROM usuarios_changelog WHERE usrlog_dt_atualizacao <  " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00") . "  ";
 	$sql.="	  GROUP BY usrlog_usr ) AS b  ";
 	$sql.="	 ON a.usrlog_usr = b.usrlog_usr AND a.usrlog_dt_atualizacao = b.ult_atualizacao  ";
 	$sql.="	 LEFT JOIN nucleos ON usrlog_nuc = nuc_id ";
@@ -121,7 +121,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 	$sql.="	LEFT JOIN nucleos ON usrlog_nuc = nuc_id  ";
 	$sql.="	WHERE ";
 	if($nuc_id!=-1) $sql.=" usrlog_nuc =  " . prep_para_bd($nuc_id) . " AND ";
-	$sql.=" usrlog_dt_atualizacao >  " . prep_para_bd(formata_data_para_mysql($dt_ini)) . " AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+	$sql.=" usrlog_dt_atualizacao >=  " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00" ) . " AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
 	$sql.="	) uniao_final  ";
 	$sql.="	GROUP BY usr_id  ";
 	$sql.="	HAVING MIN(usr_archive)=0  ";
@@ -170,7 +170,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                      ON usr_nuc = nuc_id ";
 		$sql .= "               LEFT JOIN associacaotipos ";
 		$sql .= "                      ON usr_asso = asso_id ";		
-		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
 		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
@@ -186,7 +186,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               INNER JOIN (SELECT usrlog_usr, ";
 		$sql .= "                                  Max(usrlog_dt_atualizacao) AS ult_atualizacao ";
 		$sql .= "                           FROM   usuarios_changelog ";
-		$sql .= "                           WHERE  usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+		$sql .= "                           WHERE  usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
 		$sql .= "                           GROUP  BY usrlog_usr) AS b ";
 		$sql .= "                       ON a.usrlog_usr = b.usrlog_usr ";
 		$sql .= "                          AND a.usrlog_dt_atualizacao = b.ult_atualizacao ";
@@ -197,7 +197,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "       INNER JOIN (SELECT usrlog_usr, ";
 		$sql .= "                          Max(usrlog_dt_atualizacao) AS ult_atualizacao ";
 		$sql .= "                   FROM   usuarios_changelog ";
-		$sql .= "                   WHERE  usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+		$sql .= "                   WHERE  usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
 		$sql .= "                   GROUP  BY usrlog_usr) AS c ";
 		$sql .= "               ON dados.usr_id = c.usrlog_usr ";
 		$sql .= "                  AND dados.usr_dt_atualizacao = c.ult_atualizacao ";
@@ -248,7 +248,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                      ON usr_nuc = nuc_id ";
 		$sql .= "               LEFT JOIN associacaotipos ";
 		$sql .= "                      ON usr_asso = asso_id ";			
-		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim)) . "  ";
+		$sql .= "        WHERE  usr_dt_atualizacao <= " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . "  ";
 		$sql .= "        UNION ";
 		$sql .= "        SELECT a.usrlog_usr          usr_id, ";
 		$sql .= "               usrlog_nome_curto     usr_nome_curto, ";
@@ -265,7 +265,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "               INNER JOIN (SELECT usrlog_usr, ";
 		$sql .= "                                  Max(usrlog_dt_atualizacao) AS ult_atualizacao ";
 		$sql .= "                           FROM   usuarios_changelog ";
-		$sql .= "                           WHERE  usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_ini)) . "  ";
+		$sql .= "                           WHERE  usrlog_dt_atualizacao <  " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00") . "  ";
 		$sql .= "                           GROUP  BY usrlog_usr) AS b ";
 		$sql .= "                       ON a.usrlog_usr = b.usrlog_usr ";
 		$sql .= "                          AND a.usrlog_dt_atualizacao = b.ult_atualizacao ";
@@ -290,8 +290,8 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "                      ON usrlog_nuc = nuc_id ";
 		$sql .= "               LEFT JOIN associacaotipos ";
 		$sql .= "                      ON usrlog_asso = asso_id ";			
-		$sql .= "        WHERE  usrlog_dt_atualizacao > " . prep_para_bd(formata_data_para_mysql($dt_ini));
-		$sql .= "               AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim)) . " ) dados ";
+		$sql .= "        WHERE  usrlog_dt_atualizacao >= " . prep_para_bd(formata_data_para_mysql($dt_ini) . " 00:00:00");
+		$sql .= "               AND usrlog_dt_atualizacao <=  " . prep_para_bd(formata_data_para_mysql($dt_fim) . " 23:59:59") . " ) dados ";
 		$sql .= "WHERE  usr_id IN  ( " . implode(",",$cestantes_ativos) . ") ";
 		$sql .= "GROUP  BY usr_id, ";
 		$sql .= "          usr_nome_curto, ";
@@ -304,7 +304,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 		$sql .= "          asso_nome ";		
 		$sql .= "ORDER  BY usr_id, ";
 		$sql .= "          usr_dt_atualizacao DESC, usr_nome_curto DESC " ;		
-		
+
 		$res_cestantes_versoes = executa_sql($sql); 			
 		$cestantes_versoes = array();	
 		if($res_cestantes_versoes)
@@ -354,9 +354,9 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 
 		/*primeiro: pegar lista de chamadas pertinentes*/
 		$sql="SELECT usr_nome_curto, usr_nome_completo, ped_usr, ped_usr_associado, ped_id, cha_id, cha_taxa_percentual, ";
-		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)),2) AS valor_pedido, ";
-		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)),2) AS valor_entregue, ";
-		$sql.="FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (pedprod_entregue - pedprod_quantidade)),SUM(prod_valor_venda * (pedprod_entregue - pedprod_quantidade)) ),2) AS valor_extra ";
+		$sql.="REPLACE(FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_quantidade),SUM(prod_valor_venda * pedprod_quantidade)),2),',','') AS valor_pedido, ";
+		$sql.="REPLACE(FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * pedprod_entregue),SUM(prod_valor_venda * pedprod_entregue)),2),',','') AS valor_entregue, ";
+		$sql.="REPLACE(FORMAT(IF(ped_usr_associado='0', SUM(prod_valor_venda_margem * (pedprod_entregue - pedprod_quantidade)),SUM(prod_valor_venda * (pedprod_entregue - pedprod_quantidade)) ),2),',','') AS valor_extra ";
 		$sql.="FROM chamadaprodutos ";
 		$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha LEFT JOIN produtos on prod_id = chaprod_prod ";
 		$sql.="LEFT JOIN pedidos ON ped_cha = cha_id LEFT JOIN usuarios on ped_usr = usr_id ";
@@ -496,7 +496,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 										$valor_taxa = $chamadas_pedidos[$row["usr_id"]][$chamada["cha_id"]]["ped_usr_associado"] =='0'? '0.0' : $chamadas_pedidos[$row["usr_id"]][$chamada["cha_id"]]["valor_entregue"] * $chamadas_pedidos[$row["usr_id"]][$chamada["cha_id"]]["cha_taxa_percentual"];
 										$valor_taxa = round($valor_taxa,2);
 
-										 echo("<td class='alterna_visivel_chamada'>");
+										 echo("<td class='alterna_visivel_chamada'>");					 
 										 echo(formata_moeda($chamadas_pedidos[$row["usr_id"]][$chamada["cha_id"]]["valor_entregue"])) ;
 										 echo("</td>");
 										 echo("<td class='alterna_visivel_chamada'>");

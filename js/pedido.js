@@ -181,8 +181,8 @@ function verificaDatas(){
 }
 
 $(function() {
-        // Add Confirmation dialogs for all Deletes
-        $("a.confirm-delete").on('click', function(event) {
+        // Add Confirmation dialogs for operation
+        $("confirm-delete").on('click', function(event) {
             return confirm('Confirma a operação ?');
         });
 });

@@ -152,6 +152,13 @@ function formata_numero_de_mysql($numero)
 
 function formata_moeda($numero)
 {
+	if(! is_numeric($numero))
+	{
+		if ( (strpos($numero, ".") != false) && (strpos($numero, ",") != false) )
+		{
+			$numero = (float) str_replace(',','',$numero);	
+		}
+	}	
 	return number_format($numero, 2, ',', '.');
 }
 
@@ -228,6 +235,13 @@ function id_inserido()
 	global $conn_link;
 	return mysqli_insert_id($conn_link);	
 }
+
+function registros_afetados()
+{
+	global $conn_link;
+	return mysqli_affected_rows($conn_link);	
+}
+
 
 function executa_sql($sql,$aborta_se_erro = 0) {
 
