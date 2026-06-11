@@ -20,7 +20,9 @@ docker compose up -d --wait db
 echo ">> Recriando banco local 'pedidos' (charset latin1, igual ao default do banco de produção) e importando $DUMP ..."
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot \
   -e "DROP DATABASE IF EXISTS pedidos; CREATE DATABASE pedidos CHARACTER SET latin1 COLLATE latin1_general_ci;"
-gunzip -c "$DUMP" | docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos
+# remove cláusulas DEFINER (usuário de produção não existe localmente; triggers/views
+# passam a pertencer ao root local — sem isso, qualquer INSERT que dispare trigger falha)
+gunzip -c "$DUMP" | sed -E 's/\/\*!50017 DEFINER=[^*]*\*\///g' | docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos
 
 echo ">> Tabelas importadas:"
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot \
