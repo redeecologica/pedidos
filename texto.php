@@ -150,7 +150,21 @@
  {
 
 ?>
-<script src="ckeditor/ckeditor.js"></script>
+<script src="tinymce/tinymce.min.js"></script>
+<script>
+tinymce.init({
+  selector: 'textarea.ckeditor',   /* a classe vira só um seletor; html antigo intocado */
+  language: 'pt_BR',
+  license_key: 'gpl',
+  promotion: false,
+  branding: false,
+  height: 500,
+  menubar: false,
+  plugins: 'lists link code table autolink',
+  toolbar: 'undo redo | blocks | bold italic | bullist numlist | link table | code',
+  convert_urls: false
+});
+</script>
 
 <form id="form_texto" class="form-horizontal" action="texto.php" method="post">
     <fieldset>
