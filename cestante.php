@@ -44,7 +44,10 @@
 			$usr_associado=0;
 			$usr_asso=-1;
 			$usr_desde="";	
-			$usr_atividades="";							
+			$usr_atividades="";
+			$usr_profissao="";
+			$usr_habilidades="";
+										
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
 		{			
@@ -83,7 +86,7 @@
 				 if($usr_id=="")
 				 {						 
 					 $sql="INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_contatos, usr_endereco, usr_email, usr_email_alternativo,  ";
-					 $sql.="usr_nuc, usr_archive, usr_associado, usr_asso, usr_atividades, usr_desde) ";
+					 $sql.="usr_nuc, usr_archive, usr_associado, usr_asso, usr_atividades, usr_profissao, usr_habilidades, usr_desde) ";
 					 $sql.=" VALUES ( ";					 
 					 $sql.=trim(prep_para_bd(request_get("usr_nome_completo",""))) . ", ";
 					 $sql.=trim(prep_para_bd(request_get("usr_nome_curto",""))) . ", ";
@@ -96,6 +99,8 @@
 					 $sql.= prep_para_bd(request_get("usr_associado","")) . ", ";
 					 $sql.= prep_para_bd(request_get("usr_asso","")) . ", "; 
 					 $sql.= trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
+					 $sql.= trim(prep_para_bd(request_get("usr_profissao",""))) . ", ";
+					 $sql.= trim(prep_para_bd(request_get("usr_habilidades",""))) . ", ";					 
 					 $sql.= $bd_usr_desde . " ) ";
 					 					 
 				 }
@@ -113,6 +118,8 @@
 					 $sql.="usr_associado = " . prep_para_bd(request_get("usr_associado","")) . ", ";
 					 $sql.="usr_asso = " . prep_para_bd(request_get("usr_asso","")) . ", ";				 
 					 $sql.="usr_atividades = " . trim(prep_para_bd(request_get("usr_atividades",""))) . ", ";
+					 $sql.="usr_profissao = " . trim(prep_para_bd(request_get("usr_profissao",""))) . ", ";
+					 $sql.="usr_habilidades = " . trim(prep_para_bd(request_get("usr_habilidades",""))) . ", ";					 					 
 					 $sql.="usr_desde = " . $bd_usr_desde . " ";
 					 $sql.="WHERE usr_id = " . prep_para_bd(request_get("usr_id",""));
 				 }
@@ -178,8 +185,9 @@
 				$usr_associado=request_get('usr_associado',0);
 				$usr_asso=request_get('usr_asso',-1);	
 				$usr_desde=request_get('usr_desde',"");	
-				$usr_atividades=request_get('usr_atividades',"");					
-							
+				$usr_atividades=request_get('usr_atividades',"");
+				$usr_habilidades=request_get('usr_habilidades',"");
+				$usr_profissao=request_get('usr_profissao',"");								
 				
 			 }
 			escreve_mensagem_status();
@@ -192,7 +200,7 @@
 		{
 		  $sql = "SELECT usr_nome_completo, usr_nome_curto, usr_email, usr_email_alternativo, usr_contatos, usr_endereco, usr_nuc, usr_archive, ";
 		  $sql.= "usr_associado, usr_asso, asso_nome, asso_descricao, DATE_FORMAT(usr_desde,'%d/%m/%Y') usr_desde, ";
-		  $sql.= "usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto, usr_atividades ";
+		  $sql.= "usr_senha is null as usr_sem_senha_acesso, nuc_nome_curto, usr_atividades, usr_habilidades, usr_profissao  ";
 		  $sql.= "FROM usuarios ";
 		  $sql.= "LEFT JOIN nucleos ON usr_nuc = nuc_id ";
 		  $sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";		  
@@ -215,7 +223,9 @@
 			$nuc_nome_curto = $row['nuc_nome_curto'];
 			$usr_sem_senha_acesso = $row['usr_sem_senha_acesso'];
 			$usr_desde = $row['usr_desde'];
-			$usr_atividades = $row['usr_atividades'];			
+			$usr_atividades = $row['usr_atividades'];
+			$usr_habilidades = $row['usr_habilidades'];
+			$usr_profissao = $row['usr_profissao'];			
 
 		   }
 		}		
@@ -253,7 +263,15 @@
 			</tr>        
     		<tr>
 				<th>Endereço:</th> <td><?php echo($usr_endereco); ?></td>
+			</tr>   
+            
+    		<tr>
+				<th>Profissão:</th> <td><?php echo($usr_profissao); ?></td>
 			</tr>    
+    		<tr>
+				<th>Habilidades:</th> <td><?php echo($usr_habilidades); ?></td>
+			</tr>    
+                                     
 	   		<tr>
 				<th>Data de Entrada:</th> <td><?php echo($usr_desde); ?></td>
 			</tr>                   
@@ -389,6 +407,32 @@
                   </div>
             </div>  
             
+            <div class="alert alert-info" role="alert">
+ Os campos abaixo sobre Profissão e Habilidades são opcionais mas seria muito interessante se você puder preenchê-los pois servem para nos conhecermos melhor: você conhecer melhor os outros e vice-versa, 
+                  fortalecendo trocas dos mais diferentes tipos entre os membros e a própria Rede.
+</div>
+
+           <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_profissao">Profissão</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_profissao" rows="6" class="form-control"><?php echo($usr_profissao); ?></textarea>
+                    <br>                    
+                  </div>
+<!--                  <span class="help-block">Estes dados servem para nos conhecermos melhor: você conhecer melhor os outros e vice-versa, 
+                  fortalecendo trocas entre os membros dos mais diferentes tipos, inclusive potenciais contribuições para a Rede.</span>-->
+            </div>                   
+
+           <div class="form-group">
+                <label class="control-label col-sm-2" for="usr_habilidades">Habilidades</label>
+                  <div class="col-sm-4">
+                    <textarea name="usr_habilidades" rows="6" class="form-control"><?php echo($usr_habilidades); ?></textarea>
+                    <br>                    
+                  </div>
+<!--                  <span class="help-block">Estes dados servem para nos conhecermos melhor: você conhecer melhor os outros e vice-versa, 
+                  fortalecendo trocas entre os membros dos mais diferentes tipos, inclusive potenciais contribuições para a Rede.</span>-->
+            </div>                   
+
+            
             <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_desde">Data de Entrada</label>
                   <div class="col-sm-2">
@@ -397,7 +441,7 @@
 			<span class="help-block">Ex.: 15/09/2010. Data estimada em que você entrou na <?php echo(NOME_GRUPO_CONSUMO); ?>.</span>
             </div>      
             
-  <div class="form-group">
+           <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na <?php echo(NOME_GRUPO_CONSUMO); ?></label>
                   <div class="col-sm-4">
                     <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>

@@ -25,7 +25,9 @@
 				<th>Contatos</th>
 				<th>Email</th>
 				<th>Emails adicionais</th>  
-                <th>Atividades na Rede</th>                            
+                <th>Atividades na Rede</th>
+                <th>Profissão</th>
+                <th>Habilidades</th>                          
 		
 			</tr>
 		</thead>
@@ -40,7 +42,9 @@
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:100px;"></th>
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:100px;"></th>    
-				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>                                
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>                                                                
  			</tr>
 		</tfoot>
 
@@ -48,7 +52,7 @@
         <tbody>
 				<?php
 					
-					$sql = "SELECT usr_id, usr_associado, usr_nome_completo, usr_email, usr_atividades, ";
+					$sql = "SELECT usr_id, usr_associado, usr_nome_completo, usr_email, usr_atividades, usr_profissao, usr_habilidades, ";
 					$sql.= "usr_email_alternativo, usr_contatos, nuc_nome_curto, DATE_FORMAT(usr_desde,'%Y-%m-%d') usr_desde ";
 					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";	
 					$sql.= "WHERE UCASE(usr_nome_curto) NOT LIKE 'ADM%' AND usr_archive='0' ";
@@ -70,9 +74,9 @@
 					 <td><small><?php echo($row['usr_email']);?></small></td>   
 					 <td><small><?php echo($row['usr_email_alternativo']);?></small></td>     
 					 <td><small><?php echo($row['usr_atividades']);?></small></td>                           
-                                                         
-
-				  </tr>
+                     <td><small><?php echo($row['usr_profissao']);?></small></td>                           
+                     <td><small><?php echo($row['usr_habilidades']);?></small></td>
+                   </tr>
 				<?php 
 				     }
 				   }
