@@ -4,13 +4,13 @@
   top();
 ?>
 
-    <link rel="stylesheet" type="text/css" href="css/datatables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="css/datatables-1.13.11.min.css"/>
     <style>
 		tfoot {
 		display: table-header-group;
 		}
 	</style>
-	<script type="text/javascript" src="js/datatables.min.js"></script>
+	<script type="text/javascript" src="js/datatables-1.13.11.min.js"></script>
     
      
    <legend>Precisa do contato de um cestante da Rede? Experimente buscar.</legend>       
