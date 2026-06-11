@@ -48,7 +48,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin
-    ports: ["8081:80"]
+    ports: ["8089:80"]
     environment:
       PMA_HOST: db
       UPLOAD_LIMIT: 256M
