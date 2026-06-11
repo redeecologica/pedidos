@@ -1,6 +1,6 @@
 <?php
 
-require_once("phpmailer/class.phpmailer.php");
+require_once(__DIR__ . "/vendor/autoload.php");
 require_once("settings.php");
 
 session_start();
@@ -340,14 +340,15 @@ function envia_email($dest_nome, $dest_email, $dest_cc, $assunto,$corpo_html,$co
 	
 
 	 
-	$mail = new PHPMailer();
-	 
-	$mail->IsSMTP(); 
+	$mail = new PHPMailer\PHPMailer\PHPMailer();
+
+	$mail->IsSMTP();
 //	$mail->SMTPDebug = 2;
 	$mail->Host = MAIL_HOST;
 	$mail->Port = MAIL_PORT;
-	$mail->SMTPAuth = true; 
-	$mail->SMTPSecure = MAIL_SECURE;                 
+	$mail->SMTPAuth = true;
+	$mail->SMTPSecure = MAIL_SECURE;
+	if (MAIL_SECURE == "") { $mail->SMTPAutoTLS = false; }  // PHPMailer 6 tenta STARTTLS sozinho; Mailpit local não tem TLS                 
 	$mail->Username = MAIL_USER;
 	$mail->Password = MAIL_PASS;
 	$mail->From = MAIL_FROM;

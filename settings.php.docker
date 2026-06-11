@@ -11,10 +11,10 @@ define('DB_NAME',"pedidos");
 define('MAIL_HOST',"mailpit");        // Mailpit captura TODO e-mail: http://localhost:8025
 define('MAIL_PORT',"1025");
 define('MAIL_SECURE',"");             // sem TLS no SMTP local
-define('MAIL_USER',"dev@localhost");
+define('MAIL_USER',"dev@pedidos.local");
 define('MAIL_PASS',"qualquer");       // Mailpit aceita qualquer autenticação
-define('MAIL_FROM',"dev@localhost");
-define('MAIL_SENDER',"dev@localhost");
+define('MAIL_FROM',"dev@pedidos.local");
+define('MAIL_SENDER',"dev@pedidos.local");
 define('MAIL_FROM_NAME',"Sistema de Pedidos (DEV)");
 
 define('PASSWORD_SALT',"PREENCHER");
@@ -23,7 +23,7 @@ define('NOME_SISTEMA',"Sistema de Pedidos (DEV LOCAL)");
 define('NOME_GRUPO_CONSUMO',"Rede Ecológica");
 define('URL_GRUPO_CONSUMO',"http://redeecologicario.org");
 
-define('EMAIL_SUPORTE_SISTEMA',"dev@localhost");
+define('EMAIL_SUPORTE_SISTEMA',"dev@pedidos.local");
 
 define('GA_ACCOUNT',"");   // analytics desligado em DEV
 define('GA_DOMAIN',"");
