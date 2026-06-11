@@ -99,7 +99,7 @@
     
      <div class="panel-body">        
           <input type="hidden" name="nuct_id" value="<?php echo($nuct_id); ?>" />
-          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" /> 
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />  
             <div class="form-group">
                <label class="control-label col-sm-3" for="nuct_nome">Nome</label>
                  <div class="col-sm-4">
