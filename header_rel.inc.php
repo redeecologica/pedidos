@@ -6,7 +6,7 @@
 	<meta charset="UTF-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<title><?php echo(NOME_SISTEMA); ?></title>
-	<link href="css/bootstrap.min.css" rel="stylesheet" media="screen" />
+	<link href="css/bootstrap-3.4.1.min.css" rel="stylesheet" media="screen" />
 	<link href="css/complemento.css" rel="stylesheet" media="screen" /> <!-- Bootstrap -->
 </head>
 
