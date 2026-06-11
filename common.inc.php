@@ -49,6 +49,9 @@ $msg_tipo_erros = array(MSG_TIPO_SUCESSO => "success", MSG_TIPO_INFO => "info", 
 
 date_default_timezone_set ('America/Sao_Paulo');
 
+// PHP 8.1+ lança exceções mysqli por padrão; preserva o contrato if(!$res) deste código
+mysqli_report(MYSQLI_REPORT_OFF);
+
 $conn_link = @mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME );
 
 if (mysqli_connect_errno()) 
@@ -258,7 +261,7 @@ function executa_sql($sql,$aborta_se_erro = 0) {
 	
    $res = mysqli_query($conn_link, $sql);
    
-   if(!$res && $aborta_se_erro) die(mysql_error());
+   if(!$res && $aborta_se_erro) die(mysqli_error($conn_link));
 
   	//echo "sql = $sql;";
 				 
