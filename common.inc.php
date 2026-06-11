@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 require_once("phpmailer/class.phpmailer.php");
 require_once("settings.php");
@@ -35,7 +35,13 @@ define('MSG_TIPO_AVISO',2);
 define('MSG_TIPO_INFO',1);
 define('MSG_TIPO_SUCESSO',0);
 
-define('URL_ABSOLUTA', "http://" . $_SERVER["SERVER_NAME"]. substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));	
+$protocol='http';
+if (isset($_SERVER['HTTPS']))
+  if (strtoupper($_SERVER['HTTPS'])=='ON')
+    $protocol='https';
+
+define('URL_ABSOLUTA', $protocol . "://" . $_SERVER["SERVER_NAME"] . substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));	
+
 
 $meses = array("","janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro");
 
@@ -108,7 +114,7 @@ function verifica_seguranca($parametro_validacao = true)
 
 function redireciona($pagina)
 {
-	require_once("registro_visita.inc.php");
+	// require_once("registro_visita.inc.php");
 	echo("<script>location.href='$pagina'</script>");
 	exit();
 }
