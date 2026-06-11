@@ -11,13 +11,7 @@
 	<link href="css/complemento.css?ver=1.3" rel="stylesheet"/> 
 	<link href="css/datepicker.min.css" rel="stylesheet">
     
-  	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
-    <script>
-		if (typeof jQuery === 'undefined') 
-		{
-	  		document.write(unescape('%3Cscript%20src%3D%22js/jquery-1.12.2.min.js%22%3E%3C/script%3E'));
-		}
-	</script>    
+  	<script src="js/jquery-3.7.1.min.js"></script>
 	<script src="js/bootstrap-3.3.6.min.js"></script>
 	<script src="js/pedido.js?ver=1.8.6"></script>
 	<script src="js/bootstrap-datepicker.min.js" charset="UTF-8"></script>

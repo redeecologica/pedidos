@@ -441,8 +441,8 @@
 <!--
 <script type="text/javascript">
 	$(function() {
-		$(".est_prod_qtde_antes").bind('keydown', keyCheck);
-		$(".est_prod_qtde_depois").bind('keydown', keyCheck);
+		$(".est_prod_qtde_antes").on('keydown', keyCheck);
+		$(".est_prod_qtde_depois").on('keydown', keyCheck);
 	}); 
 </script>  
 -->

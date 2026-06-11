@@ -396,7 +396,7 @@
 <script type="text/javascript">
 	$(function() {
 		$("#form_produto").submit(validaProduto);
-		$(".numero").bind('keydown', keyCheck);
+		$(".numero").on('keydown', keyCheck);
 		$(".numero").on('blur', validaNumero);
 	}); 
 </script> 

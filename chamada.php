@@ -450,7 +450,7 @@
 		$(".hora").mask("99:99");
 		$(".hora").blur(verificaHora);	
 		
-		$(".numero").bind('keydown', keyCheck);
+		$(".numero").on('keydown', keyCheck);
 		$(".numero").on('blur', validaNumero);		
 	}); 
 </script>    

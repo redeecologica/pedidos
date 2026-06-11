@@ -549,7 +549,7 @@
 	$(function() {
 		$(".total_prod").formataValor();
 		$(".qtdeprod").formataInput();
-		$(".qtdeprod").bind('keydown', keyCheck);
+		$(".qtdeprod").on('keydown', keyCheck);
 		$(".qtdeprod").on('blur', calculaTotalPedido);
 	}); 
 </script>    
