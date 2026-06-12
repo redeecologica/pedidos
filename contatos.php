@@ -54,8 +54,11 @@
 					
 					$sql = "SELECT usr_id, usr_associado, usr_nome_completo, usr_email, usr_atividades, usr_profissao, usr_habilidades, ";
 					$sql.= "usr_email_alternativo, usr_contatos, nuc_nome_curto, DATE_FORMAT(usr_desde,'%Y-%m-%d') usr_desde ";
-					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";	
-					$sql.= "WHERE UCASE(usr_nome_curto) NOT LIKE 'ADM%' AND usr_archive='0' ";
+					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";
+					$sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";
+					// contas administrativas ficam fora da lista pelo TIPO de associação,
+					// não pelo prefixo do nome (que deixava escapar contas mal nomeadas)
+					$sql.= "WHERE (asso_nome IS NULL OR asso_nome <> 'ADM Sistema') AND usr_archive='0' ";
 					$sql.= "ORDER BY  usr_nome_completo "; 
 								
 					$res = executa_sql($sql);
