@@ -160,8 +160,9 @@ tinymce.init({
   branding: false,
   height: 500,
   menubar: false,
-  plugins: 'lists link code table autolink',
-  toolbar: 'undo redo | blocks | bold italic | bullist numlist | link table | code',
+  plugins: 'lists link code table autolink fullscreen',
+  toolbar: 'undo redo | blocks | bold italic | bullist numlist | link table | code | fullscreen',
+  toolbar_mode: 'wrap',   /* todos os botões sempre visíveis (sem menu de overflow) */
   convert_urls: false
 });
 </script>
