@@ -17,6 +17,12 @@ A instalação consiste em:
 4) para alterar a imagem que aparece no cabeçalho, para uma representativa do GCR associado, alterar o arquivo (img/logo_sistema.png).
 
 
+Desenvolvimento
+----------
+Para rodar o sistema localmente com Docker (incluindo cópia do banco para
+mantenedores autorizados), veja [DESENVOLVIMENTO.md](DESENVOLVIMENTO.md).
+
+
 Licença
 ----------
 

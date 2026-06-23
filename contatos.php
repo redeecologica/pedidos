@@ -4,13 +4,13 @@
   top();
 ?>
 
-    <link rel="stylesheet" type="text/css" href="css/datatables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="css/datatables-1.13.11.min.css"/>
     <style>
 		tfoot {
 		display: table-header-group;
 		}
 	</style>
-	<script type="text/javascript" src="js/datatables.min.js"></script>
+	<script type="text/javascript" src="js/datatables-1.13.11.min.js"></script>
     
      
    <legend>Precisa do contato de um cestante da Rede? Experimente buscar.</legend>       
@@ -25,7 +25,9 @@
 				<th>Contatos</th>
 				<th>Email</th>
 				<th>Emails adicionais</th>  
-                <th>Atividades na Rede</th>                            
+                <th>Atividades na Rede</th>
+                <th>Profissão</th>
+                <th>Habilidades</th>                          
 		
 			</tr>
 		</thead>
@@ -40,7 +42,9 @@
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:100px;"></th>
 				<th><input type="text" class="form-control" placeholder="buscar" style="width:100px;"></th>    
-				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>                                
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>
+				<th><input type="text" class="form-control" placeholder="buscar" style="width:80px;"></th>                                                                
  			</tr>
 		</tfoot>
 
@@ -48,10 +52,13 @@
         <tbody>
 				<?php
 					
-					$sql = "SELECT usr_id, usr_associado, usr_nome_completo, usr_email, usr_atividades, ";
+					$sql = "SELECT usr_id, usr_associado, usr_nome_completo, usr_email, usr_atividades, usr_profissao, usr_habilidades, ";
 					$sql.= "usr_email_alternativo, usr_contatos, nuc_nome_curto, DATE_FORMAT(usr_desde,'%Y-%m-%d') usr_desde ";
-					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";	
-					$sql.= "WHERE UCASE(usr_nome_curto) NOT LIKE 'ADM%' AND usr_archive='0' ";
+					$sql.= "FROM usuarios LEFT JOIN nucleos ON usr_nuc = nuc_id ";
+					$sql.= "LEFT JOIN associacaotipos ON usr_asso = asso_id ";
+					// contas administrativas ficam fora da lista pelo TIPO de associação,
+					// não pelo prefixo do nome (que deixava escapar contas mal nomeadas)
+					$sql.= "WHERE (asso_nome IS NULL OR asso_nome <> 'ADM Sistema') AND usr_archive='0' ";
 					$sql.= "ORDER BY  usr_nome_completo "; 
 								
 					$res = executa_sql($sql);
@@ -70,9 +77,9 @@
 					 <td><small><?php echo($row['usr_email']);?></small></td>   
 					 <td><small><?php echo($row['usr_email_alternativo']);?></small></td>     
 					 <td><small><?php echo($row['usr_atividades']);?></small></td>                           
-                                                         
-
-				  </tr>
+                     <td><small><?php echo($row['usr_profissao']);?></small></td>                           
+                     <td><small><?php echo($row['usr_habilidades']);?></small></td>
+                   </tr>
 				<?php 
 				     }
 				   }

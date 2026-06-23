@@ -423,6 +423,6 @@ function selectElementContents(el) {
 
 
 $(function() {	
-	$(".numero-positivo").bind('keydown', enforceNumeric);
+	$(".numero-positivo").on('keydown', enforceNumeric);
 	
 }); 

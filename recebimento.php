@@ -197,7 +197,7 @@
                        $sql = "SELECT cha_id, prodt_nome, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
                         $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
 						if($recebimento=="previa") $sql.= "WHERE prodt_mutirao = '1' ";
-                        $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 10";
+                        $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 20";
 						
                         $res_cha = executa_sql($sql);
                         if($res_cha)

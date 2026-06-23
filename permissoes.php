@@ -4,6 +4,7 @@
   top();
 ?>
 
+
 <div class="panel panel-default">
   <div class="panel-heading">
      <strong>Lista de Permissões</strong>
@@ -77,11 +78,193 @@
                           }
                         }
                     ?>                        
-                </select>                                            
-                    
+                </select>    &nbsp;&nbsp;&nbsp;
+<a class="btn btn-default" href="javascript:toggleMatrizPermissoes();"><i class="glyphicon glyphicon-info-sign glyphicon-white"></i></a>                
+<!--                <button class="btn btn-sm" onclick="toggleMatrizPermissoes()">Ver matriz de papéis e permissões</button>                        -->
+     </div>
      </fieldset>
+     
+     
 </form>
        </div>
+<script>
+function toggleMatrizPermissoes() {
+  var x = document.getElementById("matrix_permissoes");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+<div id="matrix_permissoes" style="display:none">
+<table class="table table-striped table-bordered table-sm table-condensed" style="font-size:80%">
+   <thead>
+      <tr>
+         <th>Papel / M&oacute;dulo</td>
+         <th>Relat&oacute;rios</td>
+         <th>Chamadas</th>
+         <th>Pedidos</th>
+         <th>Nucleos</th>
+         <th>Cestantes</th>
+         <th>Emails</th>
+         <th>Produtores</th>
+         <th>Produtos</th>
+         <th>Mutir&atilde;o</th>
+         <th>Entregas</th>
+         <th>Finan&ccedil;as</th>
+         <th>Quadro Cestantes</th>
+         <th>Administra&ccedil;&atilde;o</th>
+      </tr>
+    </thead>
+   <tbody>
+      <tr>
+         <td>Acompanhamento de Produtor</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Acompanhamento de Relat&oacute;rios</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Administrador</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+      </tr>
+      <tr>
+         <td>Beta Tester</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Respons&aacute;vel Entrega</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Respons&aacute;vel Finan&ccedil;as</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Respons&aacute;vel pelo Mutir&atilde;o</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Respons&aacute;vel por N&uacute;cleo</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+      </tr>
+      <tr>
+         <td>Respons&aacute;vel por Pedido</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+         <td>&nbsp;</td>
+         <td>x</td>
+         <td>&nbsp;</td>
+      </tr>
+   </tbody>
+</table>
+</div>
 	<table class="table table-striped table-bordered table-hover">
 		<thead>
 			<tr>

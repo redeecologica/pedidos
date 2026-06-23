@@ -14,7 +14,16 @@
 		if ( $action == ACAO_INCLUIR) // exibe formulário vazio para inserir novo registro
 		{
 			$prod_nome = "";
-			$prod_forn = "";
+			$prod_forn = request_get("prod_forn","");
+			if($prod_forn=="")
+			{
+			    if(isset($_SESSION['prod_forn_pref']) && $_SESSION['prod_forn_pref'] != -1)
+			    {
+				    $prod_forn=$_SESSION['prod_forn_pref'];	 
+				}
+			}
+			$_SESSION['prod_forn_pref']=$prod_forn;
+			
 			$prod_unidade = "";
 			$prod_valor_compra = "";
 			$prod_valor_venda = "";
@@ -45,7 +54,9 @@
 					$sql.= "AND prod_id=". prep_para_bd($prod_id);
 					$res = executa_sql($sql);
 			}
-
+			
+			$_SESSION['prod_forn_pref']=$_REQUEST["prod_forn"];
+			
 			$sql = "INSERT INTO produtos (prod_id, prod_ini_validade, prod_fim_validade, prod_nome, prod_forn, ";
 			$sql.= "prod_unidade, prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_multiplo_venda, prod_descricao, prod_peso_bruto, prod_retornavel) ";
 			$sql.= " VALUES (". prep_para_bd($prod_id) . ", NOW(), '9999-12-31', ";
@@ -385,7 +396,7 @@
 <script type="text/javascript">
 	$(function() {
 		$("#form_produto").submit(validaProduto);
-		$(".numero").bind('keydown', keyCheck);
+		$(".numero").on('keydown', keyCheck);
 		$(".numero").on('blur', validaNumero);
 	}); 
 </script> 

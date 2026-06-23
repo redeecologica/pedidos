@@ -18,7 +18,16 @@
 
 	<?php  
   		$forn_prodt = request_get("forn_prodt",-1);
-		$prod_forn = request_get("prod_forn",-1);
+		$prod_forn = request_get("prod_forn","");
+		if ( ($prod_forn == "") and (isset($_SESSION['prod_forn_pref'])) )
+		{
+			$prod_forn=$_SESSION['prod_forn_pref'];	 
+		}
+		$_SESSION['prod_forn_pref'] = $prod_forn;
+		if ($prod_forn == "")
+		{
+			$prod_forn = -1;
+		}		
   		$forn_archive = request_get("forn_archive",0); 
 	?>
      <fieldset>     

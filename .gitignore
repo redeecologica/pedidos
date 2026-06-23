@@ -173,3 +173,10 @@ settings.php
 # Este diretório será um outro repositório com o código para integração do sistema com wordpress
 intranet/
 
+docs/
+
+# Desenvolvimento local
+dumps/
+prod-snapshot/
+scripts/prod.env
+info-*.php

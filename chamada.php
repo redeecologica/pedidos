@@ -10,8 +10,8 @@
 		if($action==-1) redireciona(PAGINAPRINCIPAL);
 
 		$cha_prodt = request_get("cha_prodt","");		
-		$cha_id =  request_get("cha_id","");
-
+        $cha_id =  request_get("cha_id","");
+        $forn_id =  request_get("forn_id","");
 		
 		if ( $action == ACAO_INCLUIR) // exibe formulário vazio para inserir novo registro
 		{
@@ -310,6 +310,11 @@
 					$sql.= "LEFT JOIN chamadaprodutos chamadaprodutos_anterior ON chamadaprodutos_anterior.chaprod_prod = prod_id ";
 					$sql.= " AND chamadaprodutos_anterior.chaprod_cha= " . $bd_id_chamada_anterior . " " ;				
                     $sql.= "WHERE prod_ini_validade<=NOW() AND prod_fim_validade>=NOW() AND forn_archive = '0' ";
+					if($forn_id!="")
+					{
+                      $sql.= " and prod_forn= " . prep_para_bd($forn_id);
+					}
+
 					$sql.= "AND (forn_prodt = " . prep_para_bd($cha_prodt) . " OR chamadaprodutos.chaprod_disponibilidade >0 OR chamadaprodutos_anterior.chaprod_disponibilidade > 0 ) ";
                     $sql.= "ORDER BY forn_nome_completo, prod_nome, prod_unidade ";
                     $res = executa_sql($sql);	
@@ -329,7 +334,7 @@
 								?>
                                 	<tr><th colspan="7">&nbsp;</th></tr>
 										<tr>
-                                        	<th>&nbsp;</th>
+                                        	<th><a href="chamada.php?action=1&cha_id=<?php echo($cha_id)?>&forn_id=<?php echo($row["forn_id"])?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> </a> </th>
 											<th>
 											  <?php 
 											  echo($row["forn_nome_curto"]);
@@ -445,7 +450,7 @@
 		$(".hora").mask("99:99");
 		$(".hora").blur(verificaHora);	
 		
-		$(".numero").bind('keydown', keyCheck);
+		$(".numero").on('keydown', keyCheck);
 		$(".numero").on('blur', validaNumero);		
 	}); 
 </script>    

@@ -1,0 +1,59 @@
+name: pedidos
+
+services:
+  web-legacy:
+    build: { context: ./docker, dockerfile: php56/Dockerfile }
+    platform: linux/amd64
+    ports: ["8056:80"]
+    volumes: [".:/var/www/html"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  web-modern:
+    build: { context: ./docker, dockerfile: php84/Dockerfile }
+    ports: ["8084:80"]
+    volumes: [".:/var/www/html"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  db:
+    image: percona:5.6
+    platform: linux/amd64
+    # valores capturados de produção em 2026-06-11 (docs/ambiente-producao.md):
+    # sql_mode vazio e charset latin1 espelham o servidor Percona 5.6.36 da Locaweb
+    command: >
+      --sql-mode=
+      --character-set-server=latin1
+      --collation-server=latin1_swedish_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pedidos
+      MYSQL_USER: pedidos
+      MYSQL_PASSWORD: pedidos
+    ports: ["3306:3306"]
+    volumes: ["db_data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=root mysqladmin ping -uroot --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit
+    ports: ["8025:8025"]
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1      # envia_email() força SMTPAuth=true
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1  # PHPMailer 5.1 autentica sem TLS local
+
+  phpmyadmin:
+    image: phpmyadmin
+    ports: ["8089:80"]
+    environment:
+      PMA_HOST: db
+      UPLOAD_LIMIT: 256M
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  db_data:
