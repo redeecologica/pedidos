@@ -28,13 +28,18 @@ echo ">> Backup no servidor (tar local ao servidor, segundos)..."
 ssh "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
   "tar czf ~/backup-pre-fase2-\$(date +%F-%H%M).tgz -C '$(dirname "${PROD_WEB_ROOT}")' '$(basename "${PROD_WEB_ROOT}")' && ls -lh ~/backup-pre-fase2-*.tgz | tail -1"
 
+# --chmod=D755,F644 força permissões corretas independente da origem.
+# Sem isto, o diretório do mktemp (modo 700) era copiado para o web root,
+# deixando o public_html 700 → servidor não consegue entrar → 403 em tudo.
+RSYNC_PERMS="--chmod=D755,F644"
+
 echo ">> DRY-RUN do rsync (nada é alterado ainda):"
-rsync -avzn --itemize-changes "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
+rsync -avzn $RSYNC_PERMS --itemize-changes "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
 echo
 read -r -p ">> Confirma o deploy? Digite SIM para prosseguir: " CONFIRMA
 [[ "$CONFIRMA" == "SIM" ]] || { echo "Abortado."; exit 1; }
 
-rsync -avz "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
+rsync -avz $RSYNC_PERMS "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
 
 echo ">> Removendo diretórios substituídos no servidor (ckeditor, phpmailer)..."
 # shellcheck disable=SC2029  # expansão local de PROD_WEB_ROOT é intencional
