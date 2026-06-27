@@ -113,7 +113,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -131,8 +131,8 @@
 							
 							?>
 							<tr>                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>                          							
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>                          							
 							<td>                            
                           		<?php echo_digitos_significativos($row["total_demanda"]); ?> 
                              </td>   

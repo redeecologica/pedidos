@@ -1,6 +1,15 @@
 #AddHandler php53-script .php
 #suPHP_ConfigPath /home/site72665/
 
+# força https usando o cabeçalho do proxy (X-Forwarded-Proto), NÃO %{HTTPS},
+# para não criar loop atrás do proxy SSL da Locaweb. Validar no deploy; se houver
+# loop, remover este bloco (o cookie Secure não depende dele).
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP:X-Forwarded-Proto} =http
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
 <IfModule mod_deflate.c>
 AddOutputFilterByType DEFLATE text/plain
 AddOutputFilterByType DEFLATE text/xml

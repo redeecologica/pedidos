@@ -88,7 +88,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -100,7 +100,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -137,7 +137,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$nuc_id) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -216,7 +216,7 @@ if($nuc_id!=-1 && $cha_id!=-1)
                 <table id="selectable" class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="9">Consolidado Entrega Cestantes - Núcleo <?php echo($nuc_nome_curto); ?> - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
+                        <th colspan="9">Consolidado Entrega Cestantes - Núcleo <?php echo(h($nuc_nome_curto)); ?> - <?php echo($prodt_nome . " " .  $cha_dt_entrega); ?> </th>
                     </tr>
 					<tr>
                     	<th>Cestante</th>
@@ -247,7 +247,7 @@ if($nuc_id!=-1 && $cha_id!=-1)
               
                     ?>
                     <tr>                              
-                    <td><?php echo($row["usr_nome_completo"]);?></td>
+                    <td><?php echo(h($row["usr_nome_completo"]));?></td>
                     <td><?php echo($row["ped_usr_associado"]=='0'?"Não":"Sim"); ?></td> 
                     <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
                     <td><?php echo(formata_moeda($row["valor_extra"])); ?></td>

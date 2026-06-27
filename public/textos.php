@@ -42,10 +42,10 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador); ?></td>
-					 <td><a href="texto.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&amp;txt_id=<?php echo($row['txt_id']);?>"><?php echo($row['txt_nome_curto']);?></a></td>
-                     <td><?php echo($row['txt_nome_completo']);?></td> 
-					 <td><?php echo($row['txt_dt_atualizacao']);?> </td> 
-					 <td><?php echo($row['usr_nome_completo']);?> </td>                                          
+					 <td><a href="texto.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&amp;txt_id=<?php echo(h($row['txt_id']));?>"><?php echo(h($row['txt_nome_curto']));?></a></td>
+                     <td><?php echo(h($row['txt_nome_completo']));?></td> 
+					 <td><?php echo(h($row['txt_dt_atualizacao']));?> </td> 
+					 <td><?php echo(h($row['usr_nome_completo']));?> </td>                                          
 				  </tr>
 				<?php 
 				     }

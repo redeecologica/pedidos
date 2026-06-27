@@ -18,7 +18,7 @@
 
 ?>
 
-<legend>Relatorio para o Mutirão - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?>
+<legend>Relatorio para o Mutirão - <?php echo(h($row["prodt_nome"])); ?> - Entrega em <?php echo(h($row["cha_dt_entrega"])); ?>
 </legend>
 
 <a class="btn btn-default" href="arquivos/modelo_relatorio_mutirao.xlsx"><i class="glyphicon glyphicon-download"></i> Baixar modelo de planilha para copiar/colar os dados</a>
@@ -104,7 +104,7 @@ $res = executa_sql($sql);
                     <table class="table table-striped table-bordered table-condensed">
                     <thead>
                         <tr>
-                                  <th rowspan="2"><?php echo($row["forn_nome_curto"]);?></th>
+                                  <th rowspan="2"><?php echo(h($row["forn_nome_curto"]));?></th>
                                   <th rowspan="2">Unidade</th>
                                   
 								  <?php
@@ -143,8 +143,8 @@ $res = executa_sql($sql);
 				$total_distribuido=0;
 				?>
 				<tr> 
-				<td><?php echo($row["prod_nome"]);?></td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_nome"]));?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
                                                   
 				  <?php
                    for ($i = 0; $i < count($nucleos); $i++)

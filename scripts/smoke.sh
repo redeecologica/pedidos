@@ -24,6 +24,16 @@ docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
   WHERE u.usr_email='$EMAIL' AND p.pap_nome='Administrador'
     AND NOT EXISTS (SELECT 1 FROM usuariopapeis x WHERE x.usrp_usr=u.usr_id AND x.usrp_pap=p.pap_id);"
 
+# injeta payload de XSS (marcador único) nos campos de texto do usuário de smoke;
+# se alguma view exibir cru, o marcador aparece literal no HTML (escapado vira &lt;...)
+XSSMARK='<script>SMOKEXSS</script>'
+docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
+  UPDATE usuarios SET
+    usr_nome_completo='Smoke $XSSMARK', usr_contatos='$XSSMARK',
+    usr_endereco='$XSSMARK', usr_atividades='$XSSMARK',
+    usr_profissao='$XSSMARK', usr_habilidades='$XSSMARK'
+  WHERE usr_email='$EMAIL';"
+
 login() { # $1=porta $2=cookiejar
   curl -s -c "$2" -o /dev/null "http://localhost:$1/login.php"
   curl -s -b "$2" -c "$2" -o /dev/null -d "login_usr_email=$EMAIL" -d "login_usr_senha=$SENHA" \
@@ -48,11 +58,15 @@ for p in $PAGINAS; do
   S84=$(curl -s -b "$COOKIES84" -o /tmp/smoke84.html -w '%{http_code}' "http://localhost:8084/$p")
   ERRO56=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke56.html || true)
   ERRO84=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke84.html || true)
+  XSS56=$(grep -cF "$XSSMARK" /tmp/smoke56.html || true)
+  XSS84=$(grep -cF "$XSSMARK" /tmp/smoke84.html || true)
   MARCA=""
   grep -q "location.href='login.php'" /tmp/smoke84.html && MARCA="SESSAO-PERDIDA-8.4"
   [[ "$S56" != "$S84" ]] && MARCA="$MARCA STATUS-DIFERE"
   [[ "$ERRO56" -gt 0 ]] && MARCA="$MARCA ERRO-PHP-5.6($ERRO56)"
   [[ "$ERRO84" -gt 0 ]] && MARCA="$MARCA ERRO-PHP-8.4($ERRO84)"
+  [[ "$XSS56" -gt 0 ]] && MARCA="$MARCA XSS-CRU-5.6($XSS56)"
+  [[ "$XSS84" -gt 0 ]] && MARCA="$MARCA XSS-CRU-8.4($XSS84)"
   if [[ -n "$MARCA" ]]; then
     FALHAS=$((FALHAS+1))
     printf '%-50s %s  %s  << %s\n' "$p" "$S56" "$S84" "$MARCA"

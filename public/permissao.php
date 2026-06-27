@@ -93,7 +93,7 @@
                             {
                               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                               {
-                                 echo("<option value='" . $row['pap_id'] . "'>" . $row['pap_nome'] . "</option>");
+                                 echo("<option value='" . $row['pap_id'] . "'>" . h($row['pap_nome']) . "</option>");
                               }
                             }
                         ?>                        
@@ -114,7 +114,7 @@
                             {
                               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                               {
-                                 echo("<option value='" . $row['usr_id'] . "'>" . $row['usr_nome_completo'] . "</option>");
+                                 echo("<option value='" . $row['usr_id'] . "'>" . h($row['usr_nome_completo']) . "</option>");
                               }
                             }
                         ?>                        

@@ -35,7 +35,7 @@
                               {
                                  echo("<option value='" . $row['nuct_id'] . "'");
                                  if($row['nuct_id']==$nuc_nuct) echo(" selected");
-                                 echo (">" . $row['nuct_nome'] . "</option>");
+                                 echo (">" . h($row['nuct_nome']) . "</option>");
                               }
                             }
                         ?>  
@@ -91,11 +91,11 @@
 				?>				 
 				  <tr <?php echo($classe_arquivado);?>>
                   	 <td><?php echo(++$contador); ?></td>
-					 <td><?php echo($row['nuct_nome']);?></td> 
-                     <td><a href="nucleo.php?action=0&amp;nuc_id=<?php echo($row['nuc_id']);?>"><?php echo($icone_arquivado);?><?php echo($row['nuc_nome_completo']);?></a></td>
-                     <td><?php echo($row['nuc_nome_curto']);?></td> 
-					 <td><?php echo($row['nuc_email']);?> </td>                     
-					 <td>&nbsp;<?php echo($row['nuc_qtde_cestantes']);?> &nbsp; <a class="btn btn-default btn-xs" href="cestantes.php?usr_nuc=<?php echo($row['nuc_id']);?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>                     
+					 <td><?php echo(h($row['nuct_nome']));?></td> 
+                     <td><a href="nucleo.php?action=0&amp;nuc_id=<?php echo(h($row['nuc_id']));?>"><?php echo($icone_arquivado);?><?php echo(h($row['nuc_nome_completo']));?></a></td>
+                     <td><?php echo(h($row['nuc_nome_curto']));?></td> 
+					 <td><?php echo(h($row['nuc_email']));?> </td>                     
+					 <td>&nbsp;<?php echo(h($row['nuc_qtde_cestantes']));?> &nbsp; <a class="btn btn-default btn-xs" href="cestantes.php?usr_nuc=<?php echo(h($row['nuc_id']));?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>                     
 				  </tr>
 				<?php 
 				     }

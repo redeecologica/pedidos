@@ -41,7 +41,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$forn_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
                               }
                             }
                         ?>  
@@ -99,11 +99,11 @@
 				?>				 
 				  <tr <?php echo($classe_arquivado); ?>>
                   	 <td><?php echo(++$contador); ?></td>
-   					 <td><?php echo($row['prodt_nome']);?></td> 
-					 <td><a href="produtor.php?action=0&amp;forn_id=<?php echo($row['forn_id']);?>"><?php echo($icone_arquivado);?><?php echo($row['forn_nome_completo']);?></a></td>
-                     <td><?php echo($row['forn_nome_curto']);?></td> 
-					 <td><?php echo($row['forn_email']);?> </td>                     
-					 <td>&nbsp;<?php echo($row['forn_qtde_produtos']);?> &nbsp; <a class="btn btn-default btn-xs" href="produtos.php?prod_forn=<?php echo($row['forn_id']);?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>                     
+   					 <td><?php echo(h($row['prodt_nome']));?></td> 
+					 <td><a href="produtor.php?action=0&amp;forn_id=<?php echo(h($row['forn_id']));?>"><?php echo($icone_arquivado);?><?php echo(h($row['forn_nome_completo']));?></a></td>
+                     <td><?php echo(h($row['forn_nome_curto']));?></td> 
+					 <td><?php echo(h($row['forn_email']));?> </td>                     
+					 <td>&nbsp;<?php echo(h($row['forn_qtde_produtos']));?> &nbsp; <a class="btn btn-default btn-xs" href="produtos.php?prod_forn=<?php echo(h($row['forn_id']));?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>                     
 				  </tr>
 				<?php 
 				     }

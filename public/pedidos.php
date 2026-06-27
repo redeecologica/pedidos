@@ -36,7 +36,7 @@
                           {							
                              echo("<option value='" . $row['cha_id'] . "'");
                              if($row['cha_id']==$ped_cha) echo(" selected");
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
                         }
                     ?>                        
@@ -70,7 +70,7 @@
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$ped_nuc) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -141,13 +141,13 @@
 				?>				 
                       <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                          <td><?php echo(++$contador);?></td>               
-                         <td><?php echo($row['cest_nuc_nome_curto']);?> <?php if($row['entrega_nuc_nome_curto'] && $row['entrega_nuc_nome_curto']!=$row['cest_nuc_nome_curto']) echo("(entrega em ". $row['entrega_nuc_nome_curto'] . ")"); ?> </td>                         
+                         <td><?php echo(h($row['cest_nuc_nome_curto']));?> <?php if($row['entrega_nuc_nome_curto'] && $row['entrega_nuc_nome_curto']!=$row['cest_nuc_nome_curto']) echo("(entrega em ". $row['entrega_nuc_nome_curto'] . ")"); ?> </td>                         
                          <td><?php 
-						 	echo($row['usr_nome_curto']); 
+						 	echo(h($row['usr_nome_curto'])); 
 							if($row['usr_archive']) echo(" <span class='label label-danger'>inativo</span>");?>
                          </td>                                    
-						 <td><?php echo($row['usr_email']);?></td>                                                             
-                         <td><?php echo($row['ped_dt_atualizacao']); ?></td>      
+						 <td><?php echo(h($row['usr_email']));?></td>                                                             
+                         <td><?php echo(h($row['ped_dt_atualizacao'])); ?></td>      
                          <td>
 							 <?php
                                 if(!$row['ped_id'])

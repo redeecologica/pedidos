@@ -161,7 +161,7 @@
                                           {
                                              echo("<option value='" . $row['nuc_id'] . "'");
                                              if($row['nuc_id']==$nuc_id) echo(" selected");
-                                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                                           }
                                         }
                                     ?>                        
@@ -184,7 +184,7 @@
                         <table class="table table-striped table-bordered table-condensed table-hover">
 						<thead>
                         	<tr>
-                            	<th colspan="4">Distribuído para o núcleo  <?php echo($nuc_nome_curto); ?></th>
+                            	<th colspan="4">Distribuído para o núcleo  <?php echo(h($nuc_nome_curto)); ?></th>
                             </tr>
                         </thead>
                         
@@ -202,7 +202,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -216,8 +216,8 @@
 							
 							?>
 							<tr>                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>  
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>  
                             <td>                            
                           		<?php 
 									if($row["total_pedido_nucleo"]) 
@@ -310,7 +310,7 @@
                  
                   <thead>
                         	<tr>
-                            	<th colspan="4">Relatório do que foi distribuído para o núcleo <?php echo($nuc_nome_curto); ?></th>
+                            	<th colspan="4">Relatório do que foi distribuído para o núcleo <?php echo(h($nuc_nome_curto)); ?></th>
                             </tr>
                     </thead>
                     <tbody>
@@ -342,7 +342,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -356,10 +356,10 @@
 							
 							?>
 							<tr> 
-                            <input type="hidden" name="prod_id[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <input type="hidden" name="prod_id[]" value="<?php echo(h($row["prod_id"])); ?>"/>
                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
                             <td>         
                              <input type="hidden" name="total_pedido_nucleo[]" class="replica-origem" value="<?php echo_digitos_significativos($row["total_pedido_nucleo"],""); ?>">   
                                               

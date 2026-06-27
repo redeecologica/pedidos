@@ -105,7 +105,7 @@ $res = executa_sql($sql);
 			<table id="selectable" class="table table-striped table-bordered table-condensed">
             <thead> 
              <tr>
-               <th colspan="<?php echo($num_colunas); ?>" style="text-align:center;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
+               <th colspan="<?php echo($num_colunas); ?>" style="text-align:center;vertical-align:middle">Núcleo <?php echo(h($nuc_nome_curto)); ?> - Pedido de <?php echo(h($prodt_nome)); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
              </tr>		
              
                <tr>
@@ -166,7 +166,7 @@ $res = executa_sql($sql);
 								
 					?>
                           <tr>
-                            <th rowspan="2"><?php echo($row["forn_nome_curto"]);?></th>
+                            <th rowspan="2"><?php echo(h($row["forn_nome_curto"]));?></th>
                             <th rowspan="2">Unidade</th>
                             <th rowspan="2">Associado (R$)</th>
                             <th rowspan="2">Não Associado (R$)</th>                            
@@ -191,8 +191,8 @@ $res = executa_sql($sql);
 				$total_qtde_produto=0;	
 				?>
 				<tr> 
-				<td><?php echo($row["prod_nome"]);?><?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;(parcial)");?></td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_nome"]));?><?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;(parcial)");?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
 				<td><?php echo(formata_moeda($row["prod_valor_venda"]));?></td>
 				<td><?php echo(formata_moeda($row["prod_valor_venda_margem"]));?></td>
                                                   

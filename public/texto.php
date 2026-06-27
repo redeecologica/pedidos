@@ -91,10 +91,10 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Nome Interno:</th> <td><?php echo($txt_nome_curto); ?></td>
+				<th>Nome Interno:</th> <td><?php echo(h($txt_nome_curto)); ?></td>
 			</tr>            
     		<tr>
-				<th>Utilização:</th> <td><?php echo($txt_nome_completo); ?></td>
+				<th>Utilização:</th> <td><?php echo(h($txt_nome_completo)); ?></td>
 			</tr>	    
     		<tr>
 				<th>Formato:</th> <td><?php echo($txt_modo_html ? "HTML" : "Texto Puro"); ?></td>
@@ -188,14 +188,14 @@ tinymce.init({
             <div class="form-group">
                <label class="control-label col-sm-3" for="txt_nome_curto">Nome Interno (cuidado ao alterar)</label>
                  <div class="col-sm-4">
-                   <input type="text" name="txt_nome_curto" class="form-control" required="required" value="<?php echo($txt_nome_curto); ?>" placeholder="Nome Interno" />
+                   <input type="text" name="txt_nome_curto" class="form-control" required="required" value="<?php echo(h($txt_nome_curto)); ?>" placeholder="Nome Interno" />
                  </div>  
             </div>
             
             <div class="form-group">
                <label class="control-label col-sm-3" for="txt_nome_completo">Utilização (cuidado ao alterar)</label>
                  <div class="col-sm-9">
-                   <input type="text" name="txt_nome_completo" class="form-control" required="required" value="<?php echo($txt_nome_completo); ?>" placeholder="Utilização"/>
+                   <input type="text" name="txt_nome_completo" class="form-control" required="required" value="<?php echo(h($txt_nome_completo)); ?>" placeholder="Utilização"/>
                   </div>
             </div>
             
@@ -221,16 +221,16 @@ tinymce.init({
             <div class="form-group">
                <label class="control-label col-sm-3" for="txt_nome_curto">Nome Interno</label>
                  <div class="col-sm-4">
-                   <input type="hidden" name="txt_nome_curto"  value="<?php echo($txt_nome_curto); ?>"/>
-                   <span class="well well-sm"><?php echo($txt_nome_curto); ?></span>
+                   <input type="hidden" name="txt_nome_curto"  value="<?php echo(h($txt_nome_curto)); ?>"/>
+                   <span class="well well-sm"><?php echo(h($txt_nome_curto)); ?></span>
                  </div>  
             </div>
 
             <div class="form-group">
                <label class="control-label col-sm-3" for="txt_nome_completo">Utilização</label>
                  <div class="col-sm-6">
-                   <input type="hidden" name="txt_nome_completo"  value="<?php echo($txt_nome_completo); ?>"/>
-                   <span class="well well-sm"><?php echo($txt_nome_completo); ?></span>
+                   <input type="hidden" name="txt_nome_completo"  value="<?php echo(h($txt_nome_completo)); ?>"/>
+                   <span class="well well-sm"><?php echo(h($txt_nome_completo)); ?></span>
                  </div>  
             </div>
 

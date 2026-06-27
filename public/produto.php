@@ -131,16 +131,16 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
             <tr>
-				<th>Produtor:</th> <td><?php echo($forn_nome_curto); ?></td>
+				<th>Produtor:</th> <td><?php echo(h($forn_nome_curto)); ?></td>
 			</tr>        
     		<tr>
-				<th>Nome:</th> <td><?php echo($prod_nome); ?></td>
+				<th>Nome:</th> <td><?php echo(h($prod_nome)); ?></td>
 			</tr>	    
     		<tr>
 				<th>Descrição:</th> <td><?php echo( prep_para_html($prod_descricao) ); ?></td>
 			</tr>	    
     		<tr>
-				<th>Unidade:</th> <td><?php echo($prod_unidade); ?></td>
+				<th>Unidade:</th> <td><?php echo(h($prod_unidade)); ?></td>
 			</tr>            
     		<tr>
 				<th>Compra:</th><td>R$ <?php echo($prod_valor_compra); ?></td>
@@ -214,16 +214,16 @@
 				 {
 					echo("<tr>");
 					echo("<td>".$row["prod_data_alteracao"]."</td>");
-					echo("<td>".$row["forn_nome_curto"]."</td>");
-					echo("<td>".$row["prod_nome"]."</td>");
-					echo("<td>".$row["prod_unidade"]."</td>");					
+					echo("<td>".h($row["forn_nome_curto"])."</td>");
+					echo("<td>".h($row["prod_nome"])."</td>");
+					echo("<td>".h($row["prod_unidade"])."</td>");					
 					echo("<td>".$row["prod_valor_compra"]."</td>");
 					echo("<td>".$row["prod_valor_venda"]."</td>");
 					echo("<td>".$row["prod_valor_venda_margem"]."</td>");
 					echo("<td>".$row["prod_multiplo_venda"]."</td>");	
 					echo("<td>".$row["prod_peso_bruto"]."</td>");	
 					echo("<td>" . ($row["prod_retornavel"]==0 ?  "Não" : "<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>") . "</td>");											
-					echo("<td>".$row["prod_descricao"]."</td>");																				
+					echo("<td>".h($row["prod_descricao"])."</td>");																				
 					echo("</tr>");
 		  
 					
@@ -288,7 +288,7 @@
 								 }
 								 echo("<option value='" . $row['forn_id'] . "'");
 								 if($row['forn_id']==$prod_forn) echo(" selected");
-								 echo (">" . $row['forn_nome_curto'] . "</option>");
+								 echo (">" . h($row['forn_nome_curto']) . "</option>");
 							  }
 							}
 				   
@@ -303,14 +303,14 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="prod_nome">Nome</label>
                  <div class="col-sm-4">
-                   <input type="text" name="prod_nome" class="form-control" required="required" value="<?php echo($prod_nome); ?>" placeholder="Nome"/>
+                   <input type="text" name="prod_nome" class="form-control" required="required" value="<?php echo(h($prod_nome)); ?>" placeholder="Nome"/>
                   </div>
             </div>
             
   			<div class="form-group">
                 <label class="control-label col-sm-2" for="prod_descricao">Descrição</label>
                   <div class="col-sm-4">
-                    <textarea name="prod_descricao" rows="3"  class="form-control" placeholder="Descrição"><?php echo($prod_descricao); ?></textarea>
+                    <textarea name="prod_descricao" rows="3"  class="form-control" placeholder="Descrição"><?php echo(h($prod_descricao)); ?></textarea>
                   </div>
             </div>
           
@@ -318,7 +318,7 @@
              <div class="form-group">
                    <label class="control-label col-sm-2" for="prod_unidade">Unidade</label>
                    <div class="col-sm-2">   
-                    <input type="text" required="required"  class="form-control" name="prod_unidade" value="<?php echo($prod_unidade); ?>" placeholder="ex.: 1dz, 250g, 1kg,..." />
+                    <input type="text" required="required"  class="form-control" name="prod_unidade" value="<?php echo(h($prod_unidade)); ?>" placeholder="ex.: 1dz, 250g, 1kg,..." />
     			   </div>
             </div>        
           

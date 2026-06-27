@@ -87,7 +87,7 @@
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -99,7 +99,7 @@
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  

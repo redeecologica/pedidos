@@ -145,7 +145,7 @@
 		<div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Núcleo: </label>
                       <div class="col-sm-3">                                       
-                        <?php echo($nuc_nome_completo); ?>           
+                        <?php echo(h($nuc_nome_completo)); ?>           
                     </div>   
         </div>
         
@@ -169,7 +169,7 @@
                                   while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                                   {
                                      echo("<option value='" . $row['usr_id'] . "'");
-                                     echo (">" . $row['usr_nome_curto'] . " (" .  $row['usr_nome_completo'] . ")" . "</option>");
+                                     echo (">" . h($row['usr_nome_curto']) . " (" .  h($row['usr_nome_completo']) . ")" . "</option>");
                                   }
                                 }
                             ?>                        

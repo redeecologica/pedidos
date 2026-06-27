@@ -105,7 +105,7 @@ Então não teremos problema de inconsistência de dados.
             <label for="login_usr_email">Login</label> (seu email principal cadastrado)
             <div class="input-group">
             <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-            <input type="text" class="form-control" placeholder="endereço de email"  name="login_usr_email" required="required" autofocus value="<?php echo($usr_email); ?>">
+            <input type="text" class="form-control" placeholder="endereço de email"  name="login_usr_email" required="required" autofocus value="<?php echo(h($usr_email)); ?>">
             </div>
             <br>
              <label for="login_usr_senha">Senha</label>

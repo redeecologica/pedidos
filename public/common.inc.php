@@ -3,6 +3,14 @@
 require_once(__DIR__ . "/vendor/autoload.php");
 require_once("settings.php");
 
+// endurece o cookie de sessão (antes do session_start). Compatível 5.6 → 8.4:
+// sem ?? (7.0+) nem forma de array de session_set_cookie_params (7.3+).
+$xfp = isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : '';
+$https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($xfp === 'https');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', $https ? '1' : '0'); // só exige https quando a requisição é https (local http não quebra)
+if (PHP_VERSION_ID >= 70300) ini_set('session.cookie_samesite', 'Lax'); // ini existe a partir do 7.3
+
 session_start();
 
 define('PAGINAPRINCIPAL', "inicio.php");
@@ -118,7 +126,18 @@ function verifica_seguranca($parametro_validacao = true)
 function redireciona($pagina)
 {
 	// require_once("registro_visita.inc.php");
-	echo("<script>location.href='$pagina'</script>");
+	// só permite alvo relativo da app (nome.php?query); bloqueia esquema (http://),
+	// protocol-relative (//) e caracteres perigosos — fecha open-redirect via back_url.
+	if (!preg_match('#^[A-Za-z0-9_-]+\.php(\?[^\s\'"<>]*)?$#', $pagina))
+	{
+		$pagina = PAGINAPRINCIPAL;
+	}
+	if (!headers_sent())
+	{
+		header('Location: ' . $pagina);
+	}
+	// fallback (se a saída já começou) — json_encode escapa corretamente p/ JS e preserva & na URL
+	echo("<script>location.href=" . json_encode($pagina) . "</script>");
 	exit();
 }
 
@@ -134,8 +153,11 @@ function prep_para_html($texto)
 		$quebra_linha = array("\r\n", "\n", "\r");
 		$sem_special = htmlspecialchars($texto, ENT_QUOTES);
 		return str_replace($quebra_linha,'<br />',$sem_special);
-		
+
 }
+
+// escapa texto para saída segura em HTML (uso: echo(h($row['campo'])) )
+function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 function adiciona_popover_descricao($titulo,$texto)
 {
@@ -198,8 +220,8 @@ function prepara_sql_atualizacao($key_field,$fields,$table,$key_value = "")
             	$update_fields[] = "$field = ". prep_para_bd(($_REQUEST[$field])); 
 			}
         } 
-        return "UPDATE $table SET " . join(',',$update_fields) . 
-               " WHERE $key_field = ". $key_value_temp; 
+        return "UPDATE $table SET " . join(',',$update_fields) .
+               " WHERE $key_field = ". prep_para_bd($key_value_temp);
     } 
 	else 
 	{ 

@@ -61,7 +61,7 @@
  <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo(h($prodt_nome)); ?></td>
 			</tr>	    
 
     		<tr>
@@ -131,7 +131,7 @@
 								 
 										<tr>
 										  <th colspan="4">
-										  				<?php echo($row["forn_nome_completo"]);
+										  				<?php echo(h($row["forn_nome_completo"]));
 														
 												  if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
 												  {
@@ -149,14 +149,14 @@
 							?>
 							<tr> 
                             <td style="text-align:left;">
-								<?php echo($row["prod_nome"]); 
+								<?php echo(h($row["prod_nome"])); 
 									  adiciona_popover_descricao("Descrição", $row["prod_descricao"]);
 								?>      
                                <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
                                <?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
                             
                             </td>
-                            <td><?php echo($row["prod_unidade"]);?></td>
+                            <td><?php echo(h($row["prod_unidade"]));?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"])); ?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"])); ?></td> 
                             

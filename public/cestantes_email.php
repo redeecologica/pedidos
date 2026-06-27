@@ -55,7 +55,7 @@
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$usr_nuc) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -85,10 +85,10 @@
 					  echo("<textarea rows='40' class='form-control col-md-10'>");
 					 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 				     {
-						 echo(trim($row["usr_email"]) . ", ");
+						 echo(trim(h($row["usr_email"])) . ", ");
 						 if(strlen(trim($row["usr_email_alternativo"]))> 3)
 						 {
-							 echo(str_replace(array("\r", "\n"), '', trim($row["usr_email_alternativo"])) . ", ");
+							 echo(str_replace(array("\r", "\n"), '', trim(h($row["usr_email_alternativo"]))) . ", ");
 						 }						 
 				     }
 				    	echo("</textarea>");

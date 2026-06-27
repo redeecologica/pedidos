@@ -37,7 +37,7 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><a href="associacaotipo.php?action=0&amp;asso_id=<?php echo($row['asso_id']);?>"><?php echo($row['asso_nome']);?></a></td>
+					 <td><a href="associacaotipo.php?action=0&amp;asso_id=<?php echo(h($row['asso_id']));?>"><?php echo(h($row['asso_nome']));?></a></td>
 				
 				  </tr>
 				<?php 

@@ -68,13 +68,13 @@
 				     {
 				?>				 
                   	 <td><?php echo(++$contador);?></td>               
-                     <td><?php echo($row['nuc_nome_curto']);?></td> 
+                     <td><?php echo(h($row['nuc_nome_curto']));?></td> 
 					 <td><?php echo($row['usr_associado']? "Sim" : "Não"); ?></td>                                    
-                     <td><?php echo($row['usr_nome_curto']);?></td> 
-                     <td><?php echo($row['usr_nome_completo']);?></td> 
-                     <td><?php echo($row['usr_contatos']);?></td>                      
-					 <td><?php echo($row['usr_email']);?> </td>                     
-					 <td><?php echo($row['usr_email_alternativo']);?> </td>
+                     <td><?php echo(h($row['usr_nome_curto']));?></td> 
+                     <td><?php echo(h($row['usr_nome_completo']));?></td> 
+                     <td><?php echo(h($row['usr_contatos']));?></td>                      
+					 <td><?php echo(h($row['usr_email']));?> </td>                     
+					 <td><?php echo(h($row['usr_email_alternativo']));?> </td>
 				  </tr>
 				<?php 
 				     }

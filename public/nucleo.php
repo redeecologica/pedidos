@@ -120,19 +120,19 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Nome Completo:</th> <td><?php echo($nuc_nome_completo); ?></td>
+				<th>Nome Completo:</th> <td><?php echo(h($nuc_nome_completo)); ?></td>
 			</tr>	    
     		<tr>
-				<th>Nome Curto:</th> <td><?php echo($nuc_nome_curto); ?></td>
+				<th>Nome Curto:</th> <td><?php echo(h($nuc_nome_curto)); ?></td>
 			</tr>            
     		<tr>
-				<th>Email de Contato:</th>	<td><?php echo($nuc_email); ?></td>
+				<th>Email de Contato:</th>	<td><?php echo(h($nuc_email)); ?></td>
 			</tr>
     		<tr>
-				<th>Horário de Entrega:</th> <td><?php echo($nuc_entrega_horario); ?></td>
+				<th>Horário de Entrega:</th> <td><?php echo(h($nuc_entrega_horario)); ?></td>
 			</tr>        
     		<tr>
-				<th>Endereço de Entrega:</th> <td><?php echo($nuc_entrega_endereco); ?></td>
+				<th>Endereço de Entrega:</th> <td><?php echo(h($nuc_entrega_endereco)); ?></td>
 			</tr>     
     		<tr>
 				<th>Produtores que recebe:</th> <td><?php echo(prep_para_html($nucforn_fornecedores)); ?></td>
@@ -141,7 +141,7 @@
 				<th>Situação:</th> <td><?php echo( ($nuc_archive==1)?"Inativo":"Ativo"); ?></td>
 			</tr>                                           
     		<tr>
-				<th>Tipo:</th> <td><?php echo($nuct_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo(h($nuct_nome)); ?></td>
 			</tr> 
         </tbody>
     
@@ -181,21 +181,21 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="nuc_nome_completo">Nome Completo</label>
                 <div class="col-sm-4">
-                   <input type="text" name="nuc_nome_completo" class="form-control" required="required" value="<?php echo($nuc_nome_completo); ?>" placeholder="Nome Completo"/>
+                   <input type="text" name="nuc_nome_completo" class="form-control" required="required" value="<?php echo(h($nuc_nome_completo)); ?>" placeholder="Nome Completo"/>
                    </div>
             </div>
             
             <div class="form-group">
                <label class="control-label col-sm-2" for="nuc_nome_curto">Nome Curto</label>
                <div class="col-sm-2">
-                   <input type="text" name="nuc_nome_curto" class="form-control"  required="required" value="<?php echo($nuc_nome_curto); ?>" placeholder="Nome Curto" />
+                   <input type="text" name="nuc_nome_curto" class="form-control"  required="required" value="<?php echo(h($nuc_nome_curto)); ?>" placeholder="Nome Curto" />
                   </div>
             </div>
             
              <div class="form-group">
                    <label class="control-label col-sm-2" for="nuc_email">Email </label>
                    <div class="col-sm-4">
-                    <input type="text" class="form-control" id="nuc_email" name="nuc_email" value="<?php echo($nuc_email); ?>" placeholder="Email" />
+                    <input type="text" class="form-control" id="nuc_email" name="nuc_email" value="<?php echo(h($nuc_email)); ?>" placeholder="Email" />
                     </div>
             </div>        
           
@@ -203,7 +203,7 @@
              <div class="form-group">
                 <label class="control-label col-sm-2" for="nuc_entrega_horario">Horário de Entrega</label>
                 <div class="col-sm-4">
-                    <textarea name="nuc_entrega_horario" rows="3"  class="form-control"  placeholder="Horário de Entrega"><?php echo($nuc_entrega_horario); ?></textarea>
+                    <textarea name="nuc_entrega_horario" rows="3"  class="form-control"  placeholder="Horário de Entrega"><?php echo(h($nuc_entrega_horario)); ?></textarea>
                   </div>
             </div>
           
@@ -211,7 +211,7 @@
             <div class="form-group">
                 <label class="control-label col-sm-2" for="nuc_entrega_endereco">Endereço de Entrega</label>
                 <div class="col-sm-4">
-                    <textarea name="nuc_entrega_endereco" rows="4"  class="form-control" placeholder="Endereço de Entrega"><?php echo($nuc_entrega_endereco); ?></textarea>
+                    <textarea name="nuc_entrega_endereco" rows="4"  class="form-control" placeholder="Endereço de Entrega"><?php echo(h($nuc_entrega_endereco)); ?></textarea>
                   </div>
             </div> 
             
@@ -256,7 +256,7 @@
                                 {
                                     echo(" checked='checked' ");
                                 }
-                                echo("value='" . $row["forn_id"] . "'>" . $row["forn_nome_curto"] );
+                                echo("value='" . $row["forn_id"] . "'>" . h($row["forn_nome_curto"]) );
                                 echo("</label>");				
                                 if($cont == $por_coluna + ($resto >= $coluna)  )
                                 {
@@ -320,7 +320,7 @@
                               {
                                  echo("<option value='" . $row['nuct_id'] . "'");
                                  if($row['nuct_id']==$nuc_nuct) echo(" selected");
-                                 echo (">" . $row['nuct_nome'] . "</option>");
+                                 echo (">" . h($row['nuct_nome']) . "</option>");
                               }
                             }
                         ?>            

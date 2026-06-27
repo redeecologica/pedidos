@@ -45,13 +45,13 @@
              
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['nuc_nome_curto']);?></td>   
+					 <td><?php echo(h($row['nuc_nome_curto']));?></td>   
 					 <td><?php echo($row['usr_associado']? "Sim" : "Não"); ?></td>                                    
-					 <td><?php echo($row['usr_nome_completo']);?></td>
-                     <td><?php echo($row['usr_nome_curto']);?></td> 
-					 <td><?php echo($row['usr_email']);?> </td>                     
- 					 <td><?php echo($row['usr_email_alternativo']);?> </td> 
- 					 <td><a href="cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($row['usr_id']); ?>&gera_primeira_senha=1">gerar senha</a></td>                      
+					 <td><?php echo(h($row['usr_nome_completo']));?></td>
+                     <td><?php echo(h($row['usr_nome_curto']));?></td> 
+					 <td><?php echo(h($row['usr_email']));?> </td>                     
+ 					 <td><?php echo(h($row['usr_email_alternativo']));?> </td> 
+ 					 <td><a href="cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo(h($row['usr_id'])); ?>&gera_primeira_senha=1">gerar senha</a></td>                      
 				  </tr>
              
              

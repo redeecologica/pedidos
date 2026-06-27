@@ -18,7 +18,7 @@
 
 ?>
 
-<legend>Relatório - Pedidos para os Produtores - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?></legend>
+<legend>Relatório - Pedidos para os Produtores - <?php echo(h($row["prodt_nome"])); ?> - Entrega em <?php echo(h($row["cha_dt_entrega"])); ?></legend>
 <br>
 
 <?php 
@@ -108,7 +108,7 @@ $res = executa_sql($sql);
                     <table class="table table-striped table-bordered table-condensed">
                     <thead>
                         <tr>
-                                  <th><?php echo($row["forn_nome_curto"]);?></th>
+                                  <th><?php echo(h($row["forn_nome_curto"]));?></th>
                                   <th>Unidade</th>
                                   <th>Valor (R$)</th>
                                   
@@ -131,8 +131,8 @@ $res = executa_sql($sql);
 				$total_qtde_produto=0;	
 				?>
 				<tr> 
-				<td><?php echo($row["prod_nome"]);?></td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_nome"]));?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
 				<td><?php echo(formata_moeda($row["prod_valor_compra"]));?></td>
 
                                                   
