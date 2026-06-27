@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy da branch atual para produção (Locaweb) — base reutilizável da Fase 3.
-# Estágio via git archive (só arquivos rastreados — settings/dumps/docs não EXISTEM no estágio),
-# poda artefatos de repositório, backup tar no servidor, rsync com dry-run + confirmação.
+# Estágio via git archive (só arquivos rastreados — settings/dumps/docs não EXISTEM no estágio);
+# envia apenas public/ (o app), backup tar no servidor, rsync com dry-run + confirmação.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -17,11 +17,10 @@ STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 echo ">> Estágio limpo da branch '$BRANCH'..."
 git archive "$BRANCH" | tar -x -C "$STAGE"
-# poda: artefatos do repositório, não do servidor
-rm -rf "$STAGE"/bd "$STAGE"/scripts "$STAGE"/docker "$STAGE"/docker-compose.yml \
-       "$STAGE"/settings.php.docker "$STAGE"/composer.json "$STAGE"/composer.lock \
-       "$STAGE"/DESENVOLVIMENTO.md "$STAGE"/README.md "$STAGE"/LICENSE.txt \
-       "$STAGE"/.gitignore "$STAGE"/.gitattributes
+# o app servido vive em public/; ferramentas (bd, scripts, docker, docs) ficam fora do estágio servido
+SRC="$STAGE/public"
+# itens que vivem em public/ mas NÃO são servidos:
+rm -f "$SRC/composer.json" "$SRC/composer.lock" "$SRC/settings.php.docker" "$SRC/settings.php.sample"
 
 echo ">> Backup no servidor (tar local ao servidor, segundos)..."
 # shellcheck disable=SC2029  # expansão local de PROD_WEB_ROOT é intencional
@@ -34,12 +33,12 @@ ssh "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
 RSYNC_PERMS="--chmod=D755,F644"
 
 echo ">> DRY-RUN do rsync (nada é alterado ainda):"
-rsync -avzn $RSYNC_PERMS --itemize-changes "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
+rsync -avzn $RSYNC_PERMS --itemize-changes "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
 echo
 read -r -p ">> Confirma o deploy? Digite SIM para prosseguir: " CONFIRMA
 [[ "$CONFIRMA" == "SIM" ]] || { echo "Abortado."; exit 1; }
 
-rsync -avz $RSYNC_PERMS "$STAGE"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
+rsync -avz $RSYNC_PERMS "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
 
 echo ">> Removendo diretórios substituídos no servidor (ckeditor, phpmailer)..."
 # shellcheck disable=SC2029  # expansão local de PROD_WEB_ROOT é intencional

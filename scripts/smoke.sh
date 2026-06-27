@@ -39,7 +39,7 @@ login 8084 "$COOKIES84"
 
 # páginas excluídas: geradoras de efeito colateral ou includes/fora do fluxo logado
 EXCLUIR='script_gera_pedidos_associacao.php|bd_fora.php|settings|\.inc\.php'
-PAGINAS=$(git ls-files '*.php' | grep -vE "$EXCLUIR" | grep -v '/')
+PAGINAS=$(git ls-files public/ | grep -E '^public/[^/]+\.php$' | sed 's#^public/##' | grep -vE "$EXCLUIR")
 
 FALHAS=0
 printf '%-50s %s  %s\n' "PÁGINA" "5.6" "8.4"

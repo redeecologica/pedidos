@@ -10,11 +10,13 @@ Pré-requisito: ambiente com PHP e banco de dados MySQL, com as seguintes config
  register_globals = Off
  session.auto_start = 1
 
+A aplicação fica no diretório "public" (é o que o servidor web serve). Os diretórios "bd", "docker" e "scripts" são de apoio e não vão para o servidor.
+
 A instalação consiste em:
-1) disponibilizar os arquivos desta distribuição no diretório destinado à aplicação (não copiar o diretório "bd").
-2) renomear o arquivo settings.php.sample para settings.php e editá-lo de acordo com as configurações do GCR associado.
+1) disponibilizar o conteúdo do diretório "public" no diretório web do servidor.
+2) renomear o arquivo public/settings.php.sample para public/settings.php e editá-lo de acordo com as configurações do GCR associado.
 3) criar o banco de dados inicial conforme descrito em (bd/leiame.txt).
-4) para alterar a imagem que aparece no cabeçalho, para uma representativa do GCR associado, alterar o arquivo (img/logo_sistema.png).
+4) para alterar a imagem que aparece no cabeçalho, para uma representativa do GCR associado, alterar o arquivo (public/img/logo_sistema.png).
 
 
 Desenvolvimento

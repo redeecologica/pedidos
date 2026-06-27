@@ -5,13 +5,17 @@ Ambiente completo via Docker Compose: o mesmo código servido por **dois PHPs**
 **Percona/MySQL 5.6** igual ao de produção, **Mailpit** capturando todo e-mail
 e **phpMyAdmin**.
 
+> A aplicação (tudo que o servidor web serve) fica no diretório **`public/`**.
+> Os diretórios `docker/`, `scripts/`, `bd/` e `docs/` são de apoio e ficam fora dele.
+> No deploy, só o conteúdo de `public/` vai para o servidor.
+
 ## Pré-requisitos
 - Docker Desktop para Mac (em Apple Silicon, habilite
   Settings → General → “Use Rosetta for x86_64/amd64 emulation” — as imagens
   PHP 5.6 e Percona 5.6 são Intel).
 
 ## Subindo pela primeira vez
-1. `cp settings.php.docker settings.php` e preencha `PASSWORD_SALT`
+1. `cp public/settings.php.docker public/settings.php` e preencha `PASSWORD_SALT`
    (mesmo valor da produção, senão nenhuma senha do banco copiado funciona).
 2. `docker compose up -d --build --wait`
 3. Acesse:
@@ -34,7 +38,7 @@ formulário ou relatório que funcione aqui funcione lá.
    automaticamente para o modo tabela-por-tabela.
 3. `scripts/db-import.sh` — recria o banco local e importa o dump mais recente.
 
-**Privacidade (LGPD):** `dumps/`, `prod-snapshot/`, `settings.php` e
+**Privacidade (LGPD):** `dumps/`, `prod-snapshot/`, `public/settings.php` e
 `scripts/prod.env` são ignorados pelo git e **jamais** devem ser commitados —
 contêm dados pessoais reais e segredos.
 
@@ -49,7 +53,7 @@ sem risco de notificar pessoas.
 - **Porta em uso (3306/8056/8084/8089/8025):** pare o serviço conflitante ou
   ajuste a porta no `docker-compose.yml`.
 - **Login recusa senha que funciona em produção:** `PASSWORD_SALT` do
-  `settings.php` local difere do de produção.
+  `public/settings.php` local difere do de produção.
 - **SSH da Locaweb “para de funcionar”:** o painel desabilita o SSH
   automaticamente ~3h depois de habilitado — reabilite e rode de novo
   (os scripts detectam o canal morto e avisam).
