@@ -18,7 +18,7 @@
 
 ?>
 
-<legend>Relatório - Previsão de Pagamento - <?php echo($row["prodt_nome"]); ?> - Entrega em <?php echo($row["cha_dt_entrega"]); ?></legend>
+<legend>Relatório - Previsão de Pagamento - <?php echo(h($row["prodt_nome"])); ?> - Entrega em <?php echo(h($row["cha_dt_entrega"])); ?></legend>
 
 
 <?php 
@@ -63,8 +63,8 @@ $res = executa_sql($sql);
 				
 				?>
 				<tr> 
-				<td><?php echo($row["forn_nome_curto"]);?></td>
-				<td><?php echo($row["forn_nome_completo"]);?></td>                   
+				<td><?php echo(h($row["forn_nome_curto"]));?></td>
+				<td><?php echo(h($row["forn_nome_completo"]));?></td>                   
 				<td style="text-align:center"><?php echo (formata_moeda($row["total_fornecedor"])); ?></td>			
 				</tr>
 				 

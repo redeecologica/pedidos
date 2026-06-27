@@ -39,7 +39,7 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><a href="produtotipo.php?action=0&amp;prodt_id=<?php echo($row['prodt_id']);?>"><?php echo($row['prodt_nome']);?></a></td>
+					 <td><a href="produtotipo.php?action=0&amp;prodt_id=<?php echo(h($row['prodt_id']));?>"><?php echo(h($row['prodt_nome']));?></a></td>
 					 <td><?php echo($row['prodt_mutirao'] == 1 ? "Sim": "Não" );?></td>                   
                      <td><?php echo(formata_moeda($row['prodt_taxa_percentual_padrao']));?></td>
 

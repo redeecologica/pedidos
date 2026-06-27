@@ -245,31 +245,31 @@
 <table class="table-condensed table-info-cadastro" style="width: inherit !important;">
 		<tbody>
     		<tr>
-				<th style="width: 1%; white-space: nowrap;">Nome Completo:</th> <td><?php echo($usr_nome_completo); ?></td>
+				<th style="width: 1%; white-space: nowrap;">Nome Completo:</th> <td><?php echo(h($usr_nome_completo)); ?></td>
 			</tr>	    
     		<tr>
-				<th>Nome Curto:</th> <td><?php echo($usr_nome_curto); ?></td>
+				<th>Nome Curto:</th> <td><?php echo(h($usr_nome_curto)); ?></td>
 			</tr>            
     		<tr>
-				<th>Email Principal:</th>	<td><?php echo($usr_email); ?></td>
+				<th>Email Principal:</th>	<td><?php echo(h($usr_email)); ?></td>
 			</tr>
 
     		<tr>
-				<th>Emails Adicionais:</th>	<td><?php echo($usr_email_alternativo); ?></td>
+				<th>Emails Adicionais:</th>	<td><?php echo(h($usr_email_alternativo)); ?></td>
 			</tr>
             
     		<tr>
-				<th>Contatos:</th> <td><?php echo($usr_contatos); ?></td>
+				<th>Contatos:</th> <td><?php echo(h($usr_contatos)); ?></td>
 			</tr>        
     		<tr>
-				<th>Endereço:</th> <td><?php echo($usr_endereco); ?></td>
+				<th>Endereço:</th> <td><?php echo(h($usr_endereco)); ?></td>
 			</tr>   
             
     		<tr>
-				<th>Profissão:</th> <td><?php echo($usr_profissao); ?></td>
+				<th>Profissão:</th> <td><?php echo(h($usr_profissao)); ?></td>
 			</tr>    
     		<tr>
-				<th>Habilidades:</th> <td><?php echo($usr_habilidades); ?></td>
+				<th>Habilidades:</th> <td><?php echo(h($usr_habilidades)); ?></td>
 			</tr>    
                                      
 	   		<tr>
@@ -277,18 +277,18 @@
 			</tr>                   
              
 			<tr>
-				<th>Atividades Atuais:</th> <td><?php echo($usr_atividades); ?></td>
+				<th>Atividades Atuais:</th> <td><?php echo(h($usr_atividades)); ?></td>
 			</tr>   
             
                          
     		<tr>
-				<th>Núcleo:</th> <td><?php echo($nuc_nome_curto); ?></td>
+				<th>Núcleo:</th> <td><?php echo(h($nuc_nome_curto)); ?></td>
 			</tr> 
     		<tr>
 				<th>Associado:</th> <td><?php echo( ($usr_associado==1)?"Sim":"Não"); ?></td>
 			</tr>  
     		<tr>
-				<th>Tipo Associação:</th> <td><?php echo( $asso_nome); ?>  <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?></td>
+				<th>Tipo Associação:</th> <td><?php echo(h($asso_nome)); ?>  <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?></td>
 			</tr>                        
                        
     		<tr>
@@ -360,14 +360,14 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="usr_nome_completo">Nome Completo</label>
                  <div class="col-sm-4">
-                   <input type="text" name="usr_nome_completo"  class="form-control" required="required" value="<?php echo($usr_nome_completo); ?>" placeholder="Nome Completo"/>
+                   <input type="text" name="usr_nome_completo"  class="form-control" required="required" value="<?php echo(h($usr_nome_completo)); ?>" placeholder="Nome Completo"/>
                   </div>
             </div>
             
             <div class="form-group">
                <label class="control-label col-sm-2" for="usr_nome_curto">Nome Curto</label>
                    <div class="col-sm-2">
-                       <input type="text" class="form-control" name="usr_nome_curto" required="required" value="<?php echo($usr_nome_curto); ?>" placeholder="Nome Curto" />                    
+                       <input type="text" class="form-control" name="usr_nome_curto" required="required" value="<?php echo(h($usr_nome_curto)); ?>" placeholder="Nome Curto" />                    
                     </div>  
 	                 <span class="help-block">Preferencialmente com no máximo 10 caracteres, para economizar na impressão de relatórios</span>
             </div>
@@ -375,7 +375,7 @@
              <div class="form-group">
                    <label class="control-label col-sm-2" for="usr_email">Email Principal</label>
                    <div class="col-sm-4">   
-                    <input type="text" class="form-control" required="required" id="usr_email" name="usr_email" value="<?php echo($usr_email); ?>" placeholder="Email" /><br />                  
+                    <input type="text" class="form-control" required="required" id="usr_email" name="usr_email" value="<?php echo(h($usr_email)); ?>" placeholder="Email" /><br />                  
     			   </div>
                      <span class="help-block"> Utilizado para identificar a associação no sistema (login).</span>
             </div>        
@@ -384,7 +384,7 @@
              <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_email_alternativo">Emails Adicionais</label>
                   <div class="col-sm-4">
-                    <textarea name="usr_email_alternativo" id="usr_email_alternativo" rows="3" class="form-control" placeholder="Emails adicionais para recebimento das comunicações."><?php echo($usr_email_alternativo); ?></textarea>
+                    <textarea name="usr_email_alternativo" id="usr_email_alternativo" rows="3" class="form-control" placeholder="Emails adicionais para recebimento das comunicações."><?php echo(h($usr_email_alternativo)); ?></textarea>
                   </div>
 					<span class="help-block">Emails adicionais para recebimento das comunicações. Bastante útil para quem compartilha associação.<br>Informar valores separados por vírgula (ex.: fulano@dominio.com.br, ciclano@dominio.com.br)</span>
              </div>
@@ -393,7 +393,7 @@
              <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_contatos">Contatos</label>
                   <div class="col-sm-4">
-                    <textarea name="usr_contatos" rows="2" required="required"  class="form-control" placeholder="ex.: 8888-9999/2333-4567"><?php echo($usr_contatos); ?></textarea>
+                    <textarea name="usr_contatos" rows="2" required="required"  class="form-control" placeholder="ex.: 8888-9999/2333-4567"><?php echo(h($usr_contatos)); ?></textarea>
                     <br>                    
                   </div>
                   <span class="help-block">Contatos (telefone celular, fixo,...). Ex.: 8888-9999 / 2333-4567</span>
@@ -403,7 +403,7 @@
             <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_endereco">Endereço</label>
                   <div class="col-sm-4">
-                    <textarea name="usr_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo($usr_endereco); ?></textarea>
+                    <textarea name="usr_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo(h($usr_endereco)); ?></textarea>
                   </div>
             </div>  
             
@@ -415,7 +415,7 @@
            <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_profissao">Profissão</label>
                   <div class="col-sm-4">
-                    <textarea name="usr_profissao" rows="6" class="form-control"><?php echo($usr_profissao); ?></textarea>
+                    <textarea name="usr_profissao" rows="6" class="form-control"><?php echo(h($usr_profissao)); ?></textarea>
                     <br>                    
                   </div>
 <!--                  <span class="help-block">Estes dados servem para nos conhecermos melhor: você conhecer melhor os outros e vice-versa, 
@@ -425,7 +425,7 @@
            <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_habilidades">Habilidades</label>
                   <div class="col-sm-4">
-                    <textarea name="usr_habilidades" rows="6" class="form-control"><?php echo($usr_habilidades); ?></textarea>
+                    <textarea name="usr_habilidades" rows="6" class="form-control"><?php echo(h($usr_habilidades)); ?></textarea>
                     <br>                    
                   </div>
 <!--                  <span class="help-block">Estes dados servem para nos conhecermos melhor: você conhecer melhor os outros e vice-versa, 
@@ -444,7 +444,7 @@
            <div class="form-group">
                 <label class="control-label col-sm-2" for="usr_atividades">Atuais atividades na <?php echo(NOME_GRUPO_CONSUMO); ?></label>
                   <div class="col-sm-4">
-                    <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo($usr_atividades); ?></textarea>
+                    <textarea name="usr_atividades" rows="6" required="required"  class="form-control" placeholder="ex.: Acolhida, Comissão Gestora,..."><?php echo(h($usr_atividades)); ?></textarea>
                     <br>                    
                   </div>
                   <span class="help-block">Exemplos: Acolhida; Comissão Gestora; Participação em mutirões no ano; Acompanhamento Produtor Ecobio;  Acompanhamento Produtor Biorga; Acompanhamento Produtor Amarea; ...</span>
@@ -488,7 +488,7 @@
 										if($primeiro_fora) echo("<br><strong>&nbsp; - Pedido(s) com chamada já encerrada:</strong><br>");
 										$primeiro_fora = 0;
 									 }									 
-									 echo("&nbsp; &nbsp; - " . $row['prodt_nome'] . " entrega em " . $row['cha_dt_entrega_formatado']);
+									 echo("&nbsp; &nbsp; - " . h($row['prodt_nome']) . " entrega em " . $row['cha_dt_entrega_formatado']);
 									 echo(" (prazo edição pedido: " . $row['cha_dt_max_formatado'] . ") - ");
 									 echo("Status pedido: " . ($row['ped_fechado']==1 ? "Enviado" : "Em elaboração") .  "<br>");	 									 
                                      
@@ -538,7 +538,7 @@
 									 }									 
                                      echo("<option value='" . $row['nuc_id'] . "'");
                                      if($row['nuc_id']==$usr_nuc) echo(" selected");
-                                     echo (">" . $row['nuc_nome_curto'] . "</option>");									 
+                                     echo (">" . h($row['nuc_nome_curto']) . "</option>");									 
                                   }
                                 }
 								
@@ -579,7 +579,7 @@
                                   {
                                      echo("<option value='" . $row['asso_id'] . "'");
                                      if($row['asso_id']==$usr_asso) echo(" selected");
-                                     echo (">" . $row['asso_nome'] . "</option>");	
+                                     echo (">" . h($row['asso_nome']) . "</option>");	
 									 $help_tipos.="<b>" . $row['asso_nome'] . "</b>: ";
 									 $help_tipos.=$row['asso_descricao'] . "<br><br>";
                                   }
@@ -619,7 +619,7 @@
                      <div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Núcleo</label>
                       <div class="col-sm-2">                                       
-                       	<span class="well well-sm"><?php echo($nuc_nome_curto); ?></span>
+                       	<span class="well well-sm"><?php echo(h($nuc_nome_curto)); ?></span>
                       </div>                  
                     </div>  
         
@@ -634,7 +634,7 @@
                      <div class="form-group">
                       <label class="control-label col-sm-2" for="usr_nuc">Tipo Associação</label>
                       <div class="col-sm-2">                                       
-                       	<span class="well well-sm"><?php echo($asso_nome); ?></span> <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?>
+                       	<span class="well well-sm"><?php echo(h($asso_nome)); ?></span> <?php adiciona_popover_descricao("Associação " . $asso_nome, $asso_descricao); ?>
                       </div>                  
                     </div>  
 

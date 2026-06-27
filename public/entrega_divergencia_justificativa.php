@@ -139,10 +139,10 @@
 			<th>Recebido e Não Entregue</th>                        
         </tr>        
         <tr>
-        	<td><?php echo($nuc_nome_curto); ?></td>
-        	<td><?php echo($forn_nome_curto); ?></td>
-        	<td><?php echo($prod_nome); ?></td>
-        	<td><?php echo($prod_unidade); ?></td>
+        	<td><?php echo(h($nuc_nome_curto)); ?></td>
+        	<td><?php echo(h($forn_nome_curto)); ?></td>
+        	<td><?php echo(h($prod_nome)); ?></td>
+        	<td><?php echo(h($prod_unidade)); ?></td>
         	<td><?php echo_digitos_significativos($total_recebido); ?></td>
         	<td><?php echo_digitos_significativos($total_entregue); ?></td>  
         	<td class="alert alert-<?php echo($dist_just_dif_entrega ? "info" : "danger"); ?>"><?php echo_digitos_significativos($total_recebido - $total_entregue); ?></td>                        

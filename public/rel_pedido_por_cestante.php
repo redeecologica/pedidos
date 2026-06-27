@@ -23,7 +23,7 @@ $cha_dt_entrega = $row["cha_dt_entrega"];
 
 ?>
 
-<legend>Relatório - <?php echo($row["prodt_nome"] . " - " . $row["cha_dt_entrega"]);?> - Pedido de cada cestante por Núcleo</legend>
+<legend>Relatório - <?php echo(h($row["prodt_nome"]) . " - " . $row["cha_dt_entrega"]);?> - Pedido de cada cestante por Núcleo</legend>
 
 <?php 
 
@@ -40,11 +40,11 @@ if($res)
 	while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 	
 	{
 		?>
-        	<strong><?php echo($row["nuc_nome_completo"]);?></strong> (total de <?php echo($row["total_pedidos"]);?> pedidos): 
+        	<strong><?php echo(h($row["nuc_nome_completo"]));?></strong> (total de <?php echo(h($row["total_pedidos"]));?> pedidos): 
             &nbsp;
-             <a href="rel_pedido_por_cestante_nucleo.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>">Relatório de Pedidos</a> &nbsp; &nbsp;
+             <a href="rel_pedido_por_cestante_nucleo.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo(h($row["nuc_id"]));?>">Relatório de Pedidos</a> &nbsp; &nbsp;
 
-             <a href="rel_pedido_contato_cestantes.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo($row["nuc_id"]);?>">Contato dos Cestantes</a>
+             <a href="rel_pedido_contato_cestantes.php?cha_id=<?php echo($cha_id);?>&nuc_id=<?php echo(h($row["nuc_id"]));?>">Contato dos Cestantes</a>
              
             <br />            <br />
         <?php 

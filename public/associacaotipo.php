@@ -64,11 +64,11 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Nome: </th> <td><?php echo($asso_nome); ?></td>
+				<th>Nome: </th> <td><?php echo(h($asso_nome)); ?></td>
 			</tr>	 
             
     		<tr>
-				<th>Descrição: </th> <td><?php echo($asso_descricao); ?></td>
+				<th>Descrição: </th> <td><?php echo(h($asso_descricao)); ?></td>
 			</tr>	               
                                   
         </tbody>
@@ -109,14 +109,14 @@
             <div class="form-group">
                <label class="control-label col-sm-3" for="asso_nome">Nome</label>
                  <div class="col-sm-4">
-                   <input type="text" name="asso_nome" class="form-control" required="required" value="<?php echo($asso_nome); ?>"/>
+                   <input type="text" name="asso_nome" class="form-control" required="required" value="<?php echo(h($asso_nome)); ?>"/>
                   </div>
             </div>
       
             <div class="form-group">
                <label class="control-label col-sm-3" for="asso_descricao">Descrição</label>
                  <div class="col-sm-4">
-                   <textarea name="asso_descricao" class="form-control"><?php echo($asso_descricao); ?></textarea> 
+                   <textarea name="asso_descricao" class="form-control"><?php echo(h($asso_descricao)); ?></textarea> 
                   </div>
             </div>
                   

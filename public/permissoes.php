@@ -49,7 +49,7 @@
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$usr_nuc) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -74,7 +74,7 @@
                           {
                              echo("<option value='" . $row['pap_id'] . "'");
                              if($row['pap_id']==$pap_id) echo(" selected");
-                             echo (">" . $row['pap_nome'] . "</option>");
+                             echo (">" . h($row['pap_nome']) . "</option>");
                           }
                         }
                     ?>                        
@@ -297,11 +297,11 @@ function toggleMatrizPermissoes() {
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-                     <td><?php echo($row['pap_nome']);?></td> 
-		 <td><a href="permissao.php?action=<?php echo(ACAO_EXCLUIR);?>&amp;usr_id=<?php echo($row['usr_id']);?>&amp;pap_id=<?php echo($row['pap_id']);?>" class="confirm-delete btn btn-default"><i class="glyphicon glyphicon-remove"></i> remover</a></td>
-					 <td><a href="cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&amp;usr_id=<?php echo($row['usr_id']);?>"><?php echo($row['usr_nome_completo']);?></a></td>
-					 <td><?php echo($row['usr_email']);?> </td>                     
-					 <td><?php echo($row['nuc_nome_curto'])?></td>               
+                     <td><?php echo(h($row['pap_nome']));?></td> 
+		 <td><a href="permissao.php?action=<?php echo(ACAO_EXCLUIR);?>&amp;usr_id=<?php echo(h($row['usr_id']));?>&amp;pap_id=<?php echo(h($row['pap_id']));?>" class="confirm-delete btn btn-default"><i class="glyphicon glyphicon-remove"></i> remover</a></td>
+					 <td><a href="cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA);?>&amp;usr_id=<?php echo(h($row['usr_id']));?>"><?php echo(h($row['usr_nome_completo']));?></a></td>
+					 <td><?php echo(h($row['usr_email']));?> </td>                     
+					 <td><?php echo(h($row['nuc_nome_curto']))?></td>               
 				  </tr>
 				<?php 
 				     }

@@ -52,9 +52,9 @@
 					?>
 				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['prodt_nome']);?></td>               
-					 <td><?php echo($row['cha_dt_entrega']);?></td>
-					 <td><?php echo($row['cha_dt_max']);?> </td>                     
+					 <td><?php echo(h($row['prodt_nome']));?></td>               
+					 <td><?php echo(h($row['cha_dt_entrega']));?></td>
+					 <td><?php echo(h($row['cha_dt_max']));?> </td>                     
 					 <td>
                      <?php
                      	if(!$row['ped_id'])
@@ -115,9 +115,9 @@
 					?>
 				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                   	 <td><?php echo(++$contador); ?></td>               
-					 <td><?php echo($row['prodt_nome']); ?></td>               
-					 <td><?php echo($row['cha_dt_entrega']); ?></td>
-					 <td><?php echo($row['cha_dt_max']); ?> </td>  
+					 <td><?php echo(h($row['prodt_nome'])); ?></td>               
+					 <td><?php echo(h($row['cha_dt_entrega'])); ?></td>
+					 <td><?php echo(h($row['cha_dt_max'])); ?> </td>  
 					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver chamada</a>");?></td>
                                                                                   
 					 <td>
@@ -200,9 +200,9 @@
 					?>
 				  <tr class="<?php echo( $row['ped_fechado']==1 ? "success": ($row['ped_id'] ? "info" : "")); ?>" >
                   	 <td><?php echo(++$contador); ?></td>               
-					 <td><?php echo($row['prodt_nome']); ?></td>               
-					 <td><?php echo($row['cha_dt_entrega']); ?></td>
-					 <td><?php echo($row['cha_dt_max']); ?> </td>  
+					 <td><?php echo(h($row['prodt_nome'])); ?></td>               
+					 <td><?php echo(h($row['cha_dt_entrega'])); ?></td>
+					 <td><?php echo(h($row['cha_dt_max'])); ?> </td>  
 					 <td> <?php echo("<a class=\"btn btn-default btn-sm\" href=\"chamada_info.php?action=" . ACAO_EXIBIR_LEITURA .  "&amp;cha_id=" . $row['cha_id'] . "\"><i class=\"glyphicon glyphicon-leaf\"></i> ver chamada</a>");?></td>
                                                                                   
 					 <td>

@@ -55,7 +55,7 @@
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$nuc_id) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -425,7 +425,7 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 							 {
 								$total_chamada[$chamada["cha_id"]]["entregue"]=0;
 								$total_chamada[$chamada["cha_id"]]["taxa"]=0;
-								echo("<th colspan='3' class='colspan_alterna_visivel_chamada'>" . $chamada["prodt_nome"] . "<br>" . $chamada["cha_dt_entrega"] . "</th>");
+								echo("<th colspan='3' class='colspan_alterna_visivel_chamada'>" . h($chamada["prodt_nome"]) . "<br>" . $chamada["cha_dt_entrega"] . "</th>");
 							 }							 
 							 ?>
                              <th colspan="3" class='colspan_alterna_visivel_chamada'>TOTAL</th>
@@ -471,16 +471,16 @@ if($nuc_id!=-1) //checar parametros; data inicial e final
 							   echo("<td>&nbsp;</td>");							   
 						   }
 						   ?>							                                                          
-							<td><?php echo($cestante["nuc_nome_curto"]);?></td>
-							<td><?php echo($cestante["usr_nome_curto"]);?></td>
-							<td><?php echo($cestante["usr_nome_completo"]);?></td>
+							<td><?php echo(h($cestante["nuc_nome_curto"]));?></td>
+							<td><?php echo(h($cestante["usr_nome_curto"]));?></td>
+							<td><?php echo(h($cestante["usr_nome_completo"]));?></td>
 							<td class="<?php echo($cestante["usr_archive"]=='1'?"label-warning":""); ?>">
 								<?php echo($cestante["usr_archive"]=='1'?"Não":"Sim"); ?>
 							</td> 
 							<td class="<?php echo($cestante["usr_associado"]=='0'?"label-warning":""); ?>">
 								<?php echo($cestante["usr_associado"]=='0'?"Não":"Sim"); ?>
 							 </td> 
-                             <td><?php echo($cestante["asso_nome"]);?></td>
+                             <td><?php echo(h($cestante["asso_nome"]));?></td>
 							<td class="alterna_visivel_cestante">
 								<?php echo(count($cestantes_versoes[$row["usr_id"]])>1 ? $cestante["usr_dt_atualizacao_formatada"] : "&nbsp;");?>                      
                             </td>

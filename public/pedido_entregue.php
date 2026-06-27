@@ -56,8 +56,8 @@
  
 	<legend>Pedido Entregue de <?php echo(($prodt_nome) . " - " . ($cha_dt_entrega)); ?></legend>
       <div class="row">
-       	<div class="col-md-5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
-        <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
+       	<div class="col-md-5"><strong>Cestante</strong>: <?php echo(h($usr_nome_curto));?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
+        <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo(h($nuc_nome_curto));?></div>
      	<div class="col-md-3 hidden-print"><strong>Associado:</strong> <?php echo($ped_usr_associado==1 ? "Sim" : "Não")?></div>    
              
      </div>
@@ -119,7 +119,7 @@
 							  <th colspan="7">
 							  
 							  		<?php 
-									echo($row["forn_nome_completo"]);
+									echo(h($row["forn_nome_completo"]));
                               
                                           if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
                                           {
@@ -138,11 +138,11 @@
 				?>
 				<tr> 
 				<td style="text-align:left;">
-					<?php echo($row["prod_nome"]); adiciona_popover_descricao("Descrição", $row["prod_descricao"]); ?> 
+					<?php echo(h($row["prod_nome"])); adiciona_popover_descricao("Descrição", h($row["prod_descricao"])); ?> 
 					<?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
 					<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
                 </td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"]) ); ?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"]) ); ?></td> 
 				<td><?php echo_digitos_significativos($row["pedprod_quantidade"]); ?></td>

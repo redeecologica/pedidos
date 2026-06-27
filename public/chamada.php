@@ -137,7 +137,7 @@
  <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo(h($prodt_nome)); ?></td>
 			</tr>	    
     		<tr>
 				<th>Taxa Percentual:</th>	<td><?php echo($cha_taxa_percentual); ?></td>
@@ -192,7 +192,7 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="prodt_nome">Tipo</label>
                  <div class="col-sm-4">
-                   <span class="well well-sm"><?php echo($prodt_nome); ?></span>
+                   <span class="well well-sm"><?php echo(h($prodt_nome)); ?></span>
                   </div>
             </div>
 
@@ -267,7 +267,7 @@
 							{
 								echo(" checked='checked' ");
 							}
-							echo("value='" . $row["nuc_id"] . "'>[" . $row["sigla_tipo_nucleo"] . "] " . $row["nuc_nome_curto"] );
+							echo("value='" . $row["nuc_id"] . "'>[" . h($row["sigla_tipo_nucleo"]) . "] " . h($row["nuc_nome_curto"]) );
 							echo("</label>");				
 							if($cont == $por_coluna + ($resto >= $coluna)  )
 							{
@@ -334,10 +334,10 @@
 								?>
                                 	<tr><th colspan="7">&nbsp;</th></tr>
 										<tr>
-                                        	<th><a href="chamada.php?action=1&cha_id=<?php echo($cha_id)?>&forn_id=<?php echo($row["forn_id"])?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> </a> </th>
+                                        	<th><a href="chamada.php?action=1&cha_id=<?php echo($cha_id)?>&forn_id=<?php echo(h($row["forn_id"]))?>"><i class="glyphicon glyphicon-edit glyphicon-white"></i> </a> </th>
 											<th>
 											  <?php 
-											  echo($row["forn_nome_curto"]);
+											  echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao($row["forn_nome_completo"], $row["forn_info_chamada"]);
 											  if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
 											  {
@@ -348,21 +348,21 @@
 											<th style="width:185px">Disponível <span class="label label-info">azul = anterior</span><br>
                     
 												<label class="radio-inline"  style="margin-left: 4px; padding-left:7px;">
-                                                <input type="radio"  name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_X" value="X" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px"><span class="label label-info"><i class="glyphicon glyphicon-repeat" title="Repetir para este produtor a disponibilidade da chamada anterior"></i> </span>
+                                                <input type="radio"  name="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>" id="disponibilidade_forn<?php echo(h($row["prod_id"]))?>_X" value="X" data-fornecedor="<?php echo(h($row["forn_id"]));?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px"><span class="label label-info"><i class="glyphicon glyphicon-repeat" title="Repetir para este produtor a disponibilidade da chamada anterior"></i> </span>
 												</label> 
 
 												<label class="radio-inline"  style="margin-left: 4px; padding-left:10px;" >
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_2" value="2" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
+												  <input type="radio" name="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>" id="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>_2" value="2" data-fornecedor="<?php echo(h($row["forn_id"]));?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 												  <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up" title="Marcar todos os produtos deste produtor como 'Disponível'"></i> </span>
 												</label>
 													
 												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn_<?php echo($row["forn_id"]);?>_1" value="1" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
+												  <input type="radio" name="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>" id="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>_1" value="1" data-fornecedor="<?php echo(h($row["forn_id"]));?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 													<span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up" title="Marcar todos os produtos deste produtor como 'Entrega Parcial'"></i> </span>
 												</label>
 
 												<label class="radio-inline" style="margin-left: 4px; padding-left:10px;">
-												  <input type="radio" name="disponibilidade_forn_<?php echo($row["forn_id"]);?>" id="disponibilidade_forn<?php echo($row["prod_id"])?>_0" value="0" data-fornecedor="<?php echo($row["forn_id"]);?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
+												  <input type="radio" name="disponibilidade_forn_<?php echo(h($row["forn_id"]));?>" id="disponibilidade_forn<?php echo(h($row["prod_id"]))?>_0" value="0" data-fornecedor="<?php echo(h($row["forn_id"]));?>" class="seleciona_produtos_fornecedor radio-inline" style="margin-left:-15px">
 											<span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down"  title="Marcar todos os produtos deste produtor como 'Não Disponível'"></i> </span>
 												</label>
 
@@ -381,7 +381,7 @@
 							<tr> 
                             <td><?php echo(++$contador); ?></td> 
                             <td><?php 
-								echo($row["prod_nome"]); 
+								echo(h($row["prod_nome"])); 
 								adiciona_popover_descricao("Descrição", $row["prod_descricao"]); 
 								if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");
 								if($row["em_estoque"]>0) echo("&nbsp;&nbsp;<span class='label label-info'>" . formata_numero_de_mysql($row["em_estoque"]) .  " em estoque</span>");
@@ -389,25 +389,25 @@
 							?></td>
 							<td>
                             <!-- hidden incluído com a disponibilidade anterior -->
-                                  <input type="hidden" name="chaprod_prod_disponibilidade_anterior_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_anterior_<?php echo($row["prod_id"])?>_X" value="<?php echo($row["chaprod_disponibilidade_anterior"]); ?>" data-fornecedor="<?php echo($row["forn_id"]);?>">
+                                  <input type="hidden" name="chaprod_prod_disponibilidade_anterior_<?php echo(h($row["prod_id"]));?>" id="chaprod_prod_disponibilidade_anterior_<?php echo(h($row["prod_id"]))?>_X" value="<?php echo(h($row["chaprod_disponibilidade_anterior"])); ?>" data-fornecedor="<?php echo(h($row["forn_id"]));?>">
                             <!-- fim do hidden com a disponibilidade anterior -->
                                                                                           
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 2)) echo (" label-info"); ?>">
-                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo($row["forn_id"]);?>">
+                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]));?>" id="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]));?>_2" value="2" <?php echo( ($row["chaprod_disponibilidade"] == 2) ? "checked='checked'" : "") ;?> data-fornecedor="<?php echo(h($row["forn_id"]));?>">
                                   <span class="label label-success"><i class="glyphicon glyphicon-thumbs-up"  title="Disponível"></i> </span>
                                 </label>
                                                                                                 
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 1)) echo (" label-info"); ?>">
-                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo($row["forn_id"]);?>">
+                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]));?>" id="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]));?>_1" value="1" <?php echo( ($row["chaprod_disponibilidade"] == 1) ? "checked='checked'" : ""); ?> data-fornecedor="<?php echo(h($row["forn_id"]));?>">
                                  <span class="label label-warning"><i class="glyphicon glyphicon-thumbs-up"  title="Entrega Parcial"></i> </span>
                                 </label>
                                 
                                 <label class="radio-inline<?php if((!is_null($row["chaprod_disponibilidade_anterior"]) && $row["chaprod_disponibilidade_anterior"] == 0)) echo (" label-info"); ?>">
-                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo($row["prod_id"]);?>" id="chaprod_prod_disponibilidade_<?php echo($row["prod_id"])?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo($row["forn_id"]);?>">
+                                  <input type="radio" name="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]));?>" id="chaprod_prod_disponibilidade_<?php echo(h($row["prod_id"]))?>_0" value="0" <?php echo((!is_null($row["chaprod_disponibilidade"]) && $row["chaprod_disponibilidade"] == 0) ? "checked='checked'" : "");?> data-fornecedor="<?php echo(h($row["forn_id"]));?>">
                                  <span class="label label-danger"><i class="glyphicon glyphicon-thumbs-down" title="Não Disponível"></i> </span>
                                 </label>
                             </td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
 							<td><?php echo(formata_moeda($row["prod_valor_compra"])); ?></td>                            							
 							<td><?php echo(formata_moeda($row["prod_valor_venda"])); ?></td> 
 							<td><?php echo(formata_moeda($row["prod_valor_venda_margem"]));?></td> 

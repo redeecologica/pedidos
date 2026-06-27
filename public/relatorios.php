@@ -37,7 +37,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$cha_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
                               }
                             }
                         ?>  
@@ -128,14 +128,14 @@
 	  	 ?>		
          	<tr>
             <td><?php echo($contador++);?></td>
-            <td><?php echo($row['prodt_nome']);?></td>                
-            <td><?php echo($row['cha_dt_entrega']);?></td>
+            <td><?php echo(h($row['prodt_nome']));?></td>                
+            <td><?php echo(h($row['cha_dt_entrega']));?></td>
 			<?php
               if($row['prodt_mutirao']== 0)
               {
               ?>	  
                 <td>
-                	<a href="rel_pedido_por_produtor.php?cha_id=<?php echo($row['cha_id']);?>">demanda da rede</a>
+                	<a href="rel_pedido_por_produtor.php?cha_id=<?php echo(h($row['cha_id']));?>">demanda da rede</a>
                 </td>
             	<td>n/a</td>
             
@@ -145,25 +145,25 @@
               {
               ?>  
                 <td>
-                	<a href="rel_pedido_por_produtor_considera_estoque.php?cha_id=<?php echo($row['cha_id']);?>">demanda da rede</a> (considera estoque)
+                	<a href="rel_pedido_por_produtor_considera_estoque.php?cha_id=<?php echo(h($row['cha_id']));?>">demanda da rede</a> (considera estoque)
                 </td>
-            	<td><a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo($row['cha_id']);?>">distribuição núcleos</a> </td>           
+            	<td><a href="rel_pedido_pre_mutirao.php?cha_id=<?php echo(h($row['cha_id']));?>">distribuição núcleos</a> </td>           
               
               <?php
               } // end if prodt_mutirao==0
               ?>          
 
-        		<td><a href="rel_pedido_por_cestante.php?cha_id=<?php echo($row['cha_id']);?>">pedidos de cada núcleo</a></td>    
+        		<td><a href="rel_pedido_por_cestante.php?cha_id=<?php echo(h($row['cha_id']));?>">pedidos de cada núcleo</a></td>    
                 
                 
 
-                <td><a href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo($row['cha_id']);?>">entrega aos cestantes</a></td>   
-                <td><a href="rel_recebimento.php?cha_id=<?php echo($row['cha_id']);?>">entregue pelo produtor</a></td>
-                <td><a href="rel_previsao_pagamento.php?cha_id=<?php echo($row['cha_id']);?>">consolidado</a> ou <a href="rel_previsao_pagamento_detalhado.php?cha_id=<?php echo($row['cha_id']);?>">detalhado</a> </td>
+                <td><a href="rel_entrega_cestantes_nucleo.php?cha_id=<?php echo(h($row['cha_id']));?>">entrega aos cestantes</a></td>   
+                <td><a href="rel_recebimento.php?cha_id=<?php echo(h($row['cha_id']));?>">entregue pelo produtor</a></td>
+                <td><a href="rel_previsao_pagamento.php?cha_id=<?php echo(h($row['cha_id']));?>">consolidado</a> ou <a href="rel_previsao_pagamento_detalhado.php?cha_id=<?php echo(h($row['cha_id']));?>">detalhado</a> </td>
                 
                 <td>
-                  <a href="entrega_nucleos_consolidado.php?cha_id=<?php echo($row['cha_id']);?>">módulo entrega</a><br>
-                  <a href="financas_prazo.php?action=1&cha_id=<?php echo($row['cha_id']);?>">prazo finanças</a>
+                  <a href="entrega_nucleos_consolidado.php?cha_id=<?php echo(h($row['cha_id']));?>">módulo entrega</a><br>
+                  <a href="financas_prazo.php?action=1&cha_id=<?php echo(h($row['cha_id']));?>">prazo finanças</a>
                 </td>             
 
                                 

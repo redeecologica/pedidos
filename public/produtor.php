@@ -125,22 +125,22 @@
 		<tbody>
         
 			<tr>
-				<th>Tipo:</th> <td><?php echo($prodt_nome); ?></td>
+				<th>Tipo:</th> <td><?php echo(h($prodt_nome)); ?></td>
 			</tr>        
     		<tr>
-				<th>Nome Completo:</th> <td><?php echo($forn_nome_completo); ?></td>
+				<th>Nome Completo:</th> <td><?php echo(h($forn_nome_completo)); ?></td>
 			</tr>	    
     		<tr>
-				<th>Nome Curto:</th> <td><?php echo($forn_nome_curto); ?></td>
+				<th>Nome Curto:</th> <td><?php echo(h($forn_nome_curto)); ?></td>
 			</tr>            
     		<tr>
-				<th>Email:</th>	<td><?php echo($forn_email); ?></td>
+				<th>Email:</th>	<td><?php echo(h($forn_email)); ?></td>
 			</tr>
     		<tr>
-				<th>Contatos:</th> <td><?php echo($forn_contatos); ?></td>
+				<th>Contatos:</th> <td><?php echo(h($forn_contatos)); ?></td>
 			</tr>        
     		<tr>
-				<th>Endereço:</th> <td><?php echo($forn_endereco); ?></td>
+				<th>Endereço:</th> <td><?php echo(h($forn_endereco)); ?></td>
 			</tr>   
     		<tr>
 				<th>Link com info do produtor para o cestante:</th> <td><?php echo($forn_link_info); ?></td>
@@ -210,7 +210,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$forn_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
                               }
                             }
                         ?>            
@@ -222,21 +222,21 @@
             <div class="form-group">
                <label class="control-label col-sm-2" for="forn_nome_completo">Nome Completo</label>
                  <div class="col-sm-6">
-                   <input type="text" name="forn_nome_completo" required="required" value="<?php echo($forn_nome_completo); ?>" placeholder="Nome Completo" class="form-control"/>
+                   <input type="text" name="forn_nome_completo" required="required" value="<?php echo(h($forn_nome_completo)); ?>" placeholder="Nome Completo" class="form-control"/>
                   </div>
             </div>
             
             <div class="form-group">
                <label class="control-label col-sm-2" for="forn_nome_curto">Nome Curto</label>
                  <div class="col-sm-4">
-                   <input type="text" name="forn_nome_curto"  required="required" value="<?php echo($forn_nome_curto); ?>" placeholder="Nome Curto" class="form-control" />
+                   <input type="text" name="forn_nome_curto"  required="required" value="<?php echo(h($forn_nome_curto)); ?>" placeholder="Nome Curto" class="form-control" />
                  </div>  
             </div>
             
              <div class="form-group">
                    <label class="control-label col-sm-2" for="forn_email">Email </label>
                    <div class="col-sm-4">   
-                    <input type="text" class="form-control" name="forn_email" value="<?php echo($forn_email); ?>" placeholder="Email" />
+                    <input type="text" class="form-control" name="forn_email" value="<?php echo(h($forn_email)); ?>" placeholder="Email" />
     			   </div>
             </div>        
           
@@ -244,7 +244,7 @@
              <div class="form-group">
                 <label class="control-label col-sm-2" for="forn_contatos">Contatos</label>
                   <div class="col-sm-5">
-                    <textarea name="forn_contatos" rows="3"  class="form-control" placeholder="Contatos (telefone fixo, celular,...)"><?php echo($forn_contatos); ?></textarea>
+                    <textarea name="forn_contatos" rows="3"  class="form-control" placeholder="Contatos (telefone fixo, celular,...)"><?php echo(h($forn_contatos)); ?></textarea>
                   </div>
             </div>
           
@@ -252,7 +252,7 @@
             <div class="form-group">
                 <label class="control-label col-sm-2" for="forn_endereco">Endereço</label>
                   <div class="col-sm-5">
-                    <textarea name="forn_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo($forn_endereco); ?></textarea>
+                    <textarea name="forn_endereco" rows="4"  class="form-control" placeholder="Endereço"><?php echo(h($forn_endereco)); ?></textarea>
                   </div>
             </div>  
             
@@ -307,7 +307,7 @@
 							{
 								echo(" checked='checked' ");
 							}
-							echo("value='" . $row["nuc_id"] . "'>" . $row["nuc_nome_curto"] );
+							echo("value='" . $row["nuc_id"] . "'>" . h($row["nuc_nome_curto"]) );
 							echo("</label>");				
 							if($cont == $por_coluna + ($resto >= $coluna)  )
 							{

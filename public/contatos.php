@@ -69,16 +69,16 @@
 				     {
 				?>				 
 				  <tr>             
-					 <td><small><?php echo($row['nuc_nome_curto']);?></small></td>   
+					 <td><small><?php echo(h($row['nuc_nome_curto']));?></small></td>   
 					 <td><small><?php echo($row['usr_associado']? "Sim" : "Não"); ?></small></td>
-					 <td><small><?php echo($row['usr_nome_completo']);?></small></td>
-					 <td nowrap="nowrap"><small><?php echo($row['usr_desde']);?></small></td> 
-                     <td><small><?php echo($row['usr_contatos']);?></small></td>                      
-					 <td><small><?php echo($row['usr_email']);?></small></td>   
-					 <td><small><?php echo($row['usr_email_alternativo']);?></small></td>     
-					 <td><small><?php echo($row['usr_atividades']);?></small></td>                           
-                     <td><small><?php echo($row['usr_profissao']);?></small></td>                           
-                     <td><small><?php echo($row['usr_habilidades']);?></small></td>
+					 <td><small><?php echo(h($row['usr_nome_completo']));?></small></td>
+					 <td nowrap="nowrap"><small><?php echo(h($row['usr_desde']));?></small></td> 
+                     <td><small><?php echo(h($row['usr_contatos']));?></small></td>                      
+					 <td><small><?php echo(h($row['usr_email']));?></small></td>   
+					 <td><small><?php echo(h($row['usr_email_alternativo']));?></small></td>     
+					 <td><small><?php echo(h($row['usr_atividades']));?></small></td>                           
+                     <td><small><?php echo(h($row['usr_profissao']));?></small></td>                           
+                     <td><small><?php echo(h($row['usr_habilidades']));?></small></td>
                    </tr>
 				<?php 
 				     }

@@ -86,7 +86,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -98,7 +98,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -136,7 +136,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$nuc_id) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -230,15 +230,15 @@ if($nuc_id!=-1 && $cha_id!=-1)
                {
                     ?>
                     <tr>                              
-                    <td><?php echo($row["nuc_nome_curto"]);?></td>
-                    <td><?php echo($row["forn_nome_curto"]); ?></td> 
-                    <td><?php echo($row["prod_nome"]); ?></td>
-                    <td><?php echo($row["prod_unidade"]); ?></td>
+                    <td><?php echo(h($row["nuc_nome_curto"]));?></td>
+                    <td><?php echo(h($row["forn_nome_curto"])); ?></td> 
+                    <td><?php echo(h($row["prod_nome"])); ?></td>
+                    <td><?php echo(h($row["prod_unidade"])); ?></td>
                     <td><?php echo_digitos_significativos($row["total_pedido"]); ?></td>
                     <td><?php echo_digitos_significativos($row["total_recebido"]); ?></td>
                     <td><?php echo_digitos_significativos($row["total_entregue"]); ?></td>
                     <td class="alert alert-<?php echo($row["dist_just_dif_entrega"] ? "info" : "danger"); ?>"><?php echo_digitos_significativos($row["total_recebido"] - $row["total_entregue"]); ?></td>
-                    <td><?php echo($row["dist_just_dif_entrega"]); ?></td>
+                    <td><?php echo(h($row["dist_just_dif_entrega"])); ?></td>
                     <td><a href="entrega_divergencia_justificativa.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id . "&prod_id=" . $row["prod_id"]  . "&nuc_id=" .  $row["nuc_id"]  . "&back_url=entrega_divergencias.php" ); ?>" class="btn btn-default"><i class="glyphicon glyphicon-edit" title="atualizar justificativa"></i></a></td>                    
                     </tr>
                      

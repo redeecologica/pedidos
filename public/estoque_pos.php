@@ -142,7 +142,7 @@
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($est_cha!=-1 && !$achou)
 						  {
@@ -154,7 +154,7 @@
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -276,7 +276,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -294,8 +294,8 @@
 							
 							?>
 							<tr>                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
 							<td>
                               <?php if($row["est_prod_qtde_antes"]) echo_digitos_significativos($row["est_prod_qtde_antes"]); else echo("&nbsp;"); ?>
                             </td>   
@@ -456,7 +456,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -474,10 +474,10 @@
 							
 							?>
 							<tr> 
-                            <input type="hidden" name="est_prod[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <input type="hidden" name="est_prod[]" value="<?php echo(h($row["prod_id"])); ?>"/>
                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
 
         					<td>                            
                             <?php if($row["est_prod_qtde_antes"]) echo_digitos_significativos($row["est_prod_qtde_antes"],"0"); ?>                          
@@ -500,10 +500,10 @@
                             </td> 
                             
                             <td>
-                            <input type="text" class="replica-destino form-control propaga-colar numero-positivo" style="font-size:18px; text-align:center;" value="<?php if($row["est_prod_qtde_depois"]) echo_digitos_significativos($row["est_prod_qtde_depois"],"0"); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo($row["prod_id"]); ?>"/>
+                            <input type="text" class="replica-destino form-control propaga-colar numero-positivo" style="font-size:18px; text-align:center;" value="<?php if($row["est_prod_qtde_depois"]) echo_digitos_significativos($row["est_prod_qtde_depois"],"0"); ?>" name="est_prod_qtde_depois[]" id="est_prod_qtde_depois_<?php echo(h($row["prod_id"])); ?>"/>
                             </td> 
                             <td>
-							<input type="text" class="form-control" value="<?php if($row["est_obs_depois"]) echo($row["est_obs_depois"]); ?>" name="est_obs_depois[]" id="est_obs_depois_<?php echo($row["prod_id"]); ?>"/>
+							<input type="text" class="form-control" value="<?php if($row["est_obs_depois"]) echo(h($row["est_obs_depois"])); ?>" name="est_obs_depois[]" id="est_obs_depois_<?php echo(h($row["prod_id"])); ?>"/>
                             </td>                                                      							
 
                             </tr>

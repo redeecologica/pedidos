@@ -68,7 +68,7 @@ $nuc_nome_curto = $row["nuc_nome_curto"];
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -80,7 +80,7 @@ $nuc_nome_curto = $row["nuc_nome_curto"];
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -117,7 +117,7 @@ $nuc_nome_curto = $row["nuc_nome_curto"];
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$nuc_id) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -249,7 +249,7 @@ $res = executa_sql($sql);
 			<table id="selectable" class="table table-striped table-bordered table-condensed">
             <thead> 
              <tr>
-               <th colspan="<?php echo($num_colunas); ?>" style="text-align:left;vertical-align:middle">Núcleo <?php echo($nuc_nome_curto); ?> - Pedido de <?php echo($prodt_nome); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
+               <th colspan="<?php echo($num_colunas); ?>" style="text-align:left;vertical-align:middle">Núcleo <?php echo(h($nuc_nome_curto)); ?> - Pedido de <?php echo(h($prodt_nome)); ?> - Entrega em <?php echo($cha_dt_entrega); ?> </th>            
              </tr>		
                <tr>
                	<th colspan="2">&nbsp;</th>
@@ -336,7 +336,7 @@ $res = executa_sql($sql);
 								
 					?>
                           <tr>
-                            <th rowspan="2"><?php echo($row["forn_nome_curto"]);?></th>
+                            <th rowspan="2"><?php echo(h($row["forn_nome_curto"]));?></th>
                             <th rowspan="2">Unidade</th>
                             <th rowspan="2">Associado (R$)</th>
                             <th rowspan="2">Não Associado (R$)</th>                            
@@ -373,8 +373,8 @@ $res = executa_sql($sql);
 				$total_qtde_produto_entregue=0;					
 				?>
 				<tr> 
-				<td><?php echo($row["prod_nome"]);?><?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;(parcial)");?></td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_nome"]));?><?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;(parcial)");?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
 				<td><?php echo(formata_moeda($row["prod_valor_venda"]));?></td>
 				<td><?php echo(formata_moeda($row["prod_valor_venda_margem"]));?></td>
                                                   

@@ -18,7 +18,7 @@
                 { 
                  while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
                  {
-                     echo("<li><a href='chamada.php?action=" . ACAO_INCLUIR . "&cha_prodt=" . $row["prodt_id"] . "'>" . $row["prodt_nome"] . "</a></li>");
+                     echo("<li><a href='chamada.php?action=" . ACAO_INCLUIR . "&cha_prodt=" . $row["prodt_id"] . "'>" . h($row["prodt_nome"]) . "</a></li>");
                   }
                 }
             ?>   
@@ -48,7 +48,7 @@
                           {
                              echo("<option value='" . $row['prodt_id'] . "'");
                              if($row['prodt_id']==$cha_prodt) echo(" selected");
-                             echo (">" . $row['prodt_nome'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . "</option>");
                           }
                         }
                     ?>                        
@@ -93,11 +93,11 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['prodt_nome']);?></td>               
-					 <td><a href="chamada.php?action=0&amp;cha_id=<?php echo($row['cha_id']);?>"><?php echo($row['cha_dt_entrega']);?></a></td>
-                     <td><?php echo($row['cha_dt_min']);?></td> 
-					 <td><?php echo($row['cha_dt_max']);?> </td>                     
-					 <td>&nbsp;<?php echo($row['cha_qtde_pedidos']);?>  &nbsp; <a class="btn btn-default btn-xs" href="pedidos.php?ped_cha=<?php echo($row['cha_id']);?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>     
+					 <td><?php echo(h($row['prodt_nome']));?></td>               
+					 <td><a href="chamada.php?action=0&amp;cha_id=<?php echo(h($row['cha_id']));?>"><?php echo(h($row['cha_dt_entrega']));?></a></td>
+                     <td><?php echo(h($row['cha_dt_min']));?></td> 
+					 <td><?php echo(h($row['cha_dt_max']));?> </td>                     
+					 <td>&nbsp;<?php echo(h($row['cha_qtde_pedidos']));?>  &nbsp; <a class="btn btn-default btn-xs" href="pedidos.php?ped_cha=<?php echo(h($row['cha_id']));?>"><i class="glyphicon glyphicon-search"></i> consultar</a></td>     
                      
 				  </tr>
 				<?php 
@@ -119,7 +119,7 @@
 		{ 
 		 while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 		 {
-			 echo("<li><a href='chamada.php?action=" . ACAO_INCLUIR . "&cha_prodt=" . $row["prodt_id"] . "'>" . $row["prodt_nome"] . "</a></li>");
+			 echo("<li><a href='chamada.php?action=" . ACAO_INCLUIR . "&cha_prodt=" . $row["prodt_id"] . "'>" . h($row["prodt_nome"]) . "</a></li>");
 		  }
 		}
     ?>   

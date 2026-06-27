@@ -211,7 +211,7 @@
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -223,7 +223,7 @@
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -316,7 +316,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -335,8 +335,8 @@
 							
 							?>
 							<tr>                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>                          							
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>                          							
 							<td>                            
                           		<?php echo_digitos_significativos($row["total_demanda"]); ?> 
                              </td>   
@@ -482,7 +482,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -501,15 +501,15 @@
 							
 							?>
 							<tr> 
-                            <input type="hidden" name="chaprod_prod[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <input type="hidden" name="chaprod_prod[]" value="<?php echo(h($row["prod_id"])); ?>"/>
                             
                             <input type="hidden" name="total_pedido[]" class="replica-origem-pedido" value="<?php echo_digitos_significativos($row["total_pedido"],""); ?>">  
                             <input type="hidden" name="total_mutirao[]" class="replica-origem-mutirao" value="<?php echo_digitos_significativos($row["chaprod_recebido"],""); ?>">		
                             <input type="hidden" name="total_nucleo[]" class="replica-origem-nucleo" value="<?php if(isset($receb_nucleos[$row["prod_id"]])) echo_digitos_significativos($receb_nucleos[$row["prod_id"]],""); else echo(""); ?>">  
                             
                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
                             <td><?php echo_digitos_significativos($row["total_demanda"]);?></td>                            
 							<td>                            
                           		<?php echo_digitos_significativos($row["estoque_pre_esperado"]); ?> 

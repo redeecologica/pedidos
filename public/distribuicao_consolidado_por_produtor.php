@@ -91,7 +91,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 								 echo(" selected");
 								 $achou=true;
 							 }
-                             echo (">" . $row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");
+                             echo (">" . h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");
                           }
 						  if($cha_id!=-1 && !$achou)
 						  {
@@ -103,7 +103,7 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 							  if($row)
 							  {
 								  echo("<option value='" . $row['cha_id'] . "' selected>");
-								  echo ($row['prodt_nome'] . " - " . $row['cha_dt_entrega'] . "</option>");	
+								  echo (h($row['prodt_nome']) . " - " . $row['cha_dt_entrega'] . "</option>");	
 							  }
 						  }
 						  
@@ -223,7 +223,7 @@ if($cha_id!=-1)
               
                     ?>
                     <tr>                              
-                    <td><?php echo($row["forn_nome_curto"]);?></td>
+                    <td><?php echo(h($row["forn_nome_curto"]));?></td>
                     <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
                     <td><?php echo(formata_moeda($valor_distribuido)); ?></td>
                     <!--<td><?php echo(formata_moeda($valor_recebido)); ?></td>-->

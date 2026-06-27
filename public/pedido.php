@@ -190,8 +190,8 @@
  
 	<legend>Pedido de <?php echo(($prodt_nome) . " - " . ($cha_dt_entrega)); ?></legend>
       <div class="row">
-       	<div class="col-md-5"><strong>Cestante</strong>: <?php echo($usr_nome_curto);?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
-        <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo($nuc_nome_curto);?></div>
+       	<div class="col-md-5"><strong>Cestante</strong>: <?php echo(h($usr_nome_curto));?> (<?php echo($usr_contatos ? $usr_contatos : "sem contato informado"); ?>) </div>
+        <div class="col-md-4"><strong>Núcleo de Entrega: </strong>    <?php echo(h($nuc_nome_curto));?></div>
      	<div class="col-md-3 hidden-print"><strong>Associado:</strong> <?php echo($ped_usr_associado==1 ? "Sim" : "Não")?></div>
 	    <div class="col-md-8"><strong>Status do Pedido:</strong>         	
              <span class="label <?php echo($ped_fechado ? "label-success" : "label-danger\" style=\"font-size:larger;\"") ?>"><?php echo($ped_fechado ? "Enviado" : "Ainda não enviado") ?>
@@ -260,7 +260,7 @@
 							  <th colspan="6">
 							  
 							  		<?php 
-									echo($row["forn_nome_completo"]);
+									echo(h($row["forn_nome_completo"]));
                               
                                           if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
                                           {
@@ -279,11 +279,11 @@
 				?>
 				<tr> 
 				<td style="text-align:left;">
-					<?php echo($row["prod_nome"]); adiciona_popover_descricao("Descrição", $row["prod_descricao"]); ?> 
+					<?php echo(h($row["prod_nome"])); adiciona_popover_descricao("Descrição", h($row["prod_descricao"])); ?> 
 					<?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
 					<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
                 </td>
-				<td><?php echo($row["prod_unidade"]);?></td>
+				<td><?php echo(h($row["prod_unidade"]));?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"]) ); ?></td>
 				<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"]) ); ?></td> 
 				<td><?php echo(formata_numero_de_mysql($row["pedprod_quantidade"]) ); ?></td>
@@ -442,7 +442,7 @@
 										<tr>
 										  <th colspan="6">
 										  	<?php 
-														echo($row["forn_nome_completo"]);
+														echo(h($row["forn_nome_completo"]));
 											  if(isset($row["forn_link_info"]) && $row["forn_link_info"]!="")
 											  {
 												   echo("&nbsp;<a href='" . $row["forn_link_info"] . "' target='_blank' tabindex='-1'><span class='badge'><span class='glyphicon glyphicon-search'></span></span></a>");
@@ -459,38 +459,38 @@
 							?>
 							<tr> 
                             <td style="text-align:left;">
-								<?php echo($row["prod_nome"]); 
+								<?php echo(h($row["prod_nome"])); 
 									  adiciona_popover_descricao("Descrição", $row["prod_descricao"]);
 								?>
                                 <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
 								<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>                           
                             </td>
-                            <td><?php echo($row["prod_unidade"]);?></td>
+                            <td><?php echo(h($row["prod_unidade"]));?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"])); ?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda_margem"])); ?></td> 
 							<td>
-                            <input type="hidden" name="pedprod_quantidade_prod[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <input type="hidden" name="pedprod_quantidade_prod[]" value="<?php echo(h($row["prod_id"])); ?>"/>
                             <?php 
 								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>" />
                             <?php 
 								}
 								else
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo($row["prod_id"]);?>" />
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>" />
                             <?php 
 								}								
 							?>
 
                             </td>    
                     		<td>
-                            <input type="hidden" name="valorprod_<?php echo($row["prod_id"]);?>" value="<?php echo($ped_usr_associado)==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"] ?>" id="valorprod_<?php echo($row["prod_id"]);?>"/>
-                            <input type="hidden" class="multiploprod" name="multiploprod_<?php echo($row["prod_id"]); ?>" value="<?php echo($row["prod_multiplo_venda"])?>" id="multiploprod_<?php echo($row["prod_id"]);?>"/>
+                            <input type="hidden" name="valorprod_<?php echo(h($row["prod_id"]));?>" value="<?php echo($ped_usr_associado)==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"] ?>" id="valorprod_<?php echo(h($row["prod_id"]));?>"/>
+                            <input type="hidden" class="multiploprod" name="multiploprod_<?php echo(h($row["prod_id"])); ?>" value="<?php echo(h($row["prod_multiplo_venda"]))?>" id="multiploprod_<?php echo(h($row["prod_id"]));?>"/>
                                                         
-                            <div class="text-info total_prod" id="totalprod_<?php echo($row["prod_id"]); ?>"><?php echo (formata_moeda($row["pedprod_quantidade"] * ( $ped_usr_associado==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"]) ) ); ?></div>
+                            <div class="text-info total_prod" id="totalprod_<?php echo(h($row["prod_id"])); ?>"><?php echo (formata_moeda($row["pedprod_quantidade"] * ( $ped_usr_associado==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"]) ) ); ?></div>
                             </td>    
                             
                             </tr>

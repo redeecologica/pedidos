@@ -209,7 +209,7 @@
                         <table class="table table-striped table-bordered table-condensed table-hover">
 						<thead>
                         	<tr>
-                            	<th colspan="<?php echo($num_colunas);?>">Distribuído para os núcleos  - Produtor <?php echo($forn_nome_curto); ?></th>
+                            	<th colspan="<?php echo($num_colunas);?>">Distribuído para os núcleos  - Produtor <?php echo(h($forn_nome_curto)); ?></th>
                             </tr>
                         </thead>
                         
@@ -248,7 +248,7 @@
 							<tr>
 
 									<th rowspan="2">##</th>
-									  <th rowspan="2"><?php echo($row["forn_nome_curto"]);?></th>
+									  <th rowspan="2"><?php echo(h($row["forn_nome_curto"]));?></th>
 									  <th rowspan="2">Unidade</th>	  
 									  <?php
 									   foreach ($nucleos as $nucleo)
@@ -305,8 +305,8 @@
 					}
 					?>
                     </td>
-					<td><?php echo($row["prod_nome"]);?></td>
-					<td><?php echo($row["prod_unidade"]);?></td>                    								                                          
+					<td><?php echo(h($row["prod_nome"]));?></td>
+					<td><?php echo(h($row["prod_unidade"]));?></td>                    								                                          
                     
 					  <?php
 					   for ($i = 0; $i < count($nucleos); $i++)
@@ -412,7 +412,7 @@
                  
                   <thead>
                         	<tr>
-                            	<th colspan="4">Relatório do que foi distribuído para os núcleos - produtor <?php echo($forn_nome_curto); ?> </th>
+                            	<th colspan="4">Relatório do que foi distribuído para os núcleos - produtor <?php echo(h($forn_nome_curto)); ?> </th>
                             </tr>
                     </thead>
                     <tbody>
@@ -436,7 +436,7 @@
 								
 								?>
                         <tr>
-                            <th><?php echo( $row["prod_nome"]);  echo(" - "); echo ($row["prod_unidade"]);?></th>
+                            <th><?php echo(h($row["prod_nome"]));  echo(" - "); echo(h($row["prod_unidade"]));?></th>
                             <th colspan="2">
                             <button type="button" class="btn btn-info" name="copia_produtos_pedido" id="copia_produtos_pedido" onclick="javascript:replicaDados('replica-origem','replica-destino');">
 							  <i class="glyphicon glyphicon-paste"></i> replicar do pedido
@@ -464,8 +464,8 @@
 							
 							?>
 							<tr> 
-                            <input type="hidden" name="nuc_id[]" value="<?php echo($row["nuc_id"]); ?>"/>
-                            <td><?php echo($row["nuc_nome_curto"]);?></td> 
+                            <input type="hidden" name="nuc_id[]" value="<?php echo(h($row["nuc_id"])); ?>"/>
+                            <td><?php echo(h($row["nuc_nome_curto"]));?></td> 
                             <td>         
                              <input type="hidden" name="total_pedido_nucleo[]" class="replica-origem" value="<?php echo_digitos_significativos($row["total_pedido_nucleo"],""); ?>">   
                                               

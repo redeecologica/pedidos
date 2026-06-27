@@ -82,7 +82,7 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Nome: </th> <td><?php echo($prodt_nome); ?></td>
+				<th>Nome: </th> <td><?php echo(h($prodt_nome)); ?></td>
 			</tr>	    
  
     		<tr>
@@ -132,7 +132,7 @@
             <div class="form-group">
                <label class="control-label col-sm-3" for="prodt_nome">Nome</label>
                  <div class="col-sm-4">
-                   <input type="text" name="prodt_nome" class="form-control" required="required" value="<?php echo($prodt_nome); ?>"/>
+                   <input type="text" name="prodt_nome" class="form-control" required="required" value="<?php echo(h($prodt_nome)); ?>"/>
                   </div>
             </div>
       

@@ -50,9 +50,9 @@
        {
             ?>
             <tr>                              
-            <td><?php echo($row["prodt_nome"]);?></td>
-            <td><?php echo($row["cha_dt_entrega"]);?></td>
-            <td><?php echo($row["cha_dt_prazo_contabil"]);?></td>            
+            <td><?php echo(h($row["prodt_nome"]));?></td>
+            <td><?php echo(h($row["cha_dt_entrega"]));?></td>
+            <td><?php echo(h($row["cha_dt_prazo_contabil"]));?></td>            
             <td>
                 <a class="btn btn-default" href="financas_prazo.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $row["cha_id"] . "&back_url=financas_prazos.php" ); ?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>
             </td>

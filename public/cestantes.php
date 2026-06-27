@@ -58,7 +58,7 @@
 							 }
                              echo("<option value='" . $row['nuc_id'] . "'");
                              if($row['nuc_id']==$usr_nuc) echo(" selected");
-                             echo (">" . $row['nuc_nome_curto'] . "</option>");
+                             echo (">" . h($row['nuc_nome_curto']) . "</option>");
                           }
                         }
                     ?>                        
@@ -106,12 +106,12 @@
 				?>				 
 				  <tr <?php echo( $classe_arquivado); ?>>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['nuc_nome_curto']);?></td>   
+					 <td><?php echo(h($row['nuc_nome_curto']));?></td>   
 					 <td><?php echo($row['usr_associado']? "Sim" : "Não"); ?></td>    
-                     <td><?php echo($row['asso_nome']);?></td>                                
-					 <td><a href="cestante.php?action=0&amp;usr_id=<?php echo( $row['usr_id']);?>"><?php echo($icone_arquivado);?> <?php echo($row['usr_nome_completo']);?></a></td>
-                     <td><?php echo($row['usr_nome_curto']);?></td> 
-					 <td><?php echo($row['usr_email']);?> </td>                     
+                     <td><?php echo(h($row['asso_nome']));?></td>                                
+					 <td><a href="cestante.php?action=0&amp;usr_id=<?php echo(h($row['usr_id']));?>"><?php echo($icone_arquivado);?> <?php echo(h($row['usr_nome_completo']));?></a></td>
+                     <td><?php echo(h($row['usr_nome_curto']));?></td> 
+					 <td><?php echo(h($row['usr_email']));?> </td>                     
 
 				  </tr>
 				<?php 

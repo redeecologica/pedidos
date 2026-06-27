@@ -172,7 +172,7 @@
                 <table class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="5">Relatório do que foi entregue ao núcleo <?php echo($nuc_nome_completo); ?></th>
+                        <th colspan="5">Relatório do que foi entregue ao núcleo <?php echo(h($nuc_nome_completo)); ?></th>
                     </tr>
                 </thead>
                 
@@ -190,7 +190,7 @@
                         ?>
                                 <tr>
                                     <th>
-                                      <?php echo($row["forn_nome_curto"]);
+                                      <?php echo(h($row["forn_nome_curto"]));
                                       adiciona_popover_descricao("",$row["forn_nome_completo"]);
                                       ?>
                                     </th>
@@ -205,8 +205,8 @@
                     
                     ?>
                     <tr>                              
-                    <td><?php echo($row["prod_nome"]);?></td>
-                    <td><?php echo($row["prod_unidade"]); ?></td>  
+                    <td><?php echo(h($row["prod_nome"]));?></td>
+                    <td><?php echo(h($row["prod_unidade"])); ?></td>  
                     <td>                            
                         <?php 
                             if($row["pedprod_quantidade"]) 
@@ -293,7 +293,7 @@
                  
                   <thead>
                         	<tr>
-                            	<th colspan="5">Registro do que foi recebido pelo núcleo <?php echo($nuc_nome_completo); ?></th>
+                            	<th colspan="5">Registro do que foi recebido pelo núcleo <?php echo(h($nuc_nome_completo)); ?></th>
                             </tr>
                     </thead>
                     <tbody>
@@ -334,7 +334,7 @@
 								?>
 										<tr>
 											<th>
-											  <?php echo($row["forn_nome_curto"]);
+											  <?php echo(h($row["forn_nome_curto"]));
 											  adiciona_popover_descricao("",$row["forn_nome_completo"]);
 											  ?>
                                             </th>
@@ -349,10 +349,10 @@
 							
 							?>
 							<tr> 
-                            <input type="hidden" name="prod_id[]" value="<?php echo($row["prod_id"]); ?>"/>
+                            <input type="hidden" name="prod_id[]" value="<?php echo(h($row["prod_id"])); ?>"/>
                              
-                            <td><?php echo($row["prod_nome"]);?></td>
-                            <td><?php echo($row["prod_unidade"]); ?></td>
+                            <td><?php echo(h($row["prod_nome"]));?></td>
+                            <td><?php echo(h($row["prod_unidade"])); ?></td>
                             <td>    
                                <input type="hidden" name="pedprod_quantidade[]" class="replica-origem-demanda" value="<?php echo_digitos_significativos($row["pedprod_quantidade"],""); ?>">                        
                           		<?php 						 

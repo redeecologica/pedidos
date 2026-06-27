@@ -221,7 +221,7 @@
 					  {
 						 echo("<option value='" . $row['cha_id'] . "'");
 						 if($row['cha_id']==$cha_id) echo(" selected");
-						 echo (">" . $row['prodt_nome'] . " " . $row['cha_dt_entrega'] . "</option>");
+						 echo (">" . h($row['prodt_nome']) . " " . $row['cha_dt_entrega'] . "</option>");
 					  }
 					}
 

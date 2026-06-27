@@ -48,7 +48,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$forn_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
                               }
                             }
                         ?>  
@@ -104,7 +104,7 @@
 								  echo(" selected");
 								  $achou=true;
 							 }
-                             echo (">" . $row['forn_nome_curto'] . "</option>");
+                             echo (">" . h($row['forn_nome_curto']) . "</option>");
                           }
 						  if(!$achou) $prod_forn = -1;
                         }
@@ -156,18 +156,18 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><?php echo($row['prodt_nome']);?></td>  
-					 <td><?php echo($row['forn_nome_curto']);?></td>                                    
+					 <td><?php echo(h($row['prodt_nome']));?></td>  
+					 <td><?php echo(h($row['forn_nome_curto']));?></td>                                    
 					 <td>
-                     	<a href="produto.php?action=0&amp;prod_id=<?php echo($row['prod_id']);?>"><?php echo($row['prod_nome']);?></a> 
+                     	<a href="produto.php?action=0&amp;prod_id=<?php echo(h($row['prod_id']));?>"><?php echo(h($row['prod_nome']));?></a> 
 					 	<?php adiciona_popover_descricao("Descrição", $row["prod_descricao"]);?>
                         <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
                      </td>
-                     <td><?php echo($row['prod_unidade']);?></td> 
+                     <td><?php echo(h($row['prod_unidade']));?></td> 
                      <td><?php echo(formata_moeda($row['prod_valor_compra']));?></td>
                      <td><?php echo(formata_moeda($row['prod_valor_venda']));?></td> 
 					 <td><?php echo(formata_moeda($row['prod_valor_venda_margem']));?> </td>                     
-                     <td><?php echo($row['prod_peso_bruto']);?></td> 
+                     <td><?php echo(h($row['prod_peso_bruto']));?></td> 
 				  </tr>
 				<?php 
 				     }

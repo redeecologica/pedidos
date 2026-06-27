@@ -37,7 +37,7 @@
 				?>				 
 				  <tr>
                   	 <td><?php echo(++$contador);?></td>               
-					 <td><a href="nucleotipo.php?action=0&amp;nuct_id=<?php echo($row['nuct_id']);?>"><?php echo($row['nuct_nome']);?></a></td>
+					 <td><a href="nucleotipo.php?action=0&amp;nuct_id=<?php echo(h($row['nuct_id']));?>"><?php echo(h($row['nuct_nome']));?></a></td>
 				
 				  </tr>
 				<?php 

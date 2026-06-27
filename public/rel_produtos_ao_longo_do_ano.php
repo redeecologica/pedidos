@@ -44,7 +44,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$cha_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
 							  	 $chamada_tipos[$row['prodt_id']]=$row['prodt_nome'];
                               }
 
@@ -86,7 +86,7 @@
                               {
                                  echo("<option value='" . $row['prodt_id'] . "'");
                                  if($row['prodt_id']==$forn_prodt) echo(" selected");
-                                 echo (">" . $row['prodt_nome'] . "</option>");
+                                 echo (">" . h($row['prodt_nome']) . "</option>");
                               }
                             }
                         ?>  
@@ -105,7 +105,7 @@
         &nbsp;
         <div class="form-group">            
                <label class="control-label" for="prod_nome">Produto: </label>
-                   <input type="text" name="prod_nome"  value="<?php echo($prod_nome); ?>" placeholder="ex: banana*" class="form-control"/>                    
+                   <input type="text" name="prod_nome"  value="<?php echo(h($prod_nome)); ?>" placeholder="ex: banana*" class="form-control"/>                    
          </div> 
             
           &nbsp;&nbsp &nbsp;&nbsp
@@ -245,9 +245,9 @@ if($res)
 	{
 		echo("<tr>");
 		echo("<td>" . $chamada_tipos[$produto["cha_prodt"]] . "</td>");
-		echo("<td>" . $produto["forn_nome_curto"] . "</td>");
-		echo("<td>" . $produto["prod_nome"] . "</td>");
-		echo("<td>" . $produto["prod_unidade"] . "</td>");
+		echo("<td>" . h($produto["forn_nome_curto"]) . "</td>");
+		echo("<td>" . h($produto["prod_nome"]) . "</td>");
+		echo("<td>" . h($produto["prod_unidade"]) . "</td>");
 		echo("<td>" . formata_moeda($produto["prod_valor_compra"]) . "</td>");	
 		for($i=1; $i <= $total_entregas; $i++)
 		{

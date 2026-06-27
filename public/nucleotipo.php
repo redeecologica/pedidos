@@ -62,7 +62,7 @@
 <table class="table-condensed table-info-cadastro">
 		<tbody>
     		<tr>
-				<th>Nome: </th> <td><?php echo($nuct_nome); ?></td>
+				<th>Nome: </th> <td><?php echo(h($nuct_nome)); ?></td>
 			</tr>	    
                                   
         </tbody>
@@ -103,7 +103,7 @@
             <div class="form-group">
                <label class="control-label col-sm-3" for="nuct_nome">Nome</label>
                  <div class="col-sm-4">
-                   <input type="text" name="nuct_nome" class="form-control" required="required" value="<?php echo($nuct_nome); ?>"/>
+                   <input type="text" name="nuct_nome" class="form-control" required="required" value="<?php echo(h($nuct_nome)); ?>"/>
                   </div>
             </div>
       
