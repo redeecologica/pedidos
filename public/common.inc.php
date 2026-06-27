@@ -201,8 +201,8 @@ function prepara_sql_atualizacao($key_field,$fields,$table,$key_value = "")
             	$update_fields[] = "$field = ". prep_para_bd(($_REQUEST[$field])); 
 			}
         } 
-        return "UPDATE $table SET " . join(',',$update_fields) . 
-               " WHERE $key_field = ". $key_value_temp; 
+        return "UPDATE $table SET " . join(',',$update_fields) .
+               " WHERE $key_field = ". prep_para_bd($key_value_temp);
     } 
 	else 
 	{ 

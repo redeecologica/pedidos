@@ -285,8 +285,8 @@ function toggleMatrizPermissoes() {
 					$sql.= "LEFT JOIN usuarios ON usrp_usr = usr_id ";	
 					$sql.= "LEFT JOIN nucleos ON usr_nuc = nuc_id ";	
 					$sql.= "WHERE 1 ";
-					if($usr_nuc!=-1) 	 $sql.= " AND usr_nuc = '" . $usr_nuc .  "' ";						
-					if($pap_id!=-1) 	 $sql.= " AND usrp_pap = '" . $pap_id .  "' ";						
+					if($usr_nuc!=-1) 	 $sql.= " AND usr_nuc = " . prep_para_bd($usr_nuc) . " ";
+					if($pap_id!=-1) 	 $sql.= " AND usrp_pap = " . prep_para_bd($pap_id) . " ";
 					$sql.= "ORDER BY pap_nome, usr_nome_completo ";
 					$res = executa_sql($sql);
 					$contador = 0;
