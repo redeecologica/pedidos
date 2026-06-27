@@ -3,6 +3,14 @@
 require_once(__DIR__ . "/vendor/autoload.php");
 require_once("settings.php");
 
+// endurece o cookie de sessão (antes do session_start). Compatível 5.6 → 8.4:
+// sem ?? (7.0+) nem forma de array de session_set_cookie_params (7.3+).
+$xfp = isset($_SERVER['HTTP_X_FORWARDED_PROTO']) ? $_SERVER['HTTP_X_FORWARDED_PROTO'] : '';
+$https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($xfp === 'https');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', $https ? '1' : '0'); // só exige https quando a requisição é https (local http não quebra)
+if (PHP_VERSION_ID >= 70300) ini_set('session.cookie_samesite', 'Lax'); // ini existe a partir do 7.3
+
 session_start();
 
 define('PAGINAPRINCIPAL', "inicio.php");
