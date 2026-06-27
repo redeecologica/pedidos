@@ -27,13 +27,17 @@
 		
 		if($nova_senha!="")
 		{
-			if(strlen($nova_senha)>8)
+			if(strlen($nova_senha)<8)
 			{
-				adiciona_mensagem_status(MSG_TIPO_ERRO,"A senha deve conter no máximo 8 caracteres.");	
+				adiciona_mensagem_status(MSG_TIPO_ERRO,"A senha deve ter no mínimo 8 caracteres.");
+			}
+			else if(eh_palavra_temp($nova_senha))
+			{
+				adiciona_mensagem_status(MSG_TIPO_ERRO,"Essa senha não é permitida. Por favor escolha outra.");
 			}
 			else
 			{
-				$sql = "UPDATE usuarios  SET usr_senha = " . prep_para_bd(crypt($nova_senha,PASSWORD_SALT));
+				$sql = "UPDATE usuarios  SET usr_senha = " . prep_para_bd(hash_senha($nova_senha));
 				$sql.= " WHERE usr_id = " . prep_para_bd($usr_id);	
 				$res = executa_sql($sql);	
 				if(!$res)
@@ -77,13 +81,13 @@
 		<fieldset>
         <h2 class="form-signin-heading"><?php echo($usr_nome); ?>, favor informar a nova senha</h2>
 	
-        <label for="login_usr_senha">Nova senha: (até 8 digitos)</label> 
+        <label for="login_usr_senha">Nova senha: (mínimo 8 caracteres)</label>
   		<div class="input-group"><span class="add-on"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha" value="">       </div> 
+        	<input type="password" class="input-xlarge" minlength="8" name="login_usr_senha" value="">       </div>
 
-        <label for="login_usr_senha_conf">Confirmar nova senha:</label> 
+        <label for="login_usr_senha_conf">Confirmar nova senha:</label>
   		<div class="input-group"><span class="add-on"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="input-xlarge" maxlength="8" max="8" name="login_usr_senha_conf" value="">       </div> 
+        	<input type="password" class="input-xlarge" minlength="8" name="login_usr_senha_conf" value="">       </div>
 
         
         <input class="btn btn-lg btn-primary" type="submit" value="Salvar senha" name="salvar_senha">

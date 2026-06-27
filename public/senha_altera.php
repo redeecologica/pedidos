@@ -11,28 +11,33 @@
   
 	if($nova_senha!="")
 	{
-		if(strlen($nova_senha)>8)
+		if(strlen($nova_senha)<8)
 		{
-			adiciona_mensagem_status(MSG_TIPO_ERRO,"A senha deve conter no máximo 8 caracteres.");	
+			adiciona_mensagem_status(MSG_TIPO_ERRO,"A senha deve ter no mínimo 8 caracteres.");
+		}
+		else if(eh_palavra_temp($nova_senha))
+		{
+			adiciona_mensagem_status(MSG_TIPO_ERRO,"Essa senha não é permitida. Por favor escolha outra.");
 		}
 		else
 		{
-			$sql = "UPDATE usuarios  SET usr_senha = " . prep_para_bd(crypt($nova_senha,PASSWORD_SALT));
-			$sql.= " WHERE usr_id = " . prep_para_bd($usr_id);	
-			$res = executa_sql($sql);	
+			$sql = "UPDATE usuarios  SET usr_senha = " . prep_para_bd(hash_senha($nova_senha));
+			$sql.= " WHERE usr_id = " . prep_para_bd($usr_id);
+			$res = executa_sql($sql);
 			if(!$res)
 			{
-				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar nova senha.");	
+				adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar nova senha.");
 			}
 			else
 			{
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Sua senha foi alterada com sucesso.");					
-				$sucesso = 1;			
-					
+				unset($_SESSION['deve_trocar_senha']); // resolveu a troca obrigatória
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Sua senha foi alterada com sucesso.");
+				$sucesso = 1;
+
 			}
 	//		redireciona("meusdados.php");
-	
-		}						
+
+		}
 	}
  
   
@@ -63,17 +68,17 @@ else
 		<fieldset>
         <h2 class="form-signin-heading" align="center">Informar a nova senha</h2>
 		<br>
-        <label for="login_usr_senha_nova">Nova senha</label> (até 8 digitos)
+        <label for="login_usr_senha_nova">Nova senha</label> (mínimo 8 caracteres)
         <div class="input-group">
   			<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control" maxlength="8" max="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value="" required="required"> 
+        	<input type="password" class="form-control" minlength="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value="" required="required">
          </div> 
 		<br />
 
         <label for="login_usr_senha_nova_conf">Confirmar nova senha</label> 
   		<div class="input-group">
         	<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control" maxlength="8" max="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value="" required="required"> 
+        	<input type="password" class="form-control" minlength="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value="" required="required">
          </div> 
 
         <br><br>
