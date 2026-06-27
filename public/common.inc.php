@@ -173,6 +173,22 @@ function prep_para_html($texto)
 // escapa texto para saída segura em HTML (uso: echo(h($row['campo'])) )
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
+// --- senhas: hash bcrypt + verificação com fallback para o hash legado (crypt) ---
+function hash_senha($pw) { return password_hash($pw, PASSWORD_DEFAULT); }
+
+function verifica_senha($pw, $hash)
+{
+	if ($hash === null || $hash === '') return false;
+	if (password_verify($pw, $hash)) return true;            // bcrypt
+	return hash_equals($hash, crypt($pw, PASSWORD_SALT));    // hash legado (crypt + PASSWORD_SALT)
+}
+
+function eh_palavra_temp($pw)
+{
+	$r = executa_sql("SELECT 1 FROM temp_senhas WHERE pass_nome = " . prep_para_bd($pw) . " LIMIT 1");
+	return ($r && mysqli_num_rows($r) > 0);
+}
+
 function adiciona_popover_descricao($titulo,$texto)
 {
 	if(isset($texto) && $texto!="")
