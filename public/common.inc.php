@@ -118,7 +118,18 @@ function verifica_seguranca($parametro_validacao = true)
 function redireciona($pagina)
 {
 	// require_once("registro_visita.inc.php");
-	echo("<script>location.href='$pagina'</script>");
+	// só permite alvo relativo da app (nome.php?query); bloqueia esquema (http://),
+	// protocol-relative (//) e caracteres perigosos — fecha open-redirect via back_url.
+	if (!preg_match('#^[A-Za-z0-9_-]+\.php(\?[^\s\'"<>]*)?$#', $pagina))
+	{
+		$pagina = PAGINAPRINCIPAL;
+	}
+	if (!headers_sent())
+	{
+		header('Location: ' . $pagina);
+	}
+	// fallback (se a saída já começou) — json_encode escapa corretamente p/ JS e preserva & na URL
+	echo("<script>location.href=" . json_encode($pagina) . "</script>");
 	exit();
 }
 
