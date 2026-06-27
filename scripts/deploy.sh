@@ -21,31 +21,27 @@ git archive "$BRANCH" | tar -x -C "$STAGE"
 SRC="$STAGE/public"
 # itens que vivem em public/ mas NÃO são servidos:
 rm -f "$SRC/composer.json" "$SRC/composer.lock" "$SRC/settings.php.docker" "$SRC/settings.php.sample"
+# normaliza permissões na ORIGEM (dirs 755, files 644). NÃO usar rsync --chmod: o openrsync
+# do macOS o rejeita. Sem isto, o modo 700 do diretório do mktemp iria parar no web root → 403.
+chmod 755 "$SRC"
+find "$SRC" -type d -exec chmod 755 {} +
+find "$SRC" -type f -exec chmod 644 {} +
 
-echo ">> Backup no servidor (tar local ao servidor, segundos)..."
-# shellcheck disable=SC2029  # expansão local de PROD_WEB_ROOT é intencional
+PAI="$(dirname "${PROD_WEB_ROOT}")"; BASE="$(basename "${PROD_WEB_ROOT}")"
+echo ">> Backup no servidor (exclui tutorial/intranet — rápido)..."
+# shellcheck disable=SC2029  # expansão local intencional
 ssh "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
-  "tar czf ~/backup-pre-fase2-\$(date +%F-%H%M).tgz -C '$(dirname "${PROD_WEB_ROOT}")' '$(basename "${PROD_WEB_ROOT}")' && ls -lh ~/backup-pre-fase2-*.tgz | tail -1"
-
-# --chmod=D755,F644 força permissões corretas independente da origem.
-# Sem isto, o diretório do mktemp (modo 700) era copiado para o web root,
-# deixando o public_html 700 → servidor não consegue entrar → 403 em tudo.
-RSYNC_PERMS="--chmod=D755,F644"
+  "cd '${PAI}' && tar czf ~/backup-pre-deploy-\$(date +%F-%H%M).tgz --exclude='${BASE}/tutorial' --exclude='${BASE}/intranet' '${BASE}' && ls -lh ~/backup-pre-deploy-*.tgz | tail -1"
 
 echo ">> DRY-RUN do rsync (nada é alterado ainda):"
-rsync -avzn $RSYNC_PERMS --itemize-changes "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
+rsync -avzn --itemize-changes "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
 echo
 read -r -p ">> Confirma o deploy? Digite SIM para prosseguir: " CONFIRMA
 [[ "$CONFIRMA" == "SIM" ]] || { echo "Abortado."; exit 1; }
 
-rsync -avz $RSYNC_PERMS "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
-
-echo ">> Removendo diretórios substituídos no servidor (ckeditor, phpmailer)..."
-# shellcheck disable=SC2029  # expansão local de PROD_WEB_ROOT é intencional
-ssh "${PROD_SSH_USER}@${PROD_SSH_HOST}" "cd '${PROD_WEB_ROOT}' && rm -rf ckeditor phpmailer && echo removidos"
+rsync -avz "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
 
 echo ">> Deploy concluído. Smoke de produção:"
 curl -s -o /dev/null -w 'login.php: %{http_code}\n' https://pedidos.redeecologicario.org/login.php
-echo ">> Lembrete: a virada de versão do PHP é manual, no painel da Locaweb (5.3 → 8.4)."
-echo ">> Rollback completo = painel de volta a 5.3 + restaurar o backup:"
-echo "   ssh ${PROD_SSH_USER}@${PROD_SSH_HOST} 'tar xzf ~/backup-pre-fase2-DATA.tgz -C $(dirname "${PROD_WEB_ROOT}")'"
+echo ">> Rollback (deploy code-only no 8.4) = restaurar o backup:"
+echo "   ssh ${PROD_SSH_USER}@${PROD_SSH_HOST} 'tar xzf ~/backup-pre-deploy-DATA.tgz -C $(dirname "${PROD_WEB_ROOT}")'"
