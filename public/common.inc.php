@@ -473,49 +473,20 @@ function envia_email($dest_nome, $dest_email, $dest_cc, $assunto,$corpo_html,$co
 
 function gera_primeira_senha_acesso($usr_id)
 {
-	$sucesso = false;
-	$senha_gerada="";
-	
-	$sql="SELECT pass_nome FROM  temp_senhas ORDER BY RAND( ) LIMIT 1";		
-	$res = executa_sql($sql);
-	if($res && mysqli_num_rows($res))
-	{
-		$row = mysqli_fetch_array($res,MYSQLI_ASSOC);
-		$senha_gerada = $row["pass_nome"];
-		$sql = "UPDATE usuarios  SET usr_senha = " . prep_para_bd(crypt($senha_gerada,PASSWORD_SALT));
-		$sql.= " WHERE usr_id = " . prep_para_bd($usr_id);	
-		$res2 = executa_sql($sql);
-		if($res2) $sucesso = true;	
-		
-		if($sucesso)
-		{
-			$sql="SELECT usr_email FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id);		
-			$res2 = executa_sql($sql);	
-			$row = mysqli_fetch_array($res2,MYSQLI_ASSOC);
-			$usr_email = $row["usr_email"];								
-		}
-	
-	}	
+	$codigo = bin2hex(random_bytes(16));
+	$res = executa_sql("INSERT INTO usuarioreiniciasenha (pass_usr, pass_codigo) VALUES (" . prep_para_bd($usr_id) . ", " . prep_para_bd($codigo) . ")");
+	if(!$res) return false;
 
-	if($sucesso)
-	{		
-		$mensagem = "Sua conta foi criada no " . NOME_SISTEMA . ". Seja bem-vindo(a). \n\n";
-		
-		$mensagem.= "Para entrar no sistema, acesse o endereço " . URL_ABSOLUTA . " e, ao ser solicitado(a) pelo login e senha, informe:\n\n";
-		$mensagem.= "login: $usr_email\n";
-		$mensagem.="senha: $senha_gerada\n\n";
-				
-		$mensagem.="Esta é uma senha gerada automaticamente para que você possa realizar o primeiro acesso.\n";
-		$mensagem.="A qualquer momento você poderá alterá-la: após fazer login no sistema, vá na opção 'Minha Conta' e depois 'Alterar Senha'.\n\n";			
-		
-		$mensagem.=get_texto_interno("txt_email_final_info_conta");
-		
-		
-		return envia_email_cestante($usr_id,"Informações para Acesso ao " . NOME_SISTEMA ,"",$mensagem);
-	}
-	
-	return false;
-		
+	$res2 = executa_sql("SELECT usr_email FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id));
+	if(!$res2 || !mysqli_num_rows($res2)) return false;
+
+	$mensagem  = "Sua conta foi criada no " . NOME_SISTEMA . ". Seja bem-vindo(a).\n\n";
+	$mensagem .= "Para criar sua senha de acesso, acesse o link abaixo:\n";
+	$mensagem .= URL_ABSOLUTA . "/senha_zera.php?ui=" . $usr_id . "&temp=" . urlencode($codigo) . "\n\n";
+	$mensagem .= "Ao abrir o link, você poderá definir uma senha de no mínimo 8 caracteres.\n\n";
+	$mensagem .= get_texto_interno("txt_email_final_info_conta");
+
+	return envia_email_cestante($usr_id, "Acesso ao " . NOME_SISTEMA, "", $mensagem);
 }
 
 function get_hifen_se_zero($valor)

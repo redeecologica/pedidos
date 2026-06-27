@@ -20,7 +20,7 @@
 
 			if($sucesso_cria_senha)
 			{
-				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Senha de primeiro acesso foi gerada e enviada para o email principal do cestante, com cópia para os emails alternativos.");				
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Link de acesso enviado por e-mail para o cestante, com cópia para os emails alternativos.");
 			}
 			else
 			{
@@ -333,8 +333,8 @@
                  {							 
                  ?>               
                     <span class='text-error'> (sem senha cadastrada)</span> &nbsp;
-				<button type="button" class="btn btn-danger btn-sm btn-enviando" data-loading-text="gerando..." onclick="javascript:location.href='cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>&gera_primeira_senha=1'">
-            <i class="glyphicon glyphicon-lock glyphicon-white"></i> Gerar primeira senha de acesso</button>
+				<button type="button" class="btn btn-danger btn-sm btn-enviando" data-loading-text="enviando..." onclick="javascript:location.href='cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&usr_id=<?php echo($usr_id); ?>&gera_primeira_senha=1'">
+            <i class="glyphicon glyphicon-lock glyphicon-white"></i> Enviar link de acesso</button>
                          		                     
                  <?php 					 
                  }
