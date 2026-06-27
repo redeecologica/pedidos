@@ -73,6 +73,14 @@
 				 }
 			 }
 
+			 // núcleo atual ANTES do update — para só rodar a limpeza de produtos quando o núcleo muda
+			 $usr_nuc_antigo = "";
+			 if($usr_id!="")
+			 {
+				 $res_nuc = executa_sql("SELECT usr_nuc FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id));
+				 if($res_nuc && ($row_nuc = mysqli_fetch_array($res_nuc,MYSQLI_ASSOC))) $usr_nuc_antigo = $row_nuc['usr_nuc'];
+			 }
+
  			 $sql = "SELECT usr_nome_completo FROM usuarios WHERE usr_email=" . prep_para_bd(request_get('usr_email',""));
 			 $sql.= " AND usr_id <> " . prep_para_bd($usr_id) ;
 			 $res = executa_sql($sql);
@@ -163,18 +171,23 @@
 						$res2 = executa_sql($sql);
 						if(!$res2) $sucesso = false;
 						
-						// remove produtos que não estão disponíveis para este novo núcleo do cestante
-						$sql = "UPDATE pedidoprodutos SET ";
-						$sql.= " pedprod_quantidade = '0' ";		
-						$sql.= " WHERE ";
-						$sql.= " pedprod_ped IN  ";
-						$sql.= "   (SELECT ped_id FROM pedidos LEFT JOIN chamadas ON ped_cha = cha_id WHERE ped_usr=" . prep_para_bd($usr_id) . " AND  cha_dt_max > now() ) ";
-						$sql.= " AND pedprod_prod NOT IN ";
-						$sql.= "   (SELECT prod_id FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
-						$sql.= "     LEFT JOIN nucleofornecedores ON prod_forn = nucforn_forn ";
-						$sql.= "     WHERE nucforn_nuc=" .prep_para_bd(request_get('usr_nuc',0)) . ")";
-						$res3 = executa_sql($sql);
-						if(!$res3) $sucesso = false;
+						// só quando o núcleo MUDOU: remove do pedido os produtos indisponíveis no novo núcleo.
+						// JOIN (em vez de IN-subquery) para o MySQL 5.6 usar índices no UPDATE — com a
+						// IN-subquery o UPDATE varria as ~7 milhões de linhas de pedidoprodutos (save de 36s).
+						if((string)request_get('usr_nuc','') !== (string)$usr_nuc_antigo)
+						{
+							$sql = "UPDATE pedidoprodutos pp ";
+							$sql.= " JOIN pedidos p ON pp.pedprod_ped = p.ped_id ";
+							$sql.= " JOIN chamadas c ON p.ped_cha = c.cha_id ";
+							$sql.= " SET pp.pedprod_quantidade = '0' ";
+							$sql.= " WHERE p.ped_usr = " . prep_para_bd($usr_id) . " AND c.cha_dt_max > now() ";
+							$sql.= " AND pp.pedprod_prod NOT IN ";
+							$sql.= "   (SELECT prod_id FROM produtos LEFT JOIN fornecedores ON prod_forn = forn_id ";
+							$sql.= "     LEFT JOIN nucleofornecedores ON prod_forn = nucforn_forn ";
+							$sql.= "     WHERE nucforn_nuc=" .prep_para_bd(request_get('usr_nuc',0)) . ")";
+							$res3 = executa_sql($sql);
+							if(!$res3) $sucesso = false;
+						}
 					}
 
 				 }
