@@ -50,10 +50,29 @@
 										
 		}
 		else if ($action == ACAO_SALVAR) // salvar formulário preenchido
-		{			
-			 $sucesso=false;			 
+		{
+			 $sucesso=false;
 			 $salvar = true;
-			 
+
+			 // segurança: na auto-edição sem papel administrativo, os campos privilegiados
+			 // (núcleo, status ativo/inativo, tipo de associação) NÃO podem vir do POST —
+			 // recarrega do banco para que um cestante comum não escale privilégio via POST forjado.
+			 // (A criação de novo cadastro, usr_id vazio, é barrada antes por verifica_seguranca.)
+			 $pode_editar_privilegiado = (isset($_SESSION[PAP_ADM]) && $_SESSION[PAP_ADM])
+				|| (isset($_SESSION[PAP_RESP_NUCLEO]) && $_SESSION[PAP_RESP_NUCLEO])
+				|| (isset($_SESSION[PAP_RESP_PEDIDO]) && $_SESSION[PAP_RESP_PEDIDO]);
+			 if(!$pode_editar_privilegiado && $usr_id!="")
+			 {
+				 $res_priv = executa_sql("SELECT usr_nuc, usr_archive, usr_associado, usr_asso FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id));
+				 if($res_priv && ($row_priv = mysqli_fetch_array($res_priv,MYSQLI_ASSOC)))
+				 {
+					 $_POST['usr_nuc']       = $row_priv['usr_nuc'];
+					 $_POST['usr_archive']   = $row_priv['usr_archive'];
+					 $_POST['usr_associado'] = $row_priv['usr_associado'];
+					 $_POST['usr_asso']      = $row_priv['usr_asso'];
+				 }
+			 }
+
  			 $sql = "SELECT usr_nome_completo FROM usuarios WHERE usr_email=" . prep_para_bd(request_get('usr_email',""));
 			 $sql.= " AND usr_id <> " . prep_para_bd($usr_id) ;
 			 $res = executa_sql($sql);
