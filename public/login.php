@@ -12,59 +12,74 @@
   $usr_email = request_get("login_usr_email",""); 
   
   if(isset($_POST["login_usr_email"]) && isset($_POST["login_usr_senha"]))
-  {   
-    $sql = "SELECT usr_id,usr_nome_curto,usr_nuc FROM usuarios ";
-  $sql.= " WHERE ";
-  $sql.= " usr_archive != '1' ";
-  $sql.= " AND usr_email = " . prep_para_bd($_POST["login_usr_email"]);
-  $sql.= " AND usr_senha = " . prep_para_bd(crypt($_POST["login_usr_senha"],PASSWORD_SALT));  
-  
-  $res = executa_sql($sql);
-  if($res)
   {
-    if(mysqli_num_rows($res))
+    $email_login = $_POST["login_usr_email"];
+    $senha_login = $_POST["login_usr_senha"];
+
+    if (login_bloqueado($email_login))
     {
-      $row = mysqli_fetch_array($res,MYSQLI_ASSOC);
-    
-      $_SESSION['usr.id']=$row['usr_id'];
-      $_SESSION['usr.nome']=$row['usr_nome_curto'];
-      $_SESSION['usr.nuc']=$row['usr_nuc'];
-            
-      //atribuicao dos papeis
-      $_SESSION[PAP_ADM] = false;
-      $_SESSION[PAP_RESP_NUCLEO] = false;
-      $_SESSION[PAP_RESP_PEDIDO] = false;
-      $_SESSION[PAP_RESP_MUTIRAO] = false; 
-      $_SESSION[PAP_BETA_TESTER] = false; 
-      $_SESSION[PAP_ACOMPANHA_PRODUTOR] = false; 
-      $_SESSION[PAP_ACOMPANHA_RELATORIOS] = false; 
-      $_SESSION[PAP_RESP_FINANCAS] = false; 
-      $_SESSION[PAP_RESP_ENTREGA] = false; 
-            
-      $sql=  "SELECT pap_nome FROM papeis, usuariopapeis ";
-      $sql.= "WHERE usrp_pap = pap_id AND usrp_usr = " . prep_para_bd($row['usr_id']);  
-      $res2 = executa_sql($sql);      
-      if($res2)
-      {
-        while($row2 = mysqli_fetch_array($res2,MYSQLI_ASSOC))
-        {  
-          $_SESSION[$row2["pap_nome"]] = true;
-        }
-      }
-
-      $sucesso_login =  1;    
-            
-      session_write_close();  
-      header("Location:" . PAGINAPRINCIPAL);
-      redireciona(PAGINAPRINCIPAL);
-      exit();
-
+      adiciona_mensagem_status(MSG_TIPO_ERRO, "Muitas tentativas de login. Aguarde 15 minutos ou clique em 'Esqueceu a senha'.");
     }
-  }
-  
-  if(!$sucesso_login) adiciona_mensagem_status(MSG_TIPO_ERRO,"O email informado não está cadastrado ou a senha fornecida está incorreta.");
+    else
+    {
+      $sql = "SELECT usr_id, usr_nome_curto, usr_nuc, usr_senha FROM usuarios ";
+      $sql.= " WHERE usr_archive != '1' AND usr_email = " . prep_para_bd($email_login);
+      $res = executa_sql($sql);
+      $row = $res ? mysqli_fetch_array($res, MYSQLI_ASSOC) : null;
 
-      
+      if ($row && verifica_senha($senha_login, $row['usr_senha']))
+      {
+        limpa_tentativas_login($email_login);
+
+        if (eh_palavra_temp($senha_login))
+        {
+          $_SESSION['deve_trocar_senha'] = true;   // senha temp: forca a criar uma nova
+        }
+        else if (strpos($row['usr_senha'], '$2y$') !== 0 && strpos($row['usr_senha'], '$2a$') !== 0)
+        {
+          // migracao transparente do hash legado para bcrypt
+          executa_sql("UPDATE usuarios SET usr_senha = " . prep_para_bd(hash_senha($senha_login)) . " WHERE usr_id = " . prep_para_bd($row['usr_id']));
+        }
+
+        $_SESSION['usr.id']=$row['usr_id'];
+        $_SESSION['usr.nome']=$row['usr_nome_curto'];
+        $_SESSION['usr.nuc']=$row['usr_nuc'];
+
+        //atribuicao dos papeis
+        $_SESSION[PAP_ADM] = false;
+        $_SESSION[PAP_RESP_NUCLEO] = false;
+        $_SESSION[PAP_RESP_PEDIDO] = false;
+        $_SESSION[PAP_RESP_MUTIRAO] = false;
+        $_SESSION[PAP_BETA_TESTER] = false;
+        $_SESSION[PAP_ACOMPANHA_PRODUTOR] = false;
+        $_SESSION[PAP_ACOMPANHA_RELATORIOS] = false;
+        $_SESSION[PAP_RESP_FINANCAS] = false;
+        $_SESSION[PAP_RESP_ENTREGA] = false;
+
+        $sql=  "SELECT pap_nome FROM papeis, usuariopapeis ";
+        $sql.= "WHERE usrp_pap = pap_id AND usrp_usr = " . prep_para_bd($row['usr_id']);
+        $res2 = executa_sql($sql);
+        if($res2)
+        {
+          while($row2 = mysqli_fetch_array($res2,MYSQLI_ASSOC))
+          {
+            $_SESSION[$row2["pap_nome"]] = true;
+          }
+        }
+
+        $sucesso_login =  1;
+
+        session_write_close();
+        header("Location:" . PAGINAPRINCIPAL);
+        redireciona(PAGINAPRINCIPAL);
+        exit();
+      }
+      else
+      {
+        registra_tentativa_login($email_login);
+        adiciona_mensagem_status(MSG_TIPO_ERRO,"O email informado não está cadastrado ou a senha fornecida está incorreta.");
+      }
+    }
   }
   
   

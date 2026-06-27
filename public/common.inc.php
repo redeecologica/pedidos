@@ -189,6 +189,24 @@ function eh_palavra_temp($pw)
 	return ($r && mysqli_num_rows($r) > 0);
 }
 
+// --- throttling de login: lockout brando ---
+function login_bloqueado($email)
+{
+	$r = executa_sql("SELECT COUNT(*) c FROM login_tentativas WHERE tent_email = " . prep_para_bd($email) . " AND tent_dt > (NOW() - INTERVAL 15 MINUTE)");
+	if (!$r) return false;
+	$row = mysqli_fetch_array($r, MYSQLI_ASSOC);
+	return ($row['c'] >= 5);
+}
+function registra_tentativa_login($email)
+{
+	executa_sql("INSERT INTO login_tentativas (tent_email, tent_dt) VALUES (" . prep_para_bd($email) . ", NOW())");
+	if (mt_rand(1, 20) === 1) executa_sql("DELETE FROM login_tentativas WHERE tent_dt < (NOW() - INTERVAL 1 DAY)");
+}
+function limpa_tentativas_login($email)
+{
+	executa_sql("DELETE FROM login_tentativas WHERE tent_email = " . prep_para_bd($email));
+}
+
 function adiciona_popover_descricao($titulo,$texto)
 {
 	if(isset($texto) && $texto!="")
