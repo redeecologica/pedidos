@@ -134,8 +134,11 @@ function prep_para_html($texto)
 		$quebra_linha = array("\r\n", "\n", "\r");
 		$sem_special = htmlspecialchars($texto, ENT_QUOTES);
 		return str_replace($quebra_linha,'<br />',$sem_special);
-		
+
 }
+
+// escapa texto para saída segura em HTML (uso: echo(h($row['campo'])) )
+function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 
 function adiciona_popover_descricao($titulo,$texto)
 {
