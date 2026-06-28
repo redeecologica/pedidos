@@ -31,11 +31,7 @@
       {
         limpa_tentativas_login($email_login);
 
-        if (eh_palavra_temp($senha_login))
-        {
-          $_SESSION['deve_trocar_senha'] = true;   // senha temp: forca a criar uma nova
-        }
-        else if (strpos($row['usr_senha'], '$2y$') !== 0 && strpos($row['usr_senha'], '$2a$') !== 0)
+        if (strpos($row['usr_senha'], '$2y$') !== 0 && strpos($row['usr_senha'], '$2a$') !== 0)
         {
           // migracao transparente do hash legado para bcrypt
           executa_sql("UPDATE usuarios SET usr_senha = " . prep_para_bd(hash_senha($senha_login)) . " WHERE usr_id = " . prep_para_bd($row['usr_id']));

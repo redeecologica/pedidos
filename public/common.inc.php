@@ -77,14 +77,6 @@ function verifica_seguranca($parametro_validacao = true)
 	$validado = false;
 	$pagina="login.php";
 
-	// troca obrigatória pendente: só libera a própria tela de troca de senha
-	if(isset($_SESSION["usr.id"]) && strlen($_SESSION["usr.id"])
-		&& !empty($_SESSION['deve_trocar_senha'])
-		&& basename($_SERVER['SCRIPT_NAME']) !== 'senha_altera.php')
-	{
-		redireciona("senha_altera.php");
-	}
-
 	if(( isset($_SESSION["usr.id"]) && strlen($_SESSION["usr.id"]) ) )
 	{
 		$sql = "SELECT usr_archive FROM usuarios ";

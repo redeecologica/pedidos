@@ -30,7 +30,6 @@
 			}
 			else
 			{
-				unset($_SESSION['deve_trocar_senha']); // resolveu a troca obrigatória
 				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Sua senha foi alterada com sucesso.");
 				$sucesso = 1;
 
