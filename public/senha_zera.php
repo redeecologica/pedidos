@@ -83,11 +83,11 @@
 	
         <label for="login_usr_senha">Nova senha: (mínimo 8 caracteres)</label>
   		<div class="input-group"><span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha" value=""> <span class="input-group-btn"><button type="button" class="btn btn-default btn-mostrar-senha" tabindex="-1" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></button></span></div>
+        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha" value=""> <span class="input-group-addon btn-mostrar-senha" role="button" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></span></div>
 
         <label for="login_usr_senha_conf">Confirmar nova senha:</label>
   		<div class="input-group"><span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha_conf" value=""> <span class="input-group-btn"><button type="button" class="btn btn-default btn-mostrar-senha" tabindex="-1" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></button></span></div>
+        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha_conf" value=""> <span class="input-group-addon btn-mostrar-senha" role="button" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></span></div>
 
         
         <input class="btn btn-lg btn-primary" type="submit" value="Salvar senha" name="salvar_senha">

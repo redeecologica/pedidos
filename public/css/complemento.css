@@ -100,3 +100,12 @@
   }
 
 /* fim capricho no formulário de login */
+
+
+/* botão de mostrar/ocultar senha (addon clicável) */
+.btn-mostrar-senha {
+	cursor: pointer;
+}
+.btn-mostrar-senha:hover {
+	background-color: #ddd;
+}
