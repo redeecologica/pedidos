@@ -127,7 +127,8 @@ Então não teremos problema de inconsistência de dados.
            <div class="input-group">
               <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
           <input type="password" class="form-control" required="required"  name="login_usr_senha">
-            </div> 
+              <span class="input-group-btn"><button type="button" class="btn btn-default btn-mostrar-senha" tabindex="-1" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></button></span>
+            </div>
             <br><br>
           <input class="btn btn-lg btn-primary btn-block"  type="submit" name="Entrar" value="Entrar">
   

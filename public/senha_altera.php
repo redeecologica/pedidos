@@ -71,14 +71,16 @@ else
         <label for="login_usr_senha_nova">Nova senha</label> (mínimo 8 caracteres)
         <div class="input-group">
   			<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control" minlength="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value="" required="required">
+        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha_nova" id="login_usr_senha_nova" value="" required="required">
+        	<span class="input-group-btn"><button type="button" class="btn btn-default btn-mostrar-senha" tabindex="-1" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></button></span>
          </div> 
 		<br />
 
         <label for="login_usr_senha_nova_conf">Confirmar nova senha</label> 
   		<div class="input-group">
         	<span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-        	<input type="password" class="form-control" minlength="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value="" required="required">
+        	<input type="password" class="form-control campo-senha" minlength="8" name="login_usr_senha_nova_conf" id="login_usr_senha_nova_conf" value="" required="required">
+        	<span class="input-group-btn"><button type="button" class="btn btn-default btn-mostrar-senha" tabindex="-1" aria-label="Mostrar senha"><i class="glyphicon glyphicon-eye-open"></i></button></span>
          </div> 
 
         <br><br>

@@ -265,21 +265,35 @@ function validaNumero(){
 }
 
 function verificaSenha(e) {
-	$("input[type=password]").each(function(){
-		if ($(this).val().length < 4 || $(this).val().length > 8) {
-			alert("Por favor, informe a senha com no mínimo 4 e no máximo 8 dígitos.");
+	var campos = $(e.target).find("input.campo-senha");
+	if (campos.length === 0) campos = $("input.campo-senha");
+	for (var i = 0; i < campos.length; i++) {
+		if (campos.eq(i).val().length < 8) {
+			alert("Por favor, informe uma senha com no mínimo 8 caracteres.");
 			e.preventDefault();
-			$(this).focus();
+			campos.eq(i).focus();
 			return false;
 		}
-		if ($("input[type=password]").eq(0).val() != $("input[type=password]").eq(1).val()) {
-			alert("As senhas não coincidem. Por favor, informe novamente.");
-			e.preventDefault();
-			$("input[type=password]").eq(0).focus();
-			return false;
-		}
-	});
+	}
+	if (campos.length > 1 && campos.eq(0).val() != campos.eq(1).val()) {
+		alert("As senhas não coincidem. Por favor, informe novamente.");
+		e.preventDefault();
+		campos.eq(0).focus();
+		return false;
+	}
 }
+
+// mostra/oculta senha: alterna o type do campo e o ícone do botão
+$(function() {
+	$(document).on("click", ".btn-mostrar-senha", function() {
+		var $btn = $(this);
+		var $campo = $btn.closest(".input-group").find("input").first();
+		var revelar = $campo.attr("type") === "password";
+		$campo.attr("type", revelar ? "text" : "password");
+		$btn.attr("aria-label", revelar ? "Ocultar senha" : "Mostrar senha");
+		$btn.find("i").toggleClass("glyphicon-eye-open", !revelar).toggleClass("glyphicon-eye-close", revelar);
+	});
+});
 
 function colaDistribuindo(colecaoDestino, primeiroItem, pastedText){
 	var splitedText = pastedText.split("\n");
