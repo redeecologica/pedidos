@@ -126,6 +126,20 @@ function verifica_seguranca($parametro_validacao = true)
 function redireciona($pagina)
 {
 	// require_once("registro_visita.inc.php");
+	// URL absoluta do PRÓPRIO host (ex.: back_url preenchido com document.referrer):
+	// reduz à forma relativa (pagina.php?query) e deixa a validação abaixo decidir.
+	if (preg_match('#^https?://#i', $pagina))
+	{
+		$u = parse_url($pagina);
+		$host_req = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '';
+		$host_url = isset($u['host']) ? $u['host'] : '';
+		if (isset($u['port'])) $host_url .= ':' . $u['port'];
+		if ($host_req !== '' && strcasecmp($host_url, $host_req) === 0)
+		{
+			$pagina = basename(isset($u['path']) ? $u['path'] : '');
+			if (isset($u['query']) && $u['query'] !== '') $pagina .= '?' . $u['query'];
+		}
+	}
 	// só permite alvo relativo da app (nome.php?query); bloqueia esquema (http://),
 	// protocol-relative (//) e caracteres perigosos — fecha open-redirect via back_url.
 	if (!preg_match('#^[A-Za-z0-9_-]+\.php(\?[^\s\'"<>]*)?$#', $pagina))
