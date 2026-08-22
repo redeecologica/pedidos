@@ -18,8 +18,7 @@
 		$usr_id = $row['usr_id'];		
 		$usr_nome_curto = $row['usr_nome_curto'];
 		
-		$base_codigo_temp = date("hi") . $usr_id . date("s");
-		$codigo_temp = crypt($base_codigo_temp,PASSWORD_SALT);
+		$codigo_temp = bin2hex(random_bytes(16));
 		
 		$sql = " INSERT INTO usuarioreiniciasenha (pass_usr, pass_codigo) VALUES (";
 		$sql.= prep_para_bd($usr_id) . "," . prep_para_bd($codigo_temp)  .  ")";

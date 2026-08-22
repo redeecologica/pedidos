@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `usr_asso` SMALLINT(2) UNSIGNED NOT NULL DEFAULT '1' COMMENT 'tipo de associacao',
   `usr_email` varchar(120) NOT NULL,
   `usr_email_alternativo` varchar(800) DEFAULT NULL,
-  `usr_senha` varchar(45) DEFAULT NULL,
+  `usr_senha` varchar(255) DEFAULT NULL,
   `usr_nome_curto` varchar(120) DEFAULT NULL,
   `usr_nome_completo` varchar(120) DEFAULT NULL,
   `usr_endereco` varchar(300) DEFAULT NULL,
@@ -412,9 +412,17 @@ CREATE TABLE IF NOT EXISTS `nucleotipos` (
 CREATE TABLE IF NOT EXISTS `associacaotipos` (
   `asso_id` smallint(2) unsigned NOT NULL AUTO_INCREMENT,
   `asso_nome` varchar(50) NOT NULL,
-  `asso_descricao` varchar(600) DEFAULT NULL,  
+  `asso_descricao` varchar(600) DEFAULT NULL,
   PRIMARY KEY (`asso_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `login_tentativas` (
+  `tent_id` int(11) NOT NULL AUTO_INCREMENT,
+  `tent_email` varchar(255) NOT NULL,
+  `tent_dt` datetime NOT NULL,
+  PRIMARY KEY (`tent_id`),
+  KEY `idx_email_dt` (`tent_email`,`tent_dt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 

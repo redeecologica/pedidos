@@ -73,5 +73,10 @@ for p in $PAGINAS; do
   fi
 done
 echo
+echo ">> Regressão: throttling (6 tentativas → bloqueio)..."
+for i in 1 2 3 4 5; do curl -s -o /dev/null -d "login_usr_email=throttle@smoke.local" -d "login_usr_senha=x$i" "http://localhost:8084/login.php"; done
+if curl -s -d "login_usr_email=throttle@smoke.local" -d "login_usr_senha=x6" "http://localhost:8084/login.php" | grep -q 'Aguarde 15 minutos'; then echo "   throttling OK"; else echo "   THROTTLING FALHOU"; FALHAS=$((FALHAS+1)); fi
+docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "DELETE FROM login_tentativas WHERE tent_email='throttle@smoke.local';" >/dev/null 2>&1
+
 if (( FALHAS > 0 )); then echo "SMOKE: $FALHAS página(s) com problema."; exit 1; fi
 echo "SMOKE: tudo verde nas duas versões de PHP."

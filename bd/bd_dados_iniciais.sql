@@ -32,22 +32,6 @@ INSERT INTO `nucleotipos` (`nuct_id`, `nuct_nome`) VALUES
 (NULL, 'Quinzenal');
 
 
-INSERT INTO `temp_senhas` (`pass_id`, `pass_nome`) VALUES
-(1, 'abacate2'),
-(2, 'abacaxi1'),
-(3, 'abiu4'),
-(4, 'abobora3'),
-(5, 'abobrin2'),
-(6, 'acelga9'),
-(7, 'acerola3'),
-(8, 'agriao2'),
-(9, 'aipim1'),
-(10, 'aipo4'),
-(11, 'alcacho1'),
-(12, 'alface9'),
-(13, 'alfafa7');
-
-
 
 INSERT INTO `textos` (`txt_id`, `txt_modo_html`, `txt_nome_curto`, `txt_nome_completo`, `txt_conteudo_rascunho`, `txt_conteudo_publicado`, `txt_usr_atualizacao`) VALUES
 (1, 1, 'txt_pagina_inicio', 'Texto que aparece na página de início, que é mostrada logo após o usuário fazer login.', '<p><strong>Informes</strong></p>\r\n\r\n<hr />\r\n<p><strong>Atualiza&ccedil;&atilde;o dos seus dados</strong></p>\r\n\r\n<p>&Eacute; importante que voc&ecirc; atualize os seus dados (op&ccedil;&atilde;o &quot;Minha Conta&quot; / &quot;Meus Dados&quot;). Caso precise alterar o n&uacute;cleo ou status de sua associa&ccedil;&atilde;o, procure o <a href="ajuda.php">respons&aacute;vel pelo cadastro no seu n&uacute;cleo</a> (somente ele poder&aacute; alterar este tipo de informa&ccedil;&atilde;o).</p>\r\n\r\n<p>&nbsp;</p>','<p><strong>Informes</strong></p>\r\n\r\n<hr />\r\n<p><strong>Atualiza&ccedil;&atilde;o dos seus dados</strong></p>\r\n\r\n<p>&Eacute; importante que voc&ecirc; atualize os seus dados (op&ccedil;&atilde;o &quot;Minha Conta&quot; / &quot;Meus Dados&quot;). Caso precise alterar o n&uacute;cleo ou status de sua associa&ccedil;&atilde;o, procure o <a href="ajuda.php">respons&aacute;vel pelo cadastro no seu n&uacute;cleo</a> (somente ele poder&aacute; alterar este tipo de informa&ccedil;&atilde;o).</p>\r\n\r\n<p>&nbsp;</p>', 1),
