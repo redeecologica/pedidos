@@ -246,6 +246,8 @@ CREATE TABLE IF NOT EXISTS `pedidos` (
   `ped_cha` mediumint(6) unsigned NOT NULL,
   `ped_fechado` tinyint(1) DEFAULT NULL,
   `ped_dt_atualizacao` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `ped_dt_envio` timestamp NULL DEFAULT NULL COMMENT 'primeiro envio do pedido; NULL = nunca enviado',
+  `ped_dt_lembrete` timestamp NULL DEFAULT NULL COMMENT 'ultimo lembrete de pedido nao enviado',
   PRIMARY KEY (`ped_id`),
   KEY `fk_pedido_usuario_idx` (`ped_usr`),
   KEY `fk_pedido_nucleo_idx` (`ped_nuc`),

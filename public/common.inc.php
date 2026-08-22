@@ -48,7 +48,13 @@ if (isset($_SERVER['HTTPS']))
   if (strtoupper($_SERVER['HTTPS'])=='ON')
     $protocol='https';
 
-define('URL_ABSOLUTA', $protocol . "://" . $_SERVER["SERVER_NAME"] . substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));	
+// Em CLI (cron) não há requisição de onde derivar o host: usa a URL canônica do
+// settings.php. Fica vazia se ela não estiver definida — quem monta link em CLI
+// precisa conferir, sob pena de enviar e-mail com link quebrado.
+if (isset($_SERVER["SERVER_NAME"]))
+	define('URL_ABSOLUTA', $protocol . "://" . $_SERVER["SERVER_NAME"] . substr($_SERVER["PHP_SELF"],0,strrpos($_SERVER["PHP_SELF"],"/")));
+else
+	define('URL_ABSOLUTA', defined('URL_SISTEMA') ? rtrim(URL_SISTEMA,"/") : "");
 
 
 $meses = array("","janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro");

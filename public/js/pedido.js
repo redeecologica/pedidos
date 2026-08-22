@@ -98,6 +98,15 @@ function formataTotalProdEPedido(valorInformado, item) {
 		e.preventDefault();
 		var $input = $('input:visible');
 		if( $(this).is( $input.last() ) && e.which == 13) {
+			// Formulários marcados com data-enter-nao-envia (o do pedido) não
+			// enviam pelo Enter: como só existe o botão "salvar e ENVIAR", o
+			// mesmo Enter que a pessoa vinha usando para pular de campo viraria
+			// um envio sem querer ao chegar no último produto.
+			// blur() mantém o recálculo do total, que está ligado nesse evento.
+			if( $(this).closest('form').data('enter-nao-envia') ) {
+				$(this).blur();
+				return;
+			}
 			$('form').submit();
 		} else if ( e.which == 13 || e.which == 40 ) {
 			$input.eq( $(this).index('input:visible') + 1 ).focus();

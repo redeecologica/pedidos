@@ -23,6 +23,9 @@ define('NOME_SISTEMA',"Sistema de Pedidos (DEV LOCAL)");
 define('NOME_GRUPO_CONSUMO',"Rede Ecológica");
 define('URL_GRUPO_CONSUMO',"http://redeecologicario.org");
 
+// URL canônica do sistema — usada quando não há requisição HTTP (cron em CLI)
+define('URL_SISTEMA',"http://localhost:8084");
+
 define('EMAIL_SUPORTE_SISTEMA',"dev@pedidos.local");
 
 define('GA_ACCOUNT',"");   // analytics desligado em DEV

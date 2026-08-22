@@ -1,5 +1,7 @@
 <?php  
-  require  "common.inc.php"; 
+  require  "common.inc.php";
+  require  "lembrete.inc.php"; // texto do aviso de cancelamento
+  require  "pedido.inc.php";   // marca_pedido_enviado()
 
   $action = request_get("action",-1);
   if($action==-1) redireciona(PAGINAPRINCIPAL);
@@ -24,6 +26,7 @@
 <?php
 
 		$pedido_enviado=false;
+		$pedido_cancelado=false;
 		$pos_action=-1;
 		
 		
@@ -107,17 +110,17 @@
 		
 		if ( $action == ACAO_CONFIRMAR_PEDIDO || $action == ACAO_SALVAR_E_CONFIRMAR_PEDIDO) // confirmar/enviar pedido
 		{
-			$sql = "UPDATE pedidos SET ";
-			$sql.= "ped_fechado = '1' ";
-			$sql.= "WHERE ped_id = $ped_id_bd";
-			$res = executa_sql($sql);
-			
-			if($res) 
+			// true só na transição não-enviado -> enviado; é o que impede uma
+			// confirmação por e-mail a cada gravação de pedido já enviado
+			$primeiro_envio = marca_pedido_enviado($ped_id);
+
+			if($primeiro_envio === null) adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar enviar o pedido.");
+			else if($primeiro_envio)
 			{
 				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi enviado <i class='glyphicon glyphicon-send glyphicon-white'></i> com sucesso.");
 				$pedido_enviado=true;
 			}
-			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar enviar o pedido.");
+			else adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi atualizado e continua enviado <i class='glyphicon glyphicon-send glyphicon-white'></i>.");
 			
 			$pos_action=ACAO_EXIBIR_LEITURA; // para visualizar no modo somente leitura
 	
@@ -133,7 +136,11 @@
 			
 			if(!$res) $sucesso_cancelar=0;
 			 
-			if($sucesso_cancelar) adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi cancelado com sucesso.");
+			if($sucesso_cancelar)
+			{
+				adiciona_mensagem_status(MSG_TIPO_SUCESSO,"Seu pedido foi cancelado. Os produtos seguem salvos, mas o pedido <strong>não será considerado nesta chamada</strong> enquanto não for enviado novamente.");
+				$pedido_cancelado=true;
+			}
 			else adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar cancelar o pedido.");
 	
 			$pos_action=ACAO_EXIBIR_LEITURA; // para visualizar no modo edição	
@@ -380,10 +387,12 @@
 
 ?>
 
-<form method="post" name='form_pedido' class="form-horizontal">
+<form method="post" name='form_pedido' class="form-horizontal" data-enter-nao-envia="1">
   <fieldset>
           <input type="hidden" name="ped_id" value="<?php echo($ped_id); ?>" />
-          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
+          <?php /* salvar é enviar: não existe mais gravação que deixe o pedido em rascunho.
+                   Vale também para o pedido já enviado, que apenas continua enviado. */ ?>
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR_E_CONFIRMAR_PEDIDO); ?>" />
             
           
 <?php
@@ -521,9 +530,7 @@
 							   ?>
                                <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                    &nbsp;&nbsp;                               
-                                   <button class="btn btn-lg btn-success btn-enviando" data-loading-text="salvando e enviando pedido..." type="button" onclick="javascript:document.form_pedido.action.value='<?php echo(ACAO_SALVAR_E_CONFIRMAR_PEDIDO);?>';document.form_pedido.submit();"><i class="glyphicon glyphicon-send glyphicon-white"></i> salvar e ENVIAR pedido</button> 
-                                  &nbsp;&nbsp;
-                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> somente salvar pedido</button>    
+                                   <button class="btn btn-lg btn-success btn-enviando" data-loading-text="salvando e enviando pedido..." type="submit"><i class="glyphicon glyphicon-send glyphicon-white"></i> salvar e ENVIAR pedido</button>
                                <?php
 							   }
 							   else
@@ -532,7 +539,7 @@
                                  Pedido já enviado. Mas você pode salvar novas atualizações até a chamada encerrar.
                                <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
                                      &nbsp;&nbsp;                          
-                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando pedido..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar pedido</button>                                   
+                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando alterações..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
 							   <?php
 							   } //end if ped_fechado
 							   ?>                               
@@ -585,6 +592,15 @@
 		
 		
 		envia_email_cestante($ped_usr,"Confirmação do Pedido de " . $prodt_nome . " - " . $cha_dt_entrega,"",$msg_confirmacao);
+	}
+
+	// Quem cancela no dia do fechamento já passou da execução do cron da
+	// madrugada: o aviso imediato é o que evita a pessoa esquecer que o pedido
+	// deixou de valer.
+	if($pedido_cancelado)
+ 	{
+		envia_email_cestante($ped_usr,"Pedido de " . $prodt_nome . " NÃO enviado (cancelado)","",
+			monta_mensagem_cancelamento($usr_nome_curto, $prodt_nome, $cha_dt_entrega, $cha_dt_max, $ped_id));
 	}
 	
 
