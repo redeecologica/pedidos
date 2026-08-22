@@ -180,3 +180,6 @@ dumps/
 prod-snapshot/
 scripts/prod.env
 info-*.php
+
+# Arquivo de workspace do editor (local, por máquina)
+*.code-workspace
