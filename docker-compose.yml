@@ -1,14 +1,6 @@
 name: pedidos
 
 services:
-  web-legacy:
-    build: { context: ./docker, dockerfile: php56/Dockerfile }
-    platform: linux/amd64
-    ports: ["8056:80"]
-    volumes: ["./public:/var/www/html"]
-    depends_on:
-      db: { condition: service_healthy }
-
   web-modern:
     build: { context: ./docker, dockerfile: php84/Dockerfile }
     ports: ["8084:80"]

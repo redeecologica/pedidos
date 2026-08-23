@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # Rede de regressão: cria admin descartável no banco LOCAL, faz login via curl
-# e varre todas as páginas PHP em :8056 (referência) e :8084 (alvo).
-# Reprova se: status difere entre os PHPs, ou o HTML contém erro/aviso PHP.
+# e varre todas as páginas PHP em :8084.
+# Reprova se: a página responde 5xx, o HTML contém erro/aviso do PHP, a sessão
+# se perde, ou um payload de XSS aparece cru na saída.
 # Uso: scripts/smoke.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 EMAIL="smoke@dev.local"
 SENHA="smoke-fase2"
-COOKIES56=$(mktemp); COOKIES84=$(mktemp)
-trap 'rm -f "$COOKIES56" "$COOKIES84"' EXIT
+COOKIES=$(mktemp)
+trap 'rm -f "$COOKIES"' EXIT
 
 echo ">> Garantindo usuário de smoke (admin) no banco LOCAL..."
-HASH=$(docker compose exec -T web-legacy php -r 'require "/var/www/html/settings.php"; echo crypt("'"$SENHA"'", PASSWORD_SALT);')
+HASH=$(docker compose exec -T web-modern php -r 'require "/var/www/html/settings.php"; echo crypt("'"$SENHA"'", PASSWORD_SALT);')
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
   INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
   SELECT 'Usuário Smoke', 'smoke', '$EMAIL', '$HASH', '0',
@@ -34,42 +35,34 @@ docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
     usr_profissao='$XSSMARK', usr_habilidades='$XSSMARK'
   WHERE usr_email='$EMAIL';"
 
-login() { # $1=porta $2=cookiejar
-  curl -s -c "$2" -o /dev/null "http://localhost:$1/login.php"
-  curl -s -b "$2" -c "$2" -o /dev/null -d "login_usr_email=$EMAIL" -d "login_usr_senha=$SENHA" \
-    "http://localhost:$1/login.php"
-  # sessão válida? deslogado, a página responde só com o redirect javascript
-  if curl -s -b "$2" "http://localhost:$1/inicio.php" | grep -q "location.href='login.php'"; then
-    echo "ERRO: login falhou na porta $1" >&2; exit 1
-  fi
-}
-echo ">> Login nas duas portas..."
-login 8056 "$COOKIES56"
-login 8084 "$COOKIES84"
+echo ">> Login..."
+curl -s -c "$COOKIES" -o /dev/null "http://localhost:8084/login.php"
+curl -s -b "$COOKIES" -c "$COOKIES" -o /dev/null -d "login_usr_email=$EMAIL" -d "login_usr_senha=$SENHA" \
+  "http://localhost:8084/login.php"
+# sessão válida? deslogado, a página responde só com o redirect javascript
+if curl -s -b "$COOKIES" "http://localhost:8084/inicio.php" | grep -q "location.href='login.php'"; then
+  echo "ERRO: login falhou" >&2; exit 1
+fi
 
 # páginas excluídas: geradoras de efeito colateral ou includes/fora do fluxo logado
 EXCLUIR='script_gera_pedidos_associacao.php|bd_fora.php|settings|\.inc\.php'
 PAGINAS=$(git ls-files public/ | grep -E '^public/[^/]+\.php$' | sed 's#^public/##' | grep -vE "$EXCLUIR")
 
 FALHAS=0
-printf '%-50s %s  %s\n' "PÁGINA" "5.6" "8.4"
+printf '%-50s %s\n' "PÁGINA" "HTTP"
 for p in $PAGINAS; do
-  S56=$(curl -s -b "$COOKIES56" -o /tmp/smoke56.html -w '%{http_code}' "http://localhost:8056/$p")
-  S84=$(curl -s -b "$COOKIES84" -o /tmp/smoke84.html -w '%{http_code}' "http://localhost:8084/$p")
-  ERRO56=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke56.html || true)
-  ERRO84=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke84.html || true)
-  XSS56=$(grep -cF "$XSSMARK" /tmp/smoke56.html || true)
-  XSS84=$(grep -cF "$XSSMARK" /tmp/smoke84.html || true)
+  STATUS=$(curl -s -b "$COOKIES" -o /tmp/smoke.html -w '%{http_code}' "http://localhost:8084/$p")
+  ERRO=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke.html || true)
+  XSS=$(grep -cF "$XSSMARK" /tmp/smoke.html || true)
   MARCA=""
-  grep -q "location.href='login.php'" /tmp/smoke84.html && MARCA="SESSAO-PERDIDA-8.4"
-  [[ "$S56" != "$S84" ]] && MARCA="$MARCA STATUS-DIFERE"
-  [[ "$ERRO56" -gt 0 ]] && MARCA="$MARCA ERRO-PHP-5.6($ERRO56)"
-  [[ "$ERRO84" -gt 0 ]] && MARCA="$MARCA ERRO-PHP-8.4($ERRO84)"
-  [[ "$XSS56" -gt 0 ]] && MARCA="$MARCA XSS-CRU-5.6($XSS56)"
-  [[ "$XSS84" -gt 0 ]] && MARCA="$MARCA XSS-CRU-8.4($XSS84)"
+  # sem a comparação entre dois PHPs, o 5xx é o que sobra para pegar página quebrada
+  [[ "$STATUS" =~ ^5 ]] && MARCA="$MARCA HTTP-$STATUS"
+  grep -q "location.href='login.php'" /tmp/smoke.html && MARCA="$MARCA SESSAO-PERDIDA"
+  [[ "$ERRO" -gt 0 ]] && MARCA="$MARCA ERRO-PHP($ERRO)"
+  [[ "$XSS" -gt 0 ]] && MARCA="$MARCA XSS-CRU($XSS)"
   if [[ -n "$MARCA" ]]; then
     FALHAS=$((FALHAS+1))
-    printf '%-50s %s  %s  << %s\n' "$p" "$S56" "$S84" "$MARCA"
+    printf '%-50s %s  << %s\n' "$p" "$STATUS" "$MARCA"
   fi
 done
 echo
@@ -79,4 +72,4 @@ if curl -s -d "login_usr_email=throttle@smoke.local" -d "login_usr_senha=x6" "ht
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "DELETE FROM login_tentativas WHERE tent_email='throttle@smoke.local';" >/dev/null 2>&1
 
 if (( FALHAS > 0 )); then echo "SMOKE: $FALHAS página(s) com problema."; exit 1; fi
-echo "SMOKE: tudo verde nas duas versões de PHP."
+echo "SMOKE: tudo verde."

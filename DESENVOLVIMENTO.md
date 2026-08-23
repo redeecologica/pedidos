@@ -1,9 +1,8 @@
 # Ambiente de desenvolvimento local
 
-Ambiente completo via Docker Compose: o mesmo código servido por **dois PHPs**
-(5.6 “referência”, espelhando produção; 8.4 “alvo” da migração), banco
-**Percona/MySQL 5.6** igual ao de produção, **Mailpit** capturando todo e-mail
-e **phpMyAdmin**.
+Ambiente completo via Docker Compose: **PHP 8.4**, a mesma versão de produção,
+banco **Percona/MySQL 5.6** igual ao de produção, **Mailpit** capturando todo
+e-mail e **phpMyAdmin**.
 
 > A aplicação (tudo que o servidor web serve) fica no diretório **`public/`**.
 > Os diretórios `docker/`, `scripts/`, `bd/` e `docs/` são de apoio e ficam fora dele.
@@ -11,8 +10,8 @@ e **phpMyAdmin**.
 
 ## Pré-requisitos
 - Docker Desktop para Mac (em Apple Silicon, habilite
-  Settings → General → “Use Rosetta for x86_64/amd64 emulation” — as imagens
-  PHP 5.6 e Percona 5.6 são Intel).
+  Settings → General → “Use Rosetta for x86_64/amd64 emulation” — a imagem do
+  Percona 5.6 é Intel).
 
 ## Subindo pela primeira vez
 1. `cp public/settings.php.docker public/settings.php` e preencha `PASSWORD_SALT`
@@ -22,10 +21,9 @@ e **phpMyAdmin**.
 
    | Serviço | URL |
    |---|---|
-   | App (PHP 5.6, referência) | http://localhost:8056 |
-   | App (PHP 8.4, alvo)       | http://localhost:8084 |
-   | Mailpit (e-mails)         | http://localhost:8025 |
-   | phpMyAdmin                | http://localhost:8089 (root/root ou pedidos/pedidos) |
+   | App (PHP 8.4)     | http://localhost:8084 |
+   | Mailpit (e-mails) | http://localhost:8025 |
+   | phpMyAdmin        | http://localhost:8089 (root/root ou pedidos/pedidos) |
 
 O `php.ini` dos containers (`docker/php-dev.ini`) espelha os valores efetivos de
 produção (`max_input_vars=9000`, `memory_limit=256M`, etc.) — para que um
@@ -48,9 +46,7 @@ Nenhuma mensagem sai para a internet — pode testar fluxos com dados reais
 sem risco de notificar pessoas.
 
 ## Problemas comuns
-- **Build do PHP 5.6 falha em Mac M1/M2/M3:** habilite Rosetta no Docker Desktop
-  (pré-requisitos) e repita.
-- **Porta em uso (3306/8056/8084/8089/8025):** pare o serviço conflitante ou
+- **Porta em uso (3306/8084/8089/8025):** pare o serviço conflitante ou
   ajuste a porta no `docker-compose.yml`.
 - **Login recusa senha que funciona em produção:** `PASSWORD_SALT` do
   `public/settings.php` local difere do de produção.
@@ -62,7 +58,8 @@ sem risco de notificar pessoas.
 - **Página avisa “banco de dados fora do ar”:** o serviço `db` ainda está
   inicializando — aguarde o healthcheck (`docker compose ps`).
 
-## Por que dois PHPs?
-Produção está em PHP 5.3 (fim de vida em 2014). A migração para 8.x é testada
-no :8084 contra o MESMO banco e código do :8056 — qualquer diferença observada
-tem uma única variável: a versão do PHP.
+## Testes
+- `scripts/smoke.sh` — varre todas as páginas logado e reprova em 5xx, aviso do
+  PHP, sessão perdida ou XSS cru.
+- `scripts/test-pedido.sh` — envio do pedido e lembrete de pedidos não enviados.
+  Cria os dados dentro de uma transação e desfaz no fim: não altera o banco local.
