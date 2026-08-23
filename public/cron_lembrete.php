@@ -44,6 +44,7 @@ if (!preg_match('~^https?://[^/\s]+~', URL_ABSOLUTA)) {
 }
 
 $erros = 0;
+$enviados = 0;
 
 foreach (pedidos_a_lembrar(JANELA_HORAS) as $linha)
 {
@@ -62,11 +63,26 @@ foreach (pedidos_a_lembrar(JANELA_HORAS) as $linha)
 	if ($enviou) {
 		// só marca depois do envio: se o e-mail falhar, a passada seguinte tenta de novo
 		marca_lembrete_enviado($linha['ped_id']);
+		$enviados++;
 	} else {
 		fwrite(STDERR, "cron_lembrete: falha ao enviar para ped_id=" . $linha['ped_id'] .
 		               " (" . $linha['usr_email'] . ")\n");
 		$erros++;
 	}
+}
+
+// Batimento: sem isto não dá para distinguir "rodou e não tinha ninguém a
+// lembrar" de "nunca rodou" — o script é silencioso de propósito e o
+// /var/log/cron do servidor compartilhado não é legível por nós.
+// Fica um nível acima do docroot, fora do alcance do navegador. Falha aqui não
+// pode derrubar o envio: o batimento é diagnóstico, não função.
+//
+// Simulação NÃO escreve: senão uma conferência manual deixaria o arquivo com
+// cara de execução agendada e esconderia justamente um cron que não dispara.
+if (!$simulacao) {
+	@file_put_contents(
+		dirname(__DIR__) . "/cron_lembrete.ultima",
+		date('Y-m-d H:i:s') . " lembretes=$enviados erros=$erros\n");
 }
 
 exit($erros > 0 ? 1 : 0);
