@@ -27,7 +27,7 @@ function formata_qtde_curta($valor)
 //
 // Com pedidos = 0 a tela não mostra nada: sem histórico, todo produto pareceria
 // novidade e a página viraria só ruído.
-function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 4)
+function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 4, $meses = 6)
 {
 	$vazio = array('quantidades' => array(), 'ofertados' => array(), 'pedidos' => 0);
 
@@ -35,6 +35,7 @@ function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 
 	$prodt_bd   = prep_para_bd($cha_prodt);
 	$entrega_bd = prep_para_bd($cha_dt_entrega);
 	$limite     = (int)$limite;
+	$meses      = (int)$meses;
 
 	// Consulta à parte porque o Percona 5.6 não aceita LIMIT dentro de IN(...).
 	// Só pedido enviado conta: rascunho não é compra.
@@ -42,6 +43,12 @@ function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 
 	$sql.= "JOIN chamadas c ON c.cha_id = p.ped_cha ";
 	$sql.= "WHERE p.ped_usr = $usr_bd AND c.cha_prodt = $prodt_bd ";
 	$sql.= "AND p.ped_fechado = 1 AND c.cha_dt_entrega < $entrega_bd ";
+	// Janela de tempo, além da contagem: sem ela, quem sumiu por anos teria como
+	// referência um pedido de outra época. E não é só a quantidade que envelhece —
+	// o MESMO produto ganha prod_id novo a cada período de validade ("Aipo" já foi
+	// 3, 360, 645, 1303, 1449, 1542, 1626, 3017), então comparar com um pedido
+	// antigo marcaria quase o catálogo inteiro como novidade.
+	$sql.= "AND c.cha_dt_entrega >= $entrega_bd - INTERVAL $meses MONTH ";
 	$sql.= "ORDER BY c.cha_dt_entrega DESC LIMIT $limite";
 
 	$res = executa_sql($sql);

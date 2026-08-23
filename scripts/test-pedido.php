@@ -312,6 +312,19 @@ verifica("quantidade fracionada preserva a casa que importa",
     formata_qtde_curta("0.50") === "0,5",
     "0.50 -> " . formata_qtde_curta("0.50"));
 
+// Histórico velho não serve: o catálogo vira e o MESMO produto ganha prod_id novo
+// (ex.: "Aipo" já foi 3, 360, 645, 1303, 1449, 1542, 1626, 3017 ao longo dos anos).
+// Comparar contra um pedido de anos atrás marcaria quase tudo como novidade e
+// sugeriria quantidades de outra época.
+$usr_antigo = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Historico Antigo', 'antigo', 'testhistoricoantigo@dev.local', 'x', '0', $NUC)");
+cria_chamada_com_pedido($PRODT_A, 1200, $usr_antigo, $PROD_X, 5, 1); // ~3 anos atrás
+$hist_antigo = historico_do_cestante($usr_antigo, $PRODT_A, date('Y-m-d H:i:s', strtotime('+5 days')));
+
+verifica("pedido antigo demais não vira histórico",
+    $hist_antigo['pedidos'] === 0,
+    "considerou " . var_export($hist_antigo['pedidos'], true) . " pedido(s)");
+
 // sem histórico nenhum: a tela não pode mostrar botão nem marcar tudo como novidade
 $usr_novo = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
     VALUES ('Teste Sem Historico', 'semhist', 'testsemhistorico@dev.local', 'x', '0', $NUC)");

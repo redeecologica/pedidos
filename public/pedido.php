@@ -407,13 +407,29 @@
 	if($historico['pedidos'] > 0)
 	{
 ?>
-          <div class="alert alert-info hidden-print">
-            <button type="button" class="btn btn-default" id="preencher_historico">
+          <?php /* sem caixa: explicação é help-block. Caixa colorida neste sistema é
+                   mensagem de status, e usá-la aqui sugeriria que algo já aconteceu.
+                   O aviso de novidades abaixo é exceção porque ele SÓ aparece depois
+                   do clique — aí é resposta a uma ação, e caixa é o formato certo. */ ?>
+          <div class="hidden-print" style="margin-bottom:15px;">
+            <?php /* btn-info: destaca a ação sem disputar com o botão de enviar/salvar,
+                     que é o verde (ou o azul escuro do primary) no rodapé do formulário */ ?>
+            <button type="button" class="btn btn-info" id="preencher_historico">
               <i class="glyphicon glyphicon-repeat"></i> preencher com meus últimos pedidos
             </button>
-            &nbsp;Usa a maior quantidade que você pediu nos seus últimos
-            <?php echo((int)$historico['pedidos']); ?> pedido<?php echo($historico['pedidos']>1?"s":""); ?> deste tipo.
-            <div id="aviso_novidades" class="text-danger" style="margin-top:8px; display:none;"></div>
+            <?php /* legenda: sem ela "maior" e "últ" embaixo de cada campo não querem
+                     dizer nada. Fica aqui em cima, junto do botão, e não repetida na
+                     tabela, que já tem uma linha por produto. */ ?>
+            <span class="help-block">
+              Com base nos seus últimos <?php echo((int)$historico['pedidos']); ?>
+              pedido<?php echo($historico['pedidos']>1?"s":""); ?> deste tipo de chamada.
+              Embaixo de cada quantidade aparece
+              <strong>maior</strong> (a maior quantidade que você pediu nesses pedidos, que é a
+              que o botão preenche) e <strong>últ</strong> (a do pedido mais recente).
+              A marca <span class="label label-success">novidade</span> é produto que não estava
+              à venda em nenhum deles.
+            </span>
+            <div id="aviso_novidades" class="alert alert-warning" style="margin-top:10px; display:none;"></div>
           </div>
 <?php
 	}
