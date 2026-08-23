@@ -148,6 +148,33 @@ function enforceNumeric (e, enforceInt) {
 	}
 }
 
+// Preenche as quantidades a partir do histórico do cestante, lido do
+// data-qtde-max que o pedido.php coloca em cada campo.
+//
+// Sobrescreve o que já estiver digitado — daí a confirmação. E avisa quantos
+// produtos novos ficaram zerados: o risco deste botão é justamente tornar o
+// pedido tão automático que a pessoa deixe de reparar nas novidades.
+function preencheComHistorico(){
+	if(!confirm("Isto vai substituir as quantidades que você digitou. Deseja continuar?")) return;
+
+	$(".qtdeprod").each(function(){
+		var max = $(this).attr("data-qtde-max");
+		if(max === undefined || max === "") return;
+		$(this).val(max);
+	});
+
+	// o mesmo blur que já formata o campo e recalcula os totais
+	$(".qtdeprod").trigger("blur");
+
+	var novidades = $(".qtdeprod[data-novidade]").length;
+	if(novidades > 0){
+		$("#aviso_novidades").text(
+			"Atenção: " + novidades + " produto(s) novo(s) nesta chamada continuam zerados. " +
+			"Procure a marca “novidade” na lista antes de enviar."
+		).show();
+	}
+}
+
 function keyCheck(e){
 	enforceNumeric(e,$(this).multiplicadorInteiroItem());
 	$(this).verificaEnterSetas(e);
