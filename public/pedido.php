@@ -528,18 +528,34 @@
 							   if(!$ped_fechado)
 							   {
 							   ?>
+                               <?php /* com um botão só, quem nunca enviou pode travar com medo de que
+                                        enviar seja definitivo. Dizer aqui que dá para alterar e cancelar
+                                        até o prazo é o que destrava o clique.
+                                        help-block, e não caixa de alerta: neste sistema caixa colorida é
+                                        o formato das mensagens de status, e usá-la para texto
+                                        explicativo faz a pessoa achar que já gravou. */ ?>
+                               <div class="help-block hidden-print" style="text-align:left;">
+                                 Você poderá alterar ou cancelar seu pedido até a chamada encerrar, em
+                                 <?php // cha_dt_max vem como "d/m/Y H:i"; o único espaço separa data e hora ?>
+                                 <strong><?php echo(h(str_replace(' ', ' às ', $cha_dt_max))); ?></strong>.
+                               </div>
                                <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                                   &nbsp;&nbsp;                               
+                                   &nbsp;&nbsp;
                                    <button class="btn btn-lg btn-success btn-enviando" data-loading-text="salvando e enviando pedido..." type="submit"><i class="glyphicon glyphicon-send glyphicon-white"></i> salvar e ENVIAR pedido</button>
                                <?php
 							   }
 							   else
 							   {
 							   ?>
-                                 Pedido já enviado. Mas você pode salvar novas atualizações até a chamada encerrar.
+                               <?php /* pedido já enviado não precisa de recado aqui: o prazo já aparece
+                                        na tela de leitura, e a prosa alinhada à direita disputando a
+                                        linha com os botões quebrava feio. */ ?>
                                <button class="btn btn-default" type="button" onclick="javascript:location.href='pedido.php?action=<?php echo(ACAO_EXIBIR_LEITURA); ?>&amp;ped_id=<?php echo($ped_id);?>'"><i class="glyphicon glyphicon-off"></i> descartar alterações</button>
-                                     &nbsp;&nbsp;                          
-                                   <button class="btn btn-primary btn-lg btn-enviando" data-loading-text="salvando alterações..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
+                                     &nbsp;&nbsp;
+                                   <?php /* verde, igual ao "salvar e ENVIAR pedido" do pedido novo: é a
+                                            mesma ação de gravar, e a cor não deve mudar conforme o
+                                            pedido já tenha sido enviado ou não */ ?>
+                                   <button class="btn btn-success btn-lg btn-enviando" data-loading-text="salvando alterações..." type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> salvar alterações</button>
 							   <?php
 							   } //end if ped_fechado
 							   ?>                               
