@@ -165,12 +165,12 @@
                                     echo("&amp;ped_id=" . $row['ped_id'] . "\">");
                                     echo("<i class=\"glyphicon glyphicon-search\"></i> ver</a>");						
         
-                                    if($row['ped_fechado']!=1)
-                                    {
-                                        echo("&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=1");
-                                        echo("&amp;ped_id=" . $row['ped_id'] . "\">");
-                                        echo("<i class=\"glyphicon glyphicon-edit\"></i> editar</a>");
-                                    }
+                                    // editar vale também para pedido enviado: com o botão único
+                                    // quase tudo fica enviado, e sem isto o responsável perderia
+                                    // o atalho de edição direto desta lista
+                                    echo("&nbsp;<a class=\"btn btn-default btn-sm\" href=\"pedido.php?action=1");
+                                    echo("&amp;ped_id=" . $row['ped_id'] . "\">");
+                                    echo("<i class=\"glyphicon glyphicon-edit\"></i> editar</a>");
                                 }
                              ?>
 

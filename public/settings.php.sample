@@ -26,6 +26,9 @@ define('NOME_GRUPO_CONSUMO',"Rede Ecológica");
 // URL do grupo de consumo associado
 define('URL_GRUPO_CONSUMO',"http://redeecologicario.org");
 
+// URL canônica do sistema — usada quando não há requisição HTTP (cron em CLI)
+define('URL_SISTEMA',"https://pedidos.seudominio.org");
+
 
 define('EMAIL_SUPORTE_SISTEMA',"comissaopedidos@gmail.com");  // em caso de detecção que o banco de dados está fora do ar, por exemplo, o sistema vai informar ao usuário que contacte neste endereço de email
 
