@@ -30,7 +30,9 @@ find "$SRC" -type f -exec chmod 644 {} +
 PAI="$(dirname "${PROD_WEB_ROOT}")"; BASE="$(basename "${PROD_WEB_ROOT}")"
 echo ">> Backup no servidor (exclui tutorial/intranet — rápido)..."
 # shellcheck disable=SC2029  # expansão local intencional
-ssh "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
+# -n: sem isto o ssh consome o stdin do script, e a confirmação SIM (quando vem
+# por pipe, e não digitada) é engolida aqui — o read adiante recebe EOF e aborta
+ssh -n "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
   "cd '${PAI}' && tar czf ~/backup-pre-deploy-\$(date +%F-%H%M).tgz --exclude='${BASE}/tutorial' --exclude='${BASE}/intranet' '${BASE}' && ls -lh ~/backup-pre-deploy-*.tgz | tail -1"
 
 echo ">> DRY-RUN do rsync (nada é alterado ainda):"
