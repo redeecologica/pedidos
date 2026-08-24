@@ -415,19 +415,24 @@
             <?php /* btn-info: destaca a ação sem disputar com o botão de enviar/salvar,
                      que é o verde (ou o azul escuro do primary) no rodapé do formulário */ ?>
             <button type="button" class="btn btn-info" id="preencher_historico">
-              <i class="glyphicon glyphicon-repeat"></i> preencher com meus últimos pedidos
+              <i class="glyphicon glyphicon-repeat"></i> Preencher com meus últimos pedidos
             </button>
             <?php /* legenda: sem ela "maior" e "últ" embaixo de cada campo não querem
                      dizer nada. Fica aqui em cima, junto do botão, e não repetida na
                      tabela, que já tem uma linha por produto. */ ?>
             <span class="help-block">
-              Com base nos seus últimos <?php echo((int)$historico['pedidos']); ?>
-              pedido<?php echo($historico['pedidos']>1?"s":""); ?> deste tipo de chamada.
-              Embaixo de cada quantidade aparece
-              <strong>maior</strong> (a maior quantidade que você pediu nesses pedidos, que é a
-              que o botão preenche) e <strong>últ</strong> (a do pedido mais recente).
-              A marca <span class="label label-success">novidade</span> é produto que não estava
-              à venda em nenhum deles.
+              As quantidades sugeridas são baseadas nos seus últimos
+              <?php echo((int)$historico['pedidos']); ?> pedido<?php echo($historico['pedidos']>1?"s":""); ?>.
+              Você pode alterá-las livremente depois.
+              <br>
+              <strong>maior</strong> = maior quantidade pedida &middot;
+              <strong>últ</strong> = pedido mais recente &middot;
+              <?php /* "novo para você", e não "novidade": o produto pode não ser novo, só
+                       ter voltado do ciclo sazonal. O que é verdade nos dois casos é que ele
+                       não estava nos SEUS últimos pedidos — e é esse o alerta que importa
+                       para quem acabou de preencher tudo pelo botão. */ ?>
+              <span class="label label-success">novo para você</span> = produto não estava
+              disponível nos seus últimos pedidos
             </span>
             <div id="aviso_novidades" class="alert alert-warning" style="margin-top:10px; display:none;"></div>
           </div>
@@ -525,7 +530,7 @@
 								?>
                                 <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
 								<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
-                                <?php if($eh_novidade) echo("&nbsp;&nbsp;<span class='label label-success'>novidade</span>");?>
+                                <?php if($eh_novidade) echo("&nbsp;&nbsp;<span class='label label-success'>novo para você</span>");?>
                             </td>
                             <td><?php echo(h($row["prod_unidade"]));?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"])); ?></td>
