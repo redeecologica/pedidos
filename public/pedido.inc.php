@@ -27,7 +27,7 @@ function formata_qtde_curta($valor)
 //
 // Com pedidos = 0 a tela não mostra nada: sem histórico, todo produto pareceria
 // novidade e a página viraria só ruído.
-function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 4, $meses = 6)
+function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 4, $meses = 24)
 {
 	$vazio = array('quantidades' => array(), 'ofertados' => array(), 'pedidos' => 0);
 
@@ -43,11 +43,17 @@ function historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega, $limite = 
 	$sql.= "JOIN chamadas c ON c.cha_id = p.ped_cha ";
 	$sql.= "WHERE p.ped_usr = $usr_bd AND c.cha_prodt = $prodt_bd ";
 	$sql.= "AND p.ped_fechado = 1 AND c.cha_dt_entrega < $entrega_bd ";
-	// Janela de tempo, além da contagem: sem ela, quem sumiu por anos teria como
-	// referência um pedido de outra época. E não é só a quantidade que envelhece —
-	// o MESMO produto ganha prod_id novo a cada período de validade ("Aipo" já foi
-	// 3, 360, 645, 1303, 1449, 1542, 1626, 3017), então comparar com um pedido
-	// antigo marcaria quase o catálogo inteiro como novidade.
+	// Janela de tempo, além da contagem: o MESMO produto ganha prod_id novo a cada
+	// período de validade ("Aipo" já foi 3, 360, 645, 1303, 1449, 1542, 1626,
+	// 3017), então em histórico muito antigo nada casa — nenhuma quantidade é
+	// sugerida e o catálogo inteiro aparece como "novo para você".
+	//
+	// 24 meses, e não menos, porque os dados mostram que o casamento de ids se
+	// mantém até ali: a fatia de produtos que recebe sugestão é 33% para quem
+	// pediu há até 2 meses, 34% de 2 a 6 meses, 24% de 6 a 12 e 28% de 1 a 2 anos.
+	// Só passando de 2 anos ela desaba para 9%. Cortar antes disso excluiria
+	// gente cujo histórico ainda funciona — por exemplo quem é de núcleo mensal e
+	// pede em chamadas alternadas.
 	$sql.= "AND c.cha_dt_entrega >= $entrega_bd - INTERVAL $meses MONTH ";
 	$sql.= "ORDER BY c.cha_dt_entrega DESC LIMIT $limite";
 
