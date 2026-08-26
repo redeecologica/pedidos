@@ -182,8 +182,8 @@ function preencheComHistorico(){
 	if(novos > 0){
 		$("#aviso_novidades").text(
 			"Atenção: " + novos + " produto(s) marcado(s) como “novo para você” continuam zerados — " +
-			"não estavam nos seus últimos pedidos, então não havia quantidade para sugerir. " +
-			"Confira antes de enviar."
+			"não estavam disponíveis na chamada dos seus últimos pedidos, então não havia " +
+			"quantidade para sugerir. Confira antes de enviar."
 		).show();
 	}
 }

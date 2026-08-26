@@ -432,7 +432,7 @@
                        não estava nos SEUS últimos pedidos — e é esse o alerta que importa
                        para quem acabou de preencher tudo pelo botão. */ ?>
               <span class="label label-success">novo para você</span> = produto não estava
-              disponível nos seus últimos pedidos
+              disponível na chamada dos seus últimos pedidos
             </span>
             <div id="aviso_novidades" class="alert alert-warning" style="margin-top:10px; display:none;"></div>
           </div>
