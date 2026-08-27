@@ -95,6 +95,26 @@ function transacoes_desbalanceadas()
 }
 
 
+// Identidade estável da conta principal da Rede. Constante para o literal viver
+// num lugar só: o mapa de reservadas abaixo e conta_da_rede() têm de falar da
+// MESMA chave — separados, a reserva passaria a proteger uma string que ninguém
+// usa, e em silêncio.
+if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
+
+
+// Chaves estáveis reservadas: chave => único con_tipo que pode carregá-la.
+//
+// A busca de conta_da_rede() é por con_chave e NÃO filtra con_tipo — de
+// propósito, para o tipo, que é editável, não virar identidade. O preço disso é
+// que a coluna de identidade precisa da sua própria regra de coerência, senão
+// 'rede_principal' cabe numa conta de núcleo e conta_da_rede() passa a devolver
+// essa linha como a conta principal da Rede. É esta a regra.
+function chaves_reservadas()
+{
+	return array(CONTA_CHAVE_REDE => 'rede');
+}
+
+
 // Toda conta nasce por aqui. A coerência entre con_tipo e o campo de vínculo é
 // regra que o banco não consegue impor: o MySQL 5.6 aceita CHECK na DDL e o
 // ignora em silêncio, e com sql_mode vazio um '' vira 0 sem reclamar. Porta
@@ -125,6 +145,14 @@ function cria_conta($tipo, $campos = array())
 
 	$campo = $vinculo[$tipo];
 	if (!isset($campos[$campo])) return null;
+
+	// Chave reservada só nasce no tipo dono dela. con_chave é campo livre quanto
+	// à forma — qualquer tipo pode ter uma chave —, mas não quanto ao conteúdo:
+	// uma chave reservada carrega a identidade de uma conta específica, e quem a
+	// busca não filtra con_tipo.
+	$reservadas = chaves_reservadas();
+	$chave_pedida = isset($campos['con_chave']) ? trim((string)$campos['con_chave']) : '';
+	if (isset($reservadas[$chave_pedida]) && $reservadas[$chave_pedida] !== $tipo) return null;
 
 	// Texto que qualquer tipo pode ter: con_nome rotula, con_chave identifica.
 	$livres = array('con_nome', 'con_chave');
@@ -162,12 +190,19 @@ function cria_conta($tipo, $campos = array())
 // enche de contas vazias de gente que nunca movimentou. As telas listam todos os
 // cestantes do núcleo, tenham conta ou não — quem não tem aparece com saldo zero.
 //
-// A busca não filtra con_archive de propósito: a UNIQUE KEY conta_usuario é só
-// sobre con_usr, então passar por cima de uma conta arquivada levaria a um
-// INSERT que a chave recusa. Achar a arquivada é o comportamento certo.
+// A busca é só por con_usr: nem con_archive, nem con_tipo. A UNIQUE KEY
+// conta_usuario é sobre con_usr sozinho, então a linha que tiver aquele con_usr
+// É a conta daquele cestante — não existe segunda para desempatar.
+//
+// Filtrar por qualquer coluna editável reintroduz o defeito que a conta da Rede
+// já teve: arquivada ou com o con_tipo trocado, a conta deixaria de ser achada,
+// o INSERT seguinte bateria na UNIQUE, e conta_do_cestante devolveria null — o
+// cestante ficaria SEM CONTA para sempre, com lanca_transacao recebendo null e
+// deixando de gravar calado. Achar a linha, qualquer que seja o estado dela, é o
+// comportamento certo.
 function conta_do_cestante($usr_id, $criar = false)
 {
-	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = 'cestante' AND con_usr = " . prep_para_bd($usr_id));
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_usr = " . prep_para_bd($usr_id));
 	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
 
 	if (!$criar) return null;
@@ -191,7 +226,7 @@ function conta_do_cestante($usr_id, $criar = false)
 // é única na tabela inteira e basta sozinha.
 function conta_da_rede()
 {
-	$chave = 'rede_principal';
+	$chave = CONTA_CHAVE_REDE;
 	$nome  = 'Rede Ecológica';
 
 	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
