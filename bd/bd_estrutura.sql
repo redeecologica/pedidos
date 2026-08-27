@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS `contas` (
   `con_nuc`     mediumint(6) unsigned DEFAULT NULL COMMENT 'nucleos.nuc_id quando nucleo',
   `con_forn`    mediumint(6) unsigned DEFAULT NULL COMMENT 'fornecedores.forn_id quando produtor',
   `con_nome`    varchar(120) DEFAULT NULL COMMENT 'rotulo de exibicao; obrigatorio no tipo rede',
-  `con_chave`   varchar(30) DEFAULT NULL COMMENT 'identidade estavel, nao e rotulo; rede_principal = conta da Rede',
+  `con_chave`   varchar(30) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL COMMENT 'identidade estavel, nao e rotulo; utf8_bin: byte a byte, sem dobrar caixa nem acento',
   `con_archive` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`con_id`),
   UNIQUE KEY `conta_usuario`    (`con_usr`),

@@ -109,6 +109,20 @@ if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
 // que a coluna de identidade precisa da sua própria regra de coerência, senão
 // 'rede_principal' cabe numa conta de núcleo e conta_da_rede() passa a devolver
 // essa linha como a conta principal da Rede. É esta a regra.
+//
+// ATENÇÃO: esta guarda compara em PHP, byte a byte. Ela só vale se o `=` do SQL
+// e a UNIQUE KEY concordarem com esse critério — por isso con_chave é
+// `COLLATE utf8_bin` na DDL. Enquanto a coluna era utf8_general_ci, que dobra
+// caixa E acento, as duas comparações discordavam sobre o que é "a mesma
+// chave", e o exploit passava pela fresta: 'REDE_PRINCIPAL' numa conta de
+// núcleo escapava desta guarda e mesmo assim era achado pela busca. strtolower()
+// não resolveria — o acento também dobra. Trocar a colação da coluna faz as três
+// comparações concordarem por construção, e não por convenção.
+//
+// O trim() abaixo cobre a única folga que sobra no utf8_bin: em MySQL 5.6 a
+// comparação de VARCHAR ignora espaço no fim (PAD SPACE), então 'rede_principal '
+// ainda casaria na busca. Trimando antes de comparar, a guarda recusa a mais,
+// nunca a menos.
 function chaves_reservadas()
 {
 	return array(CONTA_CHAVE_REDE => 'rede');
