@@ -124,6 +124,56 @@ verifica("desfeitas as quebras, nenhuma delas sobra na varredura",
 
 mysqli_rollback($conn_link);
 
+// FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
+// tem de voltar a false: se ficasse ligada, lanca_transacao acreditaria que
+// alguém cuida do commit, não abriria a sua, e gravaria em autocommit — sem
+// atomicidade e sem rollback, sujando a cópia de produção.
+//
+// Quem acrescentar teste DEPOIS desta linha grava DE VERDADE e é responsável por
+// limpar o que criar. Teste novo que dependa de rollback vai ACIMA do
+// mysqli_rollback, não aqui.
+$financeiro_em_transacao = false;
+
+
+echo "\ncaminho de producao\n";
+
+// Nenhum teste acima exercita o ramo que roda em produção: com o fixture dentro
+// de uma transação nossa, lanca_transacao sempre vê $nossa === false e nunca
+// executa o próprio begin/commit. Aqui, sim — e por isso estes registros são
+// gravados de verdade.
+// A limpeza vai para o shutdown, e é registrada ANTES de existir o que limpar:
+// tem de rodar mesmo se uma asserção falhar, se o próprio insere() abaixo abortar
+// no meio ou se der erro fatal. É o mesmo motivo do `trap EXIT` nos scripts de
+// shell. Por isso apaga por nome, e não por id — no pior caso o id nem chegou a
+// existir.
+register_shutdown_function(function () {
+    executa_sql("DELETE l FROM lancamentos l JOIN transacoes t ON t.tra_id = l.lan_tra
+                 WHERE t.tra_historico = 'teste caminho de producao'");
+    executa_sql("DELETE FROM transacoes WHERE tra_historico = 'teste caminho de producao'");
+    executa_sql("DELETE FROM contas WHERE con_nome IN ('Teste Producao A','Teste Producao B')");
+});
+
+$prod_a = insere("INSERT INTO contas (con_tipo, con_nome) VALUES ('rede','Teste Producao A')");
+$prod_b = insere("INSERT INTO contas (con_tipo, con_nome) VALUES ('rede','Teste Producao B')");
+
+$tra_prod = lanca_transacao('2026-08-01 10:00:00', 'ajuste', $prod_a, $prod_b, 42.50,
+                            'teste caminho de producao');
+
+// Se a função tivesse deixado a transação aberta em vez de comitar, este rollback
+// apagaria as duas pernas. É o que separa "gravou" de "comitou".
+mysqli_rollback($conn_link);
+
+$pernas_prod = (int)valor_escalar("SELECT COUNT(*) FROM lancamentos WHERE lan_tra = " . (int)$tra_prod);
+$soma_prod   = (float)valor_escalar("SELECT COALESCE(SUM(lan_valor),0) FROM lancamentos WHERE lan_tra = " . (int)$tra_prod);
+
+verifica("o caminho de producao comita mesmo: as duas pernas sobrevivem a um rollback",
+    is_numeric($tra_prod) && $tra_prod > 0 && $pernas_prod === 2 && $soma_prod == 0.0,
+    "tra_id = " . var_export($tra_prod, true) . " · pernas = $pernas_prod · soma = $soma_prod");
+
+verifica("o caminho de producao devolve a flag para false",
+    $financeiro_em_transacao === false,
+    "flag = " . var_export($financeiro_em_transacao, true));
+
 echo "\n";
 if ($falhas === 0) { echo "TODOS OS $total TESTES PASSARAM\n"; exit(0); }
 echo "$falhas de $total TESTES FALHARAM\n";
