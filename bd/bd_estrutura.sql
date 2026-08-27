@@ -257,6 +257,65 @@ CREATE TABLE IF NOT EXISTS `pedidos` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `contas`
+--
+
+CREATE TABLE IF NOT EXISTS `contas` (
+  `con_id`      mediumint(6) unsigned NOT NULL AUTO_INCREMENT,
+  `con_tipo`    varchar(10) NOT NULL COMMENT 'cestante | nucleo | produtor | rede',
+  `con_usr`     mediumint(6) unsigned DEFAULT NULL COMMENT 'usuarios.usr_id quando cestante',
+  `con_nuc`     mediumint(6) unsigned DEFAULT NULL COMMENT 'nucleos.nuc_id quando nucleo',
+  `con_forn`    mediumint(6) unsigned DEFAULT NULL COMMENT 'fornecedores.forn_id quando produtor',
+  `con_nome`    varchar(120) DEFAULT NULL COMMENT 'rotulo; obrigatorio no tipo rede',
+  `con_archive` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`con_id`),
+  UNIQUE KEY `conta_usuario`    (`con_usr`),
+  UNIQUE KEY `conta_nucleo`     (`con_nuc`),
+  UNIQUE KEY `conta_fornecedor` (`con_forn`),
+  KEY `conta_tipo` (`con_tipo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transacoes`
+--
+
+CREATE TABLE IF NOT EXISTS `transacoes` (
+  `tra_id`           int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `tra_dt`           datetime NOT NULL COMMENT 'data do fato, nao a da digitacao',
+  `tra_tipo`         varchar(20) NOT NULL COMMENT 'debito_entrega | pagamento | ajuste',
+  `tra_cha`          mediumint(6) unsigned DEFAULT NULL COMMENT 'procedencia, so em debito_entrega',
+  `tra_historico`    varchar(200) DEFAULT NULL,
+  `tra_comprovante`  varchar(300) DEFAULT NULL,
+  `tra_obs`          varchar(400) DEFAULT NULL,
+  `tra_usr_registro` mediumint(6) unsigned NOT NULL,
+  `tra_dt_registro`  timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`tra_id`),
+  KEY `transacao_data`    (`tra_dt`),
+  KEY `transacao_chamada` (`tra_cha`),
+  KEY `transacao_tipo`    (`tra_tipo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `lancamentos`
+--
+
+CREATE TABLE IF NOT EXISTS `lancamentos` (
+  `lan_id`    int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `lan_tra`   int(10) unsigned NOT NULL,
+  `lan_con`   mediumint(6) unsigned NOT NULL,
+  `lan_valor` decimal(10,2) NOT NULL COMMENT 'com sinal; negativo debita a conta',
+  PRIMARY KEY (`lan_id`),
+  KEY `lancamento_conta` (`lan_con`),
+  KEY `lancamento_transacao` (`lan_tra`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `produtos`
 --
 
