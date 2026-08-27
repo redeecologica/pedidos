@@ -310,7 +310,9 @@ CREATE TABLE IF NOT EXISTS `lancamentos` (
   `lan_valor` decimal(10,2) NOT NULL COMMENT 'com sinal; negativo debita a conta',
   PRIMARY KEY (`lan_id`),
   KEY `lancamento_conta` (`lan_con`),
-  KEY `lancamento_transacao` (`lan_tra`)
+  KEY `lancamento_transacao` (`lan_tra`),
+  CONSTRAINT `fk_lancamento_conta` FOREIGN KEY (`lan_con`) REFERENCES `contas` (`con_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_lancamento_transacao` FOREIGN KEY (`lan_tra`) REFERENCES `transacoes` (`tra_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
