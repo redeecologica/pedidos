@@ -160,9 +160,34 @@ verifica("a segunda chamada acha a mesma conta da Rede, nao cria outra",
     $con_rede2 == $con_rede, "primeira = " . var_export($con_rede, true)
         . " · segunda = " . var_export($con_rede2, true));
 
-verifica("a conta da Rede nasce com tipo rede e nome proprio",
+verifica("a conta da Rede nasce com tipo, nome e chave estavel",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_rede
-        . " AND con_tipo = 'rede' AND con_nome = 'Rede Ecológica'") == 1);
+        . " AND con_tipo = 'rede' AND con_nome = 'Rede Ecológica'"
+        . " AND con_chave = 'rede_principal'") == 1);
+
+// Identidade não é rótulo. Renomear a conta principal é coisa que a administração
+// pode fazer pela tela; com a busca por con_nome, como era antes, a chamada
+// seguinte não acharia mais a conta e cairia no INSERT — nasceria uma SEGUNDA
+// conta principal e os débitos de entrega passariam a ter duas contrapartes.
+//
+// O que a asserção observa é que a busca continua achando a MESMA conta. Sob a
+// volta para busca por nome ela falha de todo jeito: com a UNIQUE KEY no lugar,
+// o INSERT da segunda conta é recusado e conta_da_rede() devolve null; sem a
+// chave única, devolveria um id diferente. Nos dois casos, diferente de
+// $con_rede.
+executa_sql("UPDATE contas SET con_nome = 'Rede Ecologica (renomeada na mao)'
+             WHERE con_id = " . (int)$con_rede);
+
+verifica("renomear a conta da Rede nao faz a busca perder a conta",
+    conta_da_rede() == $con_rede,
+    "antes = " . var_export($con_rede, true)
+        . " · depois = " . var_export(conta_da_rede(), true));
+
+// A UNIQUE KEY conta_chave é o que impede duas contas principais de coexistir.
+// Sem ela — um ALTER que tivesse acrescentado só a coluna — todo o resto da
+// suíte seguiria verde: este é o único teste que acusa a chave faltando.
+verifica("chave repetida e recusada pelo banco",
+    cria_conta('nucleo', array('con_nuc' => 2, 'con_chave' => 'rede_principal')) === null);
 
 // Usuários novos, ainda sem conta: as recusas abaixo têm de vir da validação, e
 // não da UNIQUE KEY conta_usuario. Reusando $usr_t, que já ganhou conta lá em
@@ -208,15 +233,21 @@ verifica("nenhuma conta foi gravada pelas recusas",
     (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes,
     "antes = $contas_antes · depois = " . valor_escalar("SELECT COUNT(*) FROM contas"));
 
-// Núcleo e produtor estão no mapa de tipos mas nenhum teste acima os exercita.
-// Esta conta confirma que a montagem genérica das colunas serve a um vínculo
-// além dos dois já cobertos, e que o rótulo acompanha um tipo que não o exige.
-// Vem DEPOIS da contagem acima, que exige que nada tenha sido gravado.
+// Fecham os quatro tipos: cestante e rede saíram exercitados lá em cima, núcleo e
+// produtor só existiam no mapa. Confirmam que a montagem genérica das colunas
+// serve a vínculos além do primeiro, e que o rótulo acompanha um tipo que não o
+// exige. Vêm DEPOIS da contagem acima, que exige que nada tenha sido gravado.
 $con_nuc_t = cria_conta('nucleo', array('con_nuc' => 1, 'con_nome' => 'Teste Nucleo'));
 verifica("conta de nucleo nasce com o vinculo e o rotulo",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_nuc_t
         . " AND con_tipo = 'nucleo' AND con_nuc = 1 AND con_nome = 'Teste Nucleo'") == 1,
     var_export($con_nuc_t, true));
+
+$con_forn_t = cria_conta('produtor', array('con_forn' => 1));
+verifica("conta de produtor nasce com o vinculo",
+    valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_forn_t
+        . " AND con_tipo = 'produtor' AND con_forn = 1") == 1,
+    var_export($con_forn_t, true));
 
 mysqli_rollback($conn_link);
 
