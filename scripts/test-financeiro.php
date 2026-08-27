@@ -122,6 +122,69 @@ $ainda_tortas = array_intersect(transacoes_desbalanceadas(),
 verifica("desfeitas as quebras, nenhuma delas sobra na varredura",
     count($ainda_tortas) === 0, "sobrou: " . implode(",", $ainda_tortas));
 
+echo "\ncontas\n";
+
+$usr_t = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Conta','tconta','teste-conta@dev.local','x','0',1)");
+
+verifica("cestante sem movimento nao tem conta criada a toa",
+    conta_do_cestante($usr_t) === null);
+
+$con_t = conta_do_cestante($usr_t, true);
+verifica("conta do cestante e criada quando pedida",
+    is_numeric($con_t) && $con_t > 0, var_export($con_t, true));
+
+// O runner conta linhas antes e depois, mas este bloco roda dentro da transação:
+// nada do que ele grava chega lá. Conferir a linha que nasceu é o único jeito de
+// pegar uma conta criada com o tipo certo e o vínculo errado — ou o contrário.
+verifica("a conta nasce com tipo cestante e vinculada ao usuario",
+    valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_t
+        . " AND con_tipo = 'cestante' AND con_usr = " . (int)$usr_t) == 1);
+
+verifica("chamar de novo devolve a mesma conta, nao cria outra",
+    conta_do_cestante($usr_t, true) == $con_t);
+
+verifica("conta nova nasce zerada",
+    saldo_da_conta($con_t) == 0.0);
+
+// Duas chamadas, os dois valores guardados: a segunda tem de ACHAR a primeira.
+// Se o acento de 'Rede Ecológica' se perdesse na gravação, a busca por nome
+// erraria e viria um id novo — é este teste que prova o ida-e-volta em utf8.
+$con_rede  = conta_da_rede();
+$con_rede2 = conta_da_rede();
+
+verifica("a conta da Rede existe ou e criada",
+    is_numeric($con_rede) && $con_rede > 0, var_export($con_rede, true));
+
+verifica("a segunda chamada acha a mesma conta da Rede, nao cria outra",
+    $con_rede2 == $con_rede, "primeira = " . var_export($con_rede, true)
+        . " · segunda = " . var_export($con_rede2, true));
+
+verifica("a conta da Rede nasce com tipo rede e nome proprio",
+    valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_rede
+        . " AND con_tipo = 'rede' AND con_nome = 'Rede Ecológica'") == 1);
+
+// Coerência entre con_tipo e o campo de vínculo: o MySQL 5.6 aceita CHECK e o
+// ignora em silêncio, então quem barra é cria_conta. A contagem em volta das
+// recusas garante que elas acontecem ANTES do INSERT — sem ela, um refactor que
+// movesse a validação para depois passaria despercebido.
+$contas_antes = (int)valor_escalar("SELECT COUNT(*) FROM contas");
+
+verifica("tipo de conta fora da lista e recusado",
+    cria_conta('carteira', array('con_nome' => 'Tipo Inventado')) === null);
+
+verifica("conta da rede sem nome e recusada",
+    cria_conta('rede') === null
+    && cria_conta('rede', array('con_nome' => '   ')) === null);
+
+verifica("cestante sem usuario e recusado",
+    cria_conta('cestante') === null
+    && cria_conta('cestante', array('con_nome' => 'sem usuario')) === null);
+
+verifica("nenhuma conta foi gravada pelas recusas",
+    (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes,
+    "antes = $contas_antes · depois = " . valor_escalar("SELECT COUNT(*) FROM contas"));
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

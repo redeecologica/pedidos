@@ -93,3 +93,86 @@ function transacoes_desbalanceadas()
 
 	return $fora;
 }
+
+
+// Toda conta nasce por aqui. A coerência entre con_tipo e o campo de vínculo é
+// regra que o banco não consegue impor: o MySQL 5.6 aceita CHECK na DDL e o
+// ignora em silêncio, e com sql_mode vazio um '' vira 0 sem reclamar. Porta
+// única, então, em vez da mesma checagem repetida em cada chamador.
+//
+// Cada tipo exige o seu vínculo — e 'rede' exige con_nome porque, sem rótulo,
+// duas contas da Rede ficam indistinguíveis, e são justamente as contas
+// pessoais que consolidam a Rede.
+//
+// Exigir não é excluir: um núcleo com con_nome de rótulo é legítimo, então os
+// demais campos informados seguem para o INSERT.
+//
+// Devolve o con_id, ou null se o tipo for desconhecido, o vínculo faltar ou o
+// INSERT falhar — nunca o id_inserido() de um INSERT que não aconteceu.
+function cria_conta($tipo, $campos = array())
+{
+	$vinculo = array(
+		'cestante' => 'con_usr',
+		'nucleo'   => 'con_nuc',
+		'produtor' => 'con_forn',
+		'rede'     => 'con_nome',
+	);
+
+	if (!isset($vinculo[$tipo])) return null;
+
+	$campo = $vinculo[$tipo];
+	$valor = isset($campos[$campo]) ? $campos[$campo] : null;
+
+	if ($campo === 'con_nome') { if (trim((string)$valor) === '') return null; }
+	else if (!is_numeric($valor) || $valor <= 0)    return null;
+
+	$colunas = array('con_tipo');
+	$valores = array(prep_para_bd($tipo));
+	foreach (array('con_usr', 'con_nuc', 'con_forn', 'con_nome') as $col)
+	{
+		if (!isset($campos[$col])) continue;
+		$colunas[] = $col;
+		$valores[] = prep_para_bd($campos[$col]);
+	}
+
+	$sql = "INSERT INTO contas (" . implode(", ", $colunas) . ") VALUES (" . implode(", ", $valores) . ")";
+	if (!executa_sql($sql)) return null;
+
+	return id_inserido();
+}
+
+
+// A conta nasce no primeiro lançamento, não ao abrir a tela: assim a tabela não
+// enche de contas vazias de gente que nunca movimentou. As telas listam todos os
+// cestantes do núcleo, tenham conta ou não — quem não tem aparece com saldo zero.
+//
+// A busca não filtra con_archive de propósito: a UNIQUE KEY conta_usuario é só
+// sobre con_usr, então passar por cima de uma conta arquivada levaria a um
+// INSERT que a chave recusa. Achar a arquivada é o comportamento certo.
+function conta_do_cestante($usr_id, $criar = false)
+{
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = 'cestante' AND con_usr = " . prep_para_bd($usr_id));
+	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+
+	if (!$criar) return null;
+
+	return cria_conta('cestante', array('con_usr' => $usr_id));
+}
+
+
+// A Rede tem uma conta principal, que é a contraparte dos débitos de entrega.
+// Contas pessoais que consolidam a Rede (con_tipo='rede' com con_nome próprio)
+// são outras linhas, criadas pela administração.
+//
+// O nome fica numa variável só, usada na busca e na criação: literal repetido
+// deixaria os dois se separarem, e aí a conta principal nasceria de novo a cada
+// chamada.
+function conta_da_rede()
+{
+	$nome = 'Rede Ecológica';
+
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = 'rede' AND con_nome = " . prep_para_bd($nome));
+	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+
+	return cria_conta('rede', array('con_nome' => $nome));
+}
