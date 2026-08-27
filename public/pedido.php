@@ -154,7 +154,10 @@
 		{
 			$sql = "SELECT (cha_dt_max<now()) somente_leitura, usr_nome_curto, ped_usr, ped_usr_associado, usr_nome_completo, usr_contatos, prodt_nome, ";
 			$sql.= "nuc_nome_curto, nuc_id, ped_fechado, ped_cha, DATE_FORMAT(ped_dt_atualizacao,'%d/%m/%Y %H:%i') ped_dt_atualizacao, FORMAT(cha_taxa_percentual,2) as cha_taxa_percentual, ";
-			$sql.= "DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max  FROM pedidos ";
+			$sql.= "DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, DATE_FORMAT(cha_dt_max,'%d/%m/%Y %H:%i') cha_dt_max, ";
+			// versões cruas: o histórico compara datas e tipo de chamada, e a data
+			// formatada em d/m/Y não serve para comparação no banco
+			$sql.= "cha_prodt, cha_dt_entrega cha_dt_entrega_bruta  FROM pedidos ";
 			$sql.= "LEFT JOIN usuarios ON ped_usr = usr_id ";	
 			$sql.= "LEFT JOIN nucleos ON ped_nuc = nuc_id ";	
 			$sql.= "LEFT JOIN chamadas ON ped_cha = cha_id ";				
@@ -180,6 +183,8 @@
 			$ped_cha = $row["ped_cha"]; // serve como parametro  
 			$ped_usr = $row["ped_usr"]; // serve como parametro 			
 			$ped_somente_leitura = $row["somente_leitura"];
+			$cha_prodt = $row["cha_prodt"];
+			$cha_dt_entrega_bruta = $row["cha_dt_entrega_bruta"];
 			
 		   }
 		   else 
@@ -393,8 +398,48 @@
           <?php /* salvar é enviar: não existe mais gravação que deixe o pedido em rascunho.
                    Vale também para o pedido já enviado, que apenas continua enviado. */ ?>
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR_E_CONFIRMAR_PEDIDO); ?>" />
-            
-          
+
+<?php
+	// Sugestões a partir dos últimos pedidos deste cestante para este mesmo tipo
+	// de chamada. Sem histórico não aparece nada: todo produto pareceria
+	// novidade e a tela viraria só ruído.
+	$historico = historico_do_cestante($ped_usr, $cha_prodt, $cha_dt_entrega_bruta);
+	if($historico['pedidos'] > 0)
+	{
+?>
+          <?php /* sem caixa: explicação é help-block. Caixa colorida neste sistema é
+                   mensagem de status, e usá-la aqui sugeriria que algo já aconteceu.
+                   O aviso de novidades abaixo é exceção porque ele SÓ aparece depois
+                   do clique — aí é resposta a uma ação, e caixa é o formato certo. */ ?>
+          <div class="hidden-print" style="margin-bottom:15px;">
+            <?php /* btn-info: destaca a ação sem disputar com o botão de enviar/salvar,
+                     que é o verde (ou o azul escuro do primary) no rodapé do formulário */ ?>
+            <button type="button" class="btn btn-info" id="preencher_historico">
+              <i class="glyphicon glyphicon-repeat"></i> Preencher com meus últimos pedidos
+            </button>
+            <?php /* legenda: sem ela "maior" e "últ" embaixo de cada campo não querem
+                     dizer nada. Fica aqui em cima, junto do botão, e não repetida na
+                     tabela, que já tem uma linha por produto. */ ?>
+            <span class="help-block">
+              As quantidades sugeridas são baseadas nos seus últimos
+              <?php echo((int)$historico['pedidos']); ?> pedido<?php echo($historico['pedidos']>1?"s":""); ?>.
+              Você pode alterá-las livremente depois.
+              <br>
+              <strong>maior</strong> = maior quantidade pedida &middot;
+              <strong>últ</strong> = pedido mais recente &middot;
+              <?php /* "novo para você", e não "novidade": o produto pode não ser novo, só
+                       ter voltado do ciclo sazonal. O que é verdade nos dois casos é que ele
+                       não estava nos SEUS últimos pedidos — e é esse o alerta que importa
+                       para quem acabou de preencher tudo pelo botão. */ ?>
+              <span class="label label-success">novo para você</span> = produto não estava
+              disponível na chamada dos seus últimos pedidos
+            </span>
+            <div id="aviso_novidades" class="alert alert-warning" style="margin-top:10px; display:none;"></div>
+          </div>
+<?php
+	}
+?>
+
 <?php
  
 		
@@ -463,16 +508,29 @@
                          
 								<?php
 								
-							}   
-							
+							}
+
+							// histórico deste produto, se houver
+							$hist_prod   = isset($historico['quantidades'][$row["prod_id"]]) ? $historico['quantidades'][$row["prod_id"]] : null;
+							// novidade = não estava à venda em nenhuma das chamadas usadas.
+							// Sem histórico ninguém é novidade, senão a lista inteira se marcaria.
+							$eh_novidade = ($historico['pedidos'] > 0 && !isset($historico['ofertados'][$row["prod_id"]]));
+
+							// atributos que o botão de preencher lê: a quantidade a aplicar e
+							// a marca de novidade, para avisar quantas ficaram zeradas
+							$attr_hist = "";
+							if($hist_prod)   $attr_hist.= " data-qtde-max=\"" . h(formata_qtde_curta($hist_prod['max'])) . "\"";
+							if($eh_novidade) $attr_hist.= " data-novidade=\"1\"";
+
 							?>
-							<tr> 
+							<tr>
                             <td style="text-align:left;">
 								<?php echo(h($row["prod_nome"])); 
 									  adiciona_popover_descricao("Descrição", $row["prod_descricao"]);
 								?>
                                 <?php if($row["prod_retornavel"]!=0) echo("&nbsp;<i class='glyphicon glyphicon-retweet' title='Produto com embalagem retornável'></i>");?>
-								<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>                           
+								<?php if($row["chaprod_disponibilidade"]==1) echo("&nbsp;&nbsp;<span class='label label-warning'>entrega parcial</span>");?>
+                                <?php if($eh_novidade) echo("&nbsp;&nbsp;<span class='label label-success'>novo para você</span>");?>
                             </td>
                             <td><?php echo(h($row["prod_unidade"]));?></td>
 							<td><?php echo(formata_numero_de_mysql($row["prod_valor_venda"])); ?></td>
@@ -483,18 +541,27 @@
 								if( (100 %($row["prod_multiplo_venda"]*100)) !=0)
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>" />
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]?formata_numero_de_mysql($row["pedprod_quantidade"]):"0,0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>"<?php echo($attr_hist); ?> />
                             <?php 
 								}
 								else
 								{								
 							?>
-                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>" />
-                            <?php 
-								}								
+                            <input type="text" class="form-control qtdeprod" title="Múltiplo do produto para compra: <?php echo(formata_numero_de_mysql($row["prod_multiplo_venda"]));?>" style="font-size:18px; text-align:center;" value="<?php echo($row["pedprod_quantidade"]? str_replace('',',0',formata_numero_de_mysql($row["pedprod_quantidade"])):"0"); ?>" name="pedprod_quantidade[]" id="qtdeprod_<?php echo(h($row["prod_id"]));?>"<?php echo($attr_hist); ?> />
+                            <?php
+								}
 							?>
+                            <?php if($hist_prod) { ?>
+                              <div class="text-muted hidden-print" style="font-size:11px; text-align:center;">
+                                <?php /* "maior", não "máx": máximo se lê como limite do que a
+                                         pessoa pode pedir, que é o contrário do que o número diz */ ?>
+                                maior <?php echo(h(formata_qtde_curta($hist_prod['max']))); ?><?php
+                                  // 'ultimo' vem nulo quando o produto não estava no pedido mais recente
+                                  if($hist_prod['ultimo'] !== null) { ?> &middot; últ <?php echo(h(formata_qtde_curta($hist_prod['ultimo']))); ?><?php } ?>
+                              </div>
+                            <?php } ?>
 
-                            </td>    
+                            </td>
                     		<td>
                             <input type="hidden" name="valorprod_<?php echo(h($row["prod_id"]));?>" value="<?php echo($ped_usr_associado)==1 ? $row["prod_valor_venda"] : $row["prod_valor_venda_margem"] ?>" id="valorprod_<?php echo(h($row["prod_id"]));?>"/>
                             <input type="hidden" class="multiploprod" name="multiploprod_<?php echo(h($row["prod_id"])); ?>" value="<?php echo(h($row["prod_multiplo_venda"]))?>" id="multiploprod_<?php echo(h($row["prod_id"]));?>"/>
@@ -574,7 +641,8 @@
 		$(".qtdeprod").formataInput();
 		$(".qtdeprod").on('keydown', keyCheck);
 		$(".qtdeprod").on('blur', calculaTotalPedido);
-	}); 
+		$("#preencher_historico").on('click', preencheComHistorico);
+	});
 </script>    
  
  

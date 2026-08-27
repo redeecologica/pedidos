@@ -224,6 +224,116 @@ verifica("a data do primeiro envio não é sobrescrita por gravações seguintes
     valor_escalar("SELECT ped_dt_envio FROM pedidos WHERE ped_id = $cobaia") === $envio_original,
     "original=$envio_original agora=" . valor_escalar("SELECT ped_dt_envio FROM pedidos WHERE ped_id = $cobaia"));
 
+// ---------------------------------------------------------------------------
+echo "\nhistórico do cestante (últimos 4 pedidos do mesmo tipo)\n";
+// ---------------------------------------------------------------------------
+
+// Cada pedido que DEVE ser ignorado carrega uma quantidade própria e absurda:
+// se alguma regra de exclusão quebrar, o número dela aparece no resultado e
+// aponta qual regra falhou.
+$PROD_X = 1; $PROD_Y = 53; $PROD_Z = 340;
+$PRODT_A = 1; $PRODT_B = 2;
+
+$usr_h = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Historico', 'histor', 'testhistorico@dev.local', 'x', '0', $NUC)");
+
+// cria chamada + pedido; devolve o cha_id
+function cria_chamada_com_pedido($prodt, $dias_atras, $usr, $prod, $qtde, $fechado)
+{
+    global $NUC;
+    $sinal = $dias_atras >= 0 ? "- INTERVAL $dias_atras DAY" : "+ INTERVAL " . abs($dias_atras) . " DAY";
+    $cha = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max)
+        VALUES ($prodt, NOW() $sinal, NOW() $sinal - INTERVAL 10 DAY, NOW() $sinal - INTERVAL 2 DAY)");
+    insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha, $prod, 2)");
+    $ped = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+        VALUES ($usr, 1, $NUC, $cha, '$fechado')");
+    insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade) VALUES ($ped, $prod, $qtde)");
+    return $cha;
+}
+
+// os quatro que contam (do mais recente para o mais antigo)
+$cha_h1 = cria_chamada_com_pedido($PRODT_A, 10, $usr_h, $PROD_X, 5,  1); // mais recente -> "ultimo"
+$cha_h2 = cria_chamada_com_pedido($PRODT_A, 20, $usr_h, $PROD_X, 9,  1); // o maior     -> "max"
+$cha_h3 = cria_chamada_com_pedido($PRODT_A, 30, $usr_h, $PROD_X, 2,  1);
+$cha_h4 = cria_chamada_com_pedido($PRODT_A, 40, $usr_h, $PROD_X, 1,  1);
+
+// os que NÃO podem entrar
+$cha_h5 = cria_chamada_com_pedido($PRODT_A, 50, $usr_h, $PROD_X, 100, 1); // 5º: fora da janela de 4
+cria_chamada_com_pedido($PRODT_A, 15, $usr_h, $PROD_X, 999, 0); // rascunho, não enviado
+cria_chamada_com_pedido($PRODT_B,  5, $usr_h, $PROD_X, 777, 1); // outro tipo de chamada
+cria_chamada_com_pedido($PRODT_A, -10, $usr_h, $PROD_X, 888, 1); // entrega depois da atual
+
+// PROD_Y foi ofertado numa das 4 que contam -> não é novidade
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_h1, $PROD_Y, 2)");
+// ...mas só foi PEDIDO na 2ª chamada, não na mais recente: assim 'ultimo' vem
+// nulo e o caminho "máx sem últ" da tela fica coberto
+$ped_h2 = valor_escalar("SELECT ped_id FROM pedidos WHERE ped_cha = $cha_h2 AND ped_usr = $usr_h");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade) VALUES ($ped_h2, $PROD_Y, 3)");
+// PROD_Z foi ofertado SÓ na 5ª chamada, fora da janela -> tem que contar como
+// novidade. Sem esta linha o teste passaria à toa, com um produto que nunca
+// esteve em chamada nenhuma.
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_h5, $PROD_Z, 2)");
+
+$hist = historico_do_cestante($usr_h, $PRODT_A, date('Y-m-d H:i:s', strtotime('+5 days')));
+
+verifica("considera exatamente os 4 pedidos anteriores",
+    $hist['pedidos'] === 4, "considerou " . var_export($hist['pedidos'], true));
+
+verifica("a quantidade máxima vem do maior dos 4",
+    isset($hist['quantidades'][$PROD_X]) && (float)$hist['quantidades'][$PROD_X]['max'] == 9.0,
+    "max = " . (isset($hist['quantidades'][$PROD_X]) ? $hist['quantidades'][$PROD_X]['max'] : '(ausente)'));
+
+verifica("a última quantidade vem do pedido mais recente",
+    isset($hist['quantidades'][$PROD_X]) && (float)$hist['quantidades'][$PROD_X]['ultimo'] == 5.0,
+    "ultimo = " . (isset($hist['quantidades'][$PROD_X]) ? $hist['quantidades'][$PROD_X]['ultimo'] : '(ausente)'));
+
+verifica("produto ofertado nas 4 anteriores não é novidade",
+    isset($hist['ofertados'][$PROD_Y]));
+
+// PROD_Y só foi pedido numa chamada mais antiga, não na mais recente: tem máximo
+// mas não tem "último". É o caso que faz a tela mostrar "máx N" sem "· últ".
+verifica("produto ausente do pedido mais recente tem máximo",
+    isset($hist['quantidades'][$PROD_Y]) && (float)$hist['quantidades'][$PROD_Y]['max'] == 3.0,
+    "max = " . (isset($hist['quantidades'][$PROD_Y]) ? var_export($hist['quantidades'][$PROD_Y]['max'], true) : '(ausente)'));
+
+verifica("produto ausente do pedido mais recente vem com último nulo",
+    isset($hist['quantidades'][$PROD_Y]) && $hist['quantidades'][$PROD_Y]['ultimo'] === null,
+    "ultimo = " . (isset($hist['quantidades'][$PROD_Y]) ? var_export($hist['quantidades'][$PROD_Y]['ultimo'], true) : '(ausente)'));
+
+verifica("produto ofertado só fora da janela conta como novidade",
+    !isset($hist['ofertados'][$PROD_Z]));
+
+// O texto do histórico aparece em até 151 linhas: "4,00" polui, "4" não.
+verifica("quantidade do histórico sai sem decimal inútil",
+    formata_qtde_curta("4.00") === "4" && formata_qtde_curta("10.00") === "10",
+    "4.00 -> " . formata_qtde_curta("4.00") . " | 10.00 -> " . formata_qtde_curta("10.00"));
+
+verifica("quantidade fracionada preserva a casa que importa",
+    formata_qtde_curta("0.50") === "0,5",
+    "0.50 -> " . formata_qtde_curta("0.50"));
+
+// Histórico velho não serve: o catálogo vira e o MESMO produto ganha prod_id novo
+// (ex.: "Aipo" já foi 3, 360, 645, 1303, 1449, 1542, 1626, 3017 ao longo dos anos).
+// Comparar contra um pedido de anos atrás marcaria quase tudo como novidade e
+// sugeriria quantidades de outra época.
+$usr_antigo = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Historico Antigo', 'antigo', 'testhistoricoantigo@dev.local', 'x', '0', $NUC)");
+cria_chamada_com_pedido($PRODT_A, 1200, $usr_antigo, $PROD_X, 5, 1); // ~3 anos atrás
+$hist_antigo = historico_do_cestante($usr_antigo, $PRODT_A, date('Y-m-d H:i:s', strtotime('+5 days')));
+
+verifica("pedido antigo demais não vira histórico",
+    $hist_antigo['pedidos'] === 0,
+    "considerou " . var_export($hist_antigo['pedidos'], true) . " pedido(s)");
+
+// sem histórico nenhum: a tela não pode mostrar botão nem marcar tudo como novidade
+$usr_novo = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Sem Historico', 'semhist', 'testsemhistorico@dev.local', 'x', '0', $NUC)");
+$hist_vazio = historico_do_cestante($usr_novo, $PRODT_A, date('Y-m-d H:i:s', strtotime('+5 days')));
+
+verifica("cestante sem histórico devolve zero pedidos",
+    $hist_vazio['pedidos'] === 0 && count($hist_vazio['quantidades']) === 0,
+    var_export($hist_vazio, true));
+
 mysqli_rollback($conn_link);
 
 // ---------------------------------------------------------------------------

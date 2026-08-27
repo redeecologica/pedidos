@@ -148,6 +148,46 @@ function enforceNumeric (e, enforceInt) {
 	}
 }
 
+// Preenche as quantidades a partir do histórico do cestante, lido do
+// data-qtde-max que o pedido.php coloca em cada campo.
+//
+// Sobrescreve o que já estiver digitado — daí a confirmação. E avisa quantos
+// produtos novos ficaram zerados: o risco deste botão é justamente tornar o
+// pedido tão automático que a pessoa deixe de reparar nas novidades.
+function preencheComHistorico(){
+	// Só pergunta se houver algo a perder. Pedido novo já nasce com todos os
+	// campos em zero, o que na prática é formulário em branco: confirmar ali
+	// seria um clique a mais sem informação nenhuma.
+	var temAlgoDigitado = false;
+	$(".qtdeprod").each(function(){
+		if( parseFloat( ($(this).val() || "0").replace(",", ".") ) > 0 ){
+			temAlgoDigitado = true;
+			return false;
+		}
+	});
+
+	if( temAlgoDigitado &&
+	    !confirm("Isto vai substituir as quantidades que você digitou. Deseja continuar?") ) return;
+
+	$(".qtdeprod").each(function(){
+		var max = $(this).attr("data-qtde-max");
+		if(max === undefined || max === "") return;
+		$(this).val(max);
+	});
+
+	// o mesmo blur que já formata o campo e recalcula os totais
+	$(".qtdeprod").trigger("blur");
+
+	var novos = $(".qtdeprod[data-novidade]").length;
+	if(novos > 0){
+		$("#aviso_novidades").text(
+			"Atenção: " + novos + " produto(s) marcado(s) como “novo para você” continuam zerados — " +
+			"não estavam disponíveis na chamada dos seus últimos pedidos, então não havia " +
+			"quantidade para sugerir. Confira antes de enviar."
+		).show();
+	}
+}
+
 function keyCheck(e){
 	enforceNumeric(e,$(this).multiplicadorInteiroItem());
 	$(this).verificaEnterSetas(e);
