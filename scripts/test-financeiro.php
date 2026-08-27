@@ -190,6 +190,35 @@ verifica("chave reservada e recusada em tipo que nao e o dono",
     && (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes_reserva);
 
 
+// A guarda de chave reservada compara em PHP, byte a byte; a busca de
+// conta_da_rede() compara em MySQL. Enquanto con_chave era utf8_general_ci — que
+// dobra caixa E acento — as duas discordavam sobre o que é "a mesma chave", e o
+// ataque passava pela fresta: nenhuma das variantes abaixo é 'rede_principal'
+// para o PHP, mas todas eram para o SQL. A conta de núcleo era aceita e
+// conta_da_rede() devolvia ELA. Com con_chave em utf8_bin, guarda, `=` e UNIQUE
+// passam a concordar por construção.
+//
+// Testar só o literal exato — como a primeira versão deste bloco fazia — deixava
+// a rede de regressão com o mesmo furo da regra. Por isso as variantes.
+//
+// Vêm ANTES de a conta da Rede existir: é a única janela em que o ataque
+// funciona, porque depois a UNIQUE recusaria a colisão.
+$variantes_chave = array('REDE_PRINCIPAL', 'rede_principál', 'ReDe_PrInCiPaL');
+$contas_variantes = array();
+$nuc_variante = 101;
+foreach ($variantes_chave as $variante)
+{
+    $contas_variantes[$variante] = cria_conta('nucleo',
+        array('con_nuc' => $nuc_variante++, 'con_chave' => $variante));
+}
+
+// Sob utf8_general_ci as três colidem entre si e com a chave real, então a UNIQUE
+// recusa da segunda em diante e vêm nulls — este teste já acusa a colação errada.
+verifica("variantes da chave reservada sao chaves distintas, nao a mesma",
+    count(array_filter($contas_variantes)) === count($variantes_chave),
+    "criadas: " . json_encode($contas_variantes));
+
+
 // Duas chamadas, os dois valores guardados: a segunda tem de ACHAR a primeira.
 // Se o acento de 'Rede Ecológica' se perdesse na gravação, a busca por nome
 // erraria e viria um id novo — é este teste que prova o ida-e-volta em utf8.
@@ -207,6 +236,23 @@ verifica("a conta da Rede nasce com tipo, nome e chave estavel",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_rede
         . " AND con_tipo = 'rede' AND con_nome = 'Rede Ecológica'"
         . " AND con_chave = 'rede_principal'") == 1);
+
+// O teste que fecha o buraco: com as variantes gravadas, conta_da_rede() tem de
+// devolver a conta CERTA e nunca uma delas. Sob utf8_general_ci a busca por
+// 'rede_principal' casava com a primeira variante e era ela que voltava — uma
+// conta de núcleo servindo de contraparte dos débitos de entrega.
+verifica("nenhuma variante da chave e devolvida como a conta da Rede",
+    $con_rede > 0 && !in_array($con_rede, $contas_variantes, true),
+    "conta_da_rede() = " . var_export($con_rede, true)
+        . " · variantes = " . json_encode($contas_variantes));
+
+// BINARY força a comparação byte a byte independente da colação da coluna: se a
+// linha devolvida não tiver exatamente a chave, este teste acusa mesmo que a
+// colação volte a dobrar caixa e acento.
+verifica("a conta devolvida tem a chave byte a byte exata",
+    valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_rede
+        . " AND con_chave = BINARY 'rede_principal'") == 1);
+
 
 // Identidade não é rótulo. Renomear a conta principal é coisa que a administração
 // pode fazer pela tela; com a busca por con_nome, como era antes, a chamada
