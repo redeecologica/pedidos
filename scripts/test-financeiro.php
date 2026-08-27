@@ -147,6 +147,49 @@ verifica("chamar de novo devolve a mesma conta, nao cria outra",
 verifica("conta nova nasce zerada",
     saldo_da_conta($con_t) == 0.0);
 
+// A busca da conta do cestante é só por con_usr, e estes dois testes é que
+// seguram isso. Um filtro por coluna editável — con_tipo ou con_archive — faria
+// a busca errar, o INSERT seguinte bater na UNIQUE conta_usuario, e
+// conta_do_cestante devolver null: o cestante ficaria SEM CONTA para sempre, com
+// lanca_transacao recebendo null e deixando de gravar calado. Falha silenciosa e
+// permanente, que é a pior combinação num razão.
+//
+// Cada teste devolve a coluna ao valor original: o que vem depois tem de ver a
+// conta como ela nasceu.
+executa_sql("UPDATE contas SET con_tipo = 'rede' WHERE con_id = " . (int)$con_t);
+verifica("con_tipo adulterado nao faz a conta do cestante sumir",
+    conta_do_cestante($usr_t) == $con_t,
+    "esperado $con_t · veio " . var_export(conta_do_cestante($usr_t), true));
+executa_sql("UPDATE contas SET con_tipo = 'cestante' WHERE con_id = " . (int)$con_t);
+
+// O comentário da função sempre afirmou que conta arquivada tem de ser achada,
+// mas nada testava: um `AND con_archive = 0` acrescentado por engano passaria
+// verde, com o mesmo desfecho do caso acima.
+executa_sql("UPDATE contas SET con_archive = 1 WHERE con_id = " . (int)$con_t);
+verifica("conta arquivada continua sendo encontrada",
+    conta_do_cestante($usr_t) == $con_t,
+    "esperado $con_t · veio " . var_export(conta_do_cestante($usr_t), true));
+executa_sql("UPDATE contas SET con_archive = 0 WHERE con_id = " . (int)$con_t);
+
+// Chave reservada em tipo que não é o dono dela. É a coerência que faltava:
+// con_chave entrou como campo livre ("qualquer tipo pode ter uma chave") e a
+// busca de conta_da_rede() de propósito não filtra con_tipo. Juntas, as duas
+// decisões deixavam 'rede_principal' caber numa conta de núcleo — e aí
+// conta_da_rede() devolveria essa linha de núcleo como a conta principal da Rede.
+//
+// Vem ANTES de a conta da Rede existir, e isso é essencial: com 'rede_principal'
+// já gravada, a UNIQUE KEY conta_chave recusaria o INSERT sozinha e a asserção
+// passaria verde mesmo com a regra removida — exatamente o falso-verde que a
+// UNIQUE conta_usuario já produziu uma vez nesta suíte. A contagem entra na
+// mesma asserção para o teste não depender de nenhum outro.
+$contas_antes_reserva = (int)valor_escalar("SELECT COUNT(*) FROM contas");
+
+verifica("chave reservada e recusada em tipo que nao e o dono",
+    cria_conta('nucleo',      array('con_nuc'  => 3, 'con_chave' => 'rede_principal')) === null
+    && cria_conta('produtor', array('con_forn' => 3, 'con_chave' => 'rede_principal')) === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes_reserva);
+
+
 // Duas chamadas, os dois valores guardados: a segunda tem de ACHAR a primeira.
 // Se o acento de 'Rede Ecológica' se perdesse na gravação, a busca por nome
 // erraria e viria um id novo — é este teste que prova o ida-e-volta em utf8.
@@ -183,17 +226,25 @@ verifica("renomear a conta da Rede nao faz a busca perder a conta",
     "antes = " . var_export($con_rede, true)
         . " · depois = " . var_export(conta_da_rede(), true));
 
-// A UNIQUE KEY conta_chave é o que impede duas contas principais de coexistir.
+// A UNIQUE KEY conta_chave é o que impede duas contas com a mesma identidade.
 // Sem ela — um ALTER que tivesse acrescentado só a coluna — todo o resto da
-// suíte seguiria verde: este é o único teste que acusa a chave faltando.
+// suíte seguiria verde: este é o único teste que acusa a chave faltando no banco.
+//
+// A chave aqui é NÃO reservada de propósito. Com 'rede_principal', a regra de
+// chave reservada recusaria antes de o SQL sair, e o teste passaria verde mesmo
+// sem índice nenhum — deixaria de falar do banco e passaria a falar da validação,
+// que já tem teste próprio logo abaixo.
+$con_chave_a = cria_conta('nucleo', array('con_nuc' => 2, 'con_chave' => 'teste_chave_unica'));
+
 verifica("chave repetida e recusada pelo banco",
-    cria_conta('nucleo', array('con_nuc' => 2, 'con_chave' => 'rede_principal')) === null);
+    is_numeric($con_chave_a) && $con_chave_a > 0
+    && cria_conta('produtor', array('con_forn' => 2, 'con_chave' => 'teste_chave_unica')) === null,
+    "primeira conta = " . var_export($con_chave_a, true));
 
 // Usuários novos, ainda sem conta: as recusas abaixo têm de vir da validação, e
 // não da UNIQUE KEY conta_usuario. Reusando $usr_t, que já ganhou conta lá em
-// cima, o INSERT falharia por chave duplicada e o teste passaria verde sem
-// provar nada — foi assim que a primeira versão destes dois testes passou
-// mesmo com a validação removida.
+// cima, o INSERT falha por chave duplicada e a asserção passa sem provar nada —
+// foi o que aconteceu com "rotulo vazio", que ficou verde com o crivo removido.
 $usr_t2 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
     VALUES ('Teste Conta 2','tconta2','teste-conta-2@dev.local','x','0',1)");
 $usr_t3 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
