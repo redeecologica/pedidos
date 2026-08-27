@@ -68,14 +68,28 @@ function saldo_da_conta($con_id)
 }
 
 
-// Invariante do razão: toda transação soma zero. Devolve os tra_id que violam.
+// Invariante do razão: toda transação tem exatamente DUAS pernas E elas somam
+// zero. Devolve os tra_id que violam. Uma perna só, três pernas ou nenhuma são
+// tão quebradas quanto um par que não fecha — por isso a contagem entra junto
+// com a soma.
+//
+// A varredura parte de transacoes, não de lancamentos: agrupando as pernas, uma
+// transação sem perna nenhuma não formaria grupo e escaparia calada — e esse
+// estado é alcançável de verdade (INSERT da transação que comita antes de a perna
+// falhar). O LEFT JOIN faz ela aparecer com COUNT 0 e SUM NULL, daí o COALESCE.
+//
+// O caminho contrário — perna apontando para transação inexistente — não precisa
+// de varredura: a FK lan_tra -> transacoes já o impede.
+//
 // Se esta lista não estiver vazia, dinheiro vazou em algum lugar.
 function transacoes_desbalanceadas()
 {
-	$sql = "SELECT lan_tra FROM lancamentos GROUP BY lan_tra HAVING ROUND(SUM(lan_valor),2) <> 0";
+	$sql = "SELECT t.tra_id FROM transacoes t LEFT JOIN lancamentos l ON l.lan_tra = t.tra_id ";
+	$sql.= "GROUP BY t.tra_id ";
+	$sql.= "HAVING COUNT(l.lan_id) <> 2 OR ROUND(COALESCE(SUM(l.lan_valor),0),2) <> 0";
 	$fora = array();
 	$res = executa_sql($sql);
-	if ($res) while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) $fora[] = $row['lan_tra'];
+	if ($res) while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) $fora[] = $row['tra_id'];
 
 	return $fora;
 }
