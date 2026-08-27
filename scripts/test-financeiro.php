@@ -78,6 +78,50 @@ $tortas = transacoes_desbalanceadas();
 verifica("nenhuma transacao da base esta desbalanceada",
     count($tortas) === 0, "tra_id fora: " . implode(",", array_slice($tortas, 0, 5)));
 
+// As duas quebras abaixo vão à mão: lanca_transacao nunca produz transação sem
+// par de pernas, e é justamente esse estado que o invariante tem de pegar. Vêm
+// DEPOIS da varredura acima, que exige a base coerente.
+$tra_sem_perna = insere("INSERT INTO transacoes (tra_dt, tra_tipo, tra_historico, tra_usr_registro)
+    VALUES ('2026-08-01 10:00:00','ajuste','teste sem perna',0)");
+
+verifica("transacao sem perna nenhuma é acusada",
+    in_array($tra_sem_perna, transacoes_desbalanceadas()),
+    "tra_id $tra_sem_perna nao apareceu na varredura");
+
+$tra_uma_perna = insere("INSERT INTO transacoes (tra_dt, tra_tipo, tra_historico, tra_usr_registro)
+    VALUES ('2026-08-01 10:00:00','ajuste','teste uma perna',0)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_uma_perna, $con_a, 10.00)");
+
+verifica("transacao com uma perna só é acusada",
+    in_array($tra_uma_perna, transacoes_desbalanceadas()),
+    "tra_id $tra_uma_perna nao apareceu na varredura");
+
+// Três pernas que somam zero: o total fecha e mesmo assim não é partida dobrada.
+// É o único caso em que a soma está certa e só a contagem denuncia.
+$tra_tres_pernas = insere("INSERT INTO transacoes (tra_dt, tra_tipo, tra_historico, tra_usr_registro)
+    VALUES ('2026-08-01 10:00:00','ajuste','teste tres pernas',0)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_tres_pernas, $con_a, -10.00)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_tres_pernas, $con_b,   4.00)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_tres_pernas, $con_b,   6.00)");
+
+verifica("transacao com três pernas, mesmo somando zero, é acusada",
+    in_array($tra_tres_pernas, transacoes_desbalanceadas()),
+    "tra_id $tra_tres_pernas nao apareceu na varredura");
+
+// Desfaz as quebras deliberadas para o resto do arquivo — e as tarefas que vierem
+// acrescentar teste aqui — voltar a ver uma base coerente.
+executa_sql("DELETE FROM lancamentos WHERE lan_tra IN ($tra_uma_perna, $tra_tres_pernas)");
+executa_sql("DELETE FROM transacoes WHERE tra_id IN ($tra_sem_perna, $tra_uma_perna, $tra_tres_pernas)");
+
+// Confere só as três quebras deste fixture, não a base inteira: quebra alheia já
+// é assunto da varredura lá de cima, e contar duas vezes daria duas falhas para
+// uma causa só.
+$ainda_tortas = array_intersect(transacoes_desbalanceadas(),
+    array($tra_sem_perna, $tra_uma_perna, $tra_tres_pernas));
+
+verifica("desfeitas as quebras, nenhuma delas sobra na varredura",
+    count($ainda_tortas) === 0, "sobrou: " . implode(",", $ainda_tortas));
+
 mysqli_rollback($conn_link);
 
 echo "\n";
