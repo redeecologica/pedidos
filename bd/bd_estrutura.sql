@@ -266,12 +266,14 @@ CREATE TABLE IF NOT EXISTS `contas` (
   `con_usr`     mediumint(6) unsigned DEFAULT NULL COMMENT 'usuarios.usr_id quando cestante',
   `con_nuc`     mediumint(6) unsigned DEFAULT NULL COMMENT 'nucleos.nuc_id quando nucleo',
   `con_forn`    mediumint(6) unsigned DEFAULT NULL COMMENT 'fornecedores.forn_id quando produtor',
-  `con_nome`    varchar(120) DEFAULT NULL COMMENT 'rotulo; obrigatorio no tipo rede',
+  `con_nome`    varchar(120) DEFAULT NULL COMMENT 'rotulo de exibicao; obrigatorio no tipo rede',
+  `con_chave`   varchar(30) DEFAULT NULL COMMENT 'identidade estavel, nao e rotulo; rede_principal = conta da Rede',
   `con_archive` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`con_id`),
   UNIQUE KEY `conta_usuario`    (`con_usr`),
   UNIQUE KEY `conta_nucleo`     (`con_nuc`),
   UNIQUE KEY `conta_fornecedor` (`con_forn`),
+  UNIQUE KEY `conta_chave`      (`con_chave`),
   KEY `conta_tipo` (`con_tipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

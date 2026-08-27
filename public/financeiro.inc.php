@@ -104,10 +104,11 @@ function transacoes_desbalanceadas()
 // duas contas da Rede ficam indistinguíveis, e são justamente as contas
 // pessoais que consolidam a Rede.
 //
-// Exigir não é excluir só para o rótulo: con_nome serve a qualquer tipo, então
-// um núcleo com con_nome é legítimo. Já con_usr/con_nuc/con_forn dizem o que a
-// conta é — vínculo de outro tipo é recusado, e todo campo informado passa pelo
-// mesmo crivo, não apenas o exigido.
+// Exigir não é excluir só para os campos livres. con_nome (rótulo de exibição) e
+// con_chave (identidade estável) servem a qualquer tipo, então um núcleo com
+// con_nome é legítimo. Já con_usr/con_nuc/con_forn dizem o que a conta é —
+// vínculo de outro tipo é recusado, e todo campo informado passa pelo mesmo
+// crivo, não apenas o exigido.
 //
 // Devolve o con_id, ou null se o tipo for desconhecido, o vínculo faltar ou o
 // INSERT falhar — nunca o id_inserido() de um INSERT que não aconteceu.
@@ -125,22 +126,25 @@ function cria_conta($tipo, $campos = array())
 	$campo = $vinculo[$tipo];
 	if (!isset($campos[$campo])) return null;
 
+	// Texto que qualquer tipo pode ter: con_nome rotula, con_chave identifica.
+	$livres = array('con_nome', 'con_chave');
+
 	$colunas = array('con_tipo');
 	$valores = array(prep_para_bd($tipo));
-	foreach (array('con_usr', 'con_nuc', 'con_forn', 'con_nome') as $col)
+	foreach (array('con_usr', 'con_nuc', 'con_forn', 'con_nome', 'con_chave') as $col)
 	{
 		if (!isset($campos[$col])) continue;
 
-		// Vínculo de OUTRO tipo não entra. con_nome é rótulo e serve a qualquer
+		// Vínculo de OUTRO tipo não entra. Os campos livres servem a qualquer
 		// tipo, mas con_usr/con_nuc/con_forn dizem o que a conta é — um cestante
 		// com con_forn mentiria sobre isso e ainda queimaria a UNIQUE KEY
 		// conta_fornecedor, estourando depois num INSERT alheio.
-		if ($col !== 'con_nome' && $col !== $campo) return null;
+		if (!in_array($col, $livres) && $col !== $campo) return null;
 
 		// O mesmo crivo para TODO campo informado, não só o exigido: sem
 		// sql_mode estrito, um '' em con_nuc viraria 0 e queimaria a UNIQUE
 		// KEY conta_nucleo do mesmo jeito.
-		if ($col === 'con_nome') { if (trim((string)$campos[$col]) === '') return null; }
+		if (in_array($col, $livres)) { if (trim((string)$campos[$col]) === '') return null; }
 		else if (!is_numeric($campos[$col]) || $campos[$col] <= 0)  return null;
 
 		$colunas[] = $col;
@@ -176,15 +180,22 @@ function conta_do_cestante($usr_id, $criar = false)
 // Contas pessoais que consolidam a Rede (con_tipo='rede' com con_nome próprio)
 // são outras linhas, criadas pela administração.
 //
-// O nome fica numa variável só, usada na busca e na criação: literal repetido
-// deixaria os dois se separarem, e aí a conta principal nasceria de novo a cada
-// chamada.
+// A busca é por con_chave, NÃO por con_nome. Rótulo é para ler na tela e a
+// administração pode mudar; se a identidade dependesse dele, renomear a conta
+// faria a chamada seguinte não achar nada e criar uma SEGUNDA conta principal —
+// e aí os débitos de entrega passariam a ter duas contrapartes, sem nada no
+// banco reclamando. A UNIQUE KEY conta_chave é o que garante que só existe uma.
+//
+// Pelo mesmo motivo a busca não filtra con_tipo: o tipo também é editável, e
+// amarrar a identidade a ele traria de volta o defeito por outra porta. A chave
+// é única na tabela inteira e basta sozinha.
 function conta_da_rede()
 {
-	$nome = 'Rede Ecológica';
+	$chave = 'rede_principal';
+	$nome  = 'Rede Ecológica';
 
-	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = 'rede' AND con_nome = " . prep_para_bd($nome));
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
 	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
 
-	return cria_conta('rede', array('con_nome' => $nome));
+	return cria_conta('rede', array('con_nome' => $nome, 'con_chave' => $chave));
 }
