@@ -164,6 +164,16 @@ verifica("a conta da Rede nasce com tipo rede e nome proprio",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_rede
         . " AND con_tipo = 'rede' AND con_nome = 'Rede Ecológica'") == 1);
 
+// Usuários novos, ainda sem conta: as recusas abaixo têm de vir da validação, e
+// não da UNIQUE KEY conta_usuario. Reusando $usr_t, que já ganhou conta lá em
+// cima, o INSERT falharia por chave duplicada e o teste passaria verde sem
+// provar nada — foi assim que a primeira versão destes dois testes passou
+// mesmo com a validação removida.
+$usr_t2 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Conta 2','tconta2','teste-conta-2@dev.local','x','0',1)");
+$usr_t3 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Conta 3','tconta3','teste-conta-3@dev.local','x','0',1)");
+
 // Coerência entre con_tipo e o campo de vínculo: o MySQL 5.6 aceita CHECK e o
 // ignora em silêncio, então quem barra é cria_conta. A contagem em volta das
 // recusas garante que elas acontecem ANTES do INSERT — sem ela, um refactor que
@@ -181,9 +191,32 @@ verifica("cestante sem usuario e recusado",
     cria_conta('cestante') === null
     && cria_conta('cestante', array('con_nome' => 'sem usuario')) === null);
 
+// O crivo vale para TODO campo informado, não só para o exigido. Sem estes dois,
+// a conta sairia coerente na coluna que o tipo pede e torta em outra — e, como
+// con_nuc e con_forn têm UNIQUE KEY, o '' virado 0 só estouraria mais tarde, num
+// INSERT sem relação nenhuma com a causa.
+verifica("vinculo de outro tipo na mesma conta e recusado",
+    cria_conta('cestante', array('con_usr' => $usr_t2, 'con_forn' => 3)) === null
+    && cria_conta('rede', array('con_nome' => 'Rede com nucleo', 'con_nuc' => 1)) === null);
+
+// Com os vínculos mutuamente exclusivos, o único campo que pode acompanhar outro
+// é con_nome — e ele passa pelo mesmo crivo do exigido, não por um mais frouxo.
+verifica("rotulo vazio e recusado mesmo num tipo que nao o exige",
+    cria_conta('cestante', array('con_usr' => $usr_t3, 'con_nome' => '   ')) === null);
+
 verifica("nenhuma conta foi gravada pelas recusas",
     (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes,
     "antes = $contas_antes · depois = " . valor_escalar("SELECT COUNT(*) FROM contas"));
+
+// Núcleo e produtor estão no mapa de tipos mas nenhum teste acima os exercita.
+// Esta conta confirma que a montagem genérica das colunas serve a um vínculo
+// além dos dois já cobertos, e que o rótulo acompanha um tipo que não o exige.
+// Vem DEPOIS da contagem acima, que exige que nada tenha sido gravado.
+$con_nuc_t = cria_conta('nucleo', array('con_nuc' => 1, 'con_nome' => 'Teste Nucleo'));
+verifica("conta de nucleo nasce com o vinculo e o rotulo",
+    valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_nuc_t
+        . " AND con_tipo = 'nucleo' AND con_nuc = 1 AND con_nome = 'Teste Nucleo'") == 1,
+    var_export($con_nuc_t, true));
 
 mysqli_rollback($conn_link);
 

@@ -104,8 +104,10 @@ function transacoes_desbalanceadas()
 // duas contas da Rede ficam indistinguíveis, e são justamente as contas
 // pessoais que consolidam a Rede.
 //
-// Exigir não é excluir: um núcleo com con_nome de rótulo é legítimo, então os
-// demais campos informados seguem para o INSERT.
+// Exigir não é excluir só para o rótulo: con_nome serve a qualquer tipo, então
+// um núcleo com con_nome é legítimo. Já con_usr/con_nuc/con_forn dizem o que a
+// conta é — vínculo de outro tipo é recusado, e todo campo informado passa pelo
+// mesmo crivo, não apenas o exigido.
 //
 // Devolve o con_id, ou null se o tipo for desconhecido, o vínculo faltar ou o
 // INSERT falhar — nunca o id_inserido() de um INSERT que não aconteceu.
@@ -121,16 +123,26 @@ function cria_conta($tipo, $campos = array())
 	if (!isset($vinculo[$tipo])) return null;
 
 	$campo = $vinculo[$tipo];
-	$valor = isset($campos[$campo]) ? $campos[$campo] : null;
-
-	if ($campo === 'con_nome') { if (trim((string)$valor) === '') return null; }
-	else if (!is_numeric($valor) || $valor <= 0)    return null;
+	if (!isset($campos[$campo])) return null;
 
 	$colunas = array('con_tipo');
 	$valores = array(prep_para_bd($tipo));
 	foreach (array('con_usr', 'con_nuc', 'con_forn', 'con_nome') as $col)
 	{
 		if (!isset($campos[$col])) continue;
+
+		// Vínculo de OUTRO tipo não entra. con_nome é rótulo e serve a qualquer
+		// tipo, mas con_usr/con_nuc/con_forn dizem o que a conta é — um cestante
+		// com con_forn mentiria sobre isso e ainda queimaria a UNIQUE KEY
+		// conta_fornecedor, estourando depois num INSERT alheio.
+		if ($col !== 'con_nome' && $col !== $campo) return null;
+
+		// O mesmo crivo para TODO campo informado, não só o exigido: sem
+		// sql_mode estrito, um '' em con_nuc viraria 0 e queimaria a UNIQUE
+		// KEY conta_nucleo do mesmo jeito.
+		if ($col === 'con_nome') { if (trim((string)$campos[$col]) === '') return null; }
+		else if (!is_numeric($campos[$col]) || $campos[$col] <= 0)  return null;
+
 		$colunas[] = $col;
 		$valores[] = prep_para_bd($campos[$col]);
 	}
