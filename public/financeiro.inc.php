@@ -248,3 +248,74 @@ function conta_da_rede()
 
 	return cria_conta('rede', array('con_nome' => $nome, 'con_chave' => $chave));
 }
+
+
+// O débito é derivado enquanto a chamada pode mudar — é a mesma conta que o
+// Quadro de Cestantes já faz (cestantes_quadro.php:356-369 monta o valor,
+// :496-506 aplica a taxa). Não existe cópia gravada que possa divergir da
+// entrega.
+//
+// O preço vem casado pela janela de validade do produto com a data da ENTREGA:
+// produtos tem prod_auto_inc como chave e prod_id como chave NÃO única, ou seja,
+// editar um produto cria linha nova e a antiga guarda o preço da época. Cobrar
+// pelo preço de hoje uma entrega de 2014 seria cobrar outro valor.
+//
+// A passagem por chamadaprodutos não é decoração: o Quadro exige
+// chaprod_disponibilidade <> '0' e a base de produção tem 75 linhas entregues
+// sobre produto marcado indisponível na chamada. Sem este filtro o débito
+// derivado divergiria da tela para esses cestantes — e a tela é a conferência
+// que a Rede já faz. O JOIN aqui é interno onde o Quadro usa LEFT: nenhuma linha
+// entregue da base está sem par em chamadaprodutos, e o próprio filtro de
+// disponibilidade no WHERE já reduz o LEFT do Quadro a interno.
+//
+// GROUP BY cha_id agrupa por pedido sem precisar dizê-lo: a UNIQUE KEY
+// (ped_usr, ped_cha) garante um pedido por cestante em cada chamada, então
+// ped_usr_associado é constante dentro do grupo.
+//
+// 'congelavel' diz se o prazo contábil já passou. Quando passa, os insumos estão
+// travados (entrega_cestante.php:22 e :44 recusam gravação fora do prazo) e o
+// número pode virar lançamento sem risco de divergir depois.
+function debitos_derivados($usr_id)
+{
+	$usr_bd = prep_para_bd($usr_id);
+
+	$sql = "SELECT c.cha_id, pt.prodt_nome, c.cha_dt_entrega, c.cha_taxa_percentual, p.ped_usr_associado, ";
+	$sql.= "SUM(IF(p.ped_usr_associado = '0', pr.prod_valor_venda_margem, pr.prod_valor_venda) * pp.pedprod_entregue) valor_entregue, ";
+	$sql.= "((c.cha_dt_prazo_contabil IS NOT NULL) AND (c.cha_dt_prazo_contabil <= NOW())) congelavel ";
+	$sql.= "FROM pedidos p ";
+	$sql.= "JOIN chamadas c ON c.cha_id = p.ped_cha ";
+	$sql.= "JOIN pedidoprodutos pp ON pp.pedprod_ped = p.ped_id ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = c.cha_id AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos pr ON pr.prod_id = pp.pedprod_prod ";
+	$sql.= "  AND pr.prod_ini_validade <= c.cha_dt_entrega AND pr.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "LEFT JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt ";
+	$sql.= "WHERE p.ped_usr = $usr_bd AND p.ped_fechado = 1 ";
+	$sql.= "AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND pp.pedprod_entregue > 0 ";
+	$sql.= "GROUP BY c.cha_id ";
+	$sql.= "ORDER BY c.cha_dt_entrega";
+
+	$linhas = array();
+	$res = executa_sql($sql);
+	if (!$res) return $linhas;
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$entregue = round((float)$row['valor_entregue'], 2);
+		// não-associado já paga o preço com margem embutido; taxa só para associado
+		$taxa = ($row['ped_usr_associado'] == '0') ? 0.0
+		      : round($entregue * (float)$row['cha_taxa_percentual'], 2);
+
+		$linhas[] = array(
+			'cha_id'         => $row['cha_id'],
+			'prodt_nome'     => $row['prodt_nome'],
+			'cha_dt_entrega' => $row['cha_dt_entrega'],
+			'valor_entregue' => $entregue,
+			'taxa'           => $taxa,
+			'valor'          => round($entregue + $taxa, 2),
+			'congelavel'     => ((int)$row['congelavel'] === 1),
+		);
+	}
+
+	return $linhas;
+}
