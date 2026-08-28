@@ -1539,3 +1539,211 @@ function pode_lancar_no_caixa($nuc_id)
 
 	return (int)$_SESSION['usr.nuc'] === (int)$nuc_id;
 }
+
+
+// Os núcleos ativos que já têm caixa aberto. Núcleo sem conta não tem extrato nem
+// fluxo, e oferecê-lo no seletor levaria a uma tela que não faz nada.
+//
+// Devolve array de (nuc_id => nome), ou null quando a consulta não roda.
+function nucleos_com_caixa()
+{
+	$sql = "SELECT n.nuc_id, n.nuc_nome_curto FROM nucleos n ";
+	$sql.= "JOIN contas c ON c.con_nuc = n.nuc_id AND c.con_tipo = 'nucleo' AND c.con_archive = 0 ";
+	$sql.= "WHERE n.nuc_archive = 0 ORDER BY n.nuc_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$lista = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$lista[(int)$row['nuc_id']] = (string)$row['nuc_nome_curto'];
+
+	return $lista;
+}
+
+
+// O núcleo cujo caixa esta sessão pode operar nesta requisição. Devolve int, ou ""
+// quando não há nenhum — e a tela é que decide o que fazer com o "".
+//
+// A REGRA MORA AQUI, E NUMA FUNÇÃO SÓ, porque a spec a exige IMPOSTA e não sugerida:
+// quem responde por um núcleo não lê o pedido da URL, ponto. Com duas telas de caixa
+// — o extrato e o fluxo — essa regra passaria a existir em duas cópias, e uma delas
+// ficaria para trás no primeiro dia em que a outra mudasse. O padrão que a spec
+// rejeita (cestantes.php:18, núcleo vindo de request_get) nasceu assim.
+//
+// $nuc_pedido é o que veio da URL, cru. Só string e int passam: ?nuc_id[]=1 entrega
+// array, e comparar array com int é TypeError no PHP 8.
+function nucleo_do_caixa_em_foco($nuc_pedido)
+{
+	$manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+	$nuc_sessao     = isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : "";
+
+	if (!is_string($nuc_pedido) && !is_int($nuc_pedido)) $nuc_pedido = "";
+
+	// quem responde por um núcleo só nem olha o pedido
+	$nuc = $manda_em_todos
+	     ? (trim((string)$nuc_pedido) !== "" ? $nuc_pedido : $nuc_sessao)
+	     : $nuc_sessao;
+
+	if (!is_string($nuc) && !is_int($nuc)) $nuc = "";
+	if (!ctype_digit((string)$nuc) || (int)$nuc <= 0) $nuc = "";
+
+	// Finanças e administração sem núcleo próprio na sessão — ou com um arquivado —
+	// cairiam numa recusa vinda do item de menu, que se leria como falta de permissão
+	// e não é. Para quem responde por um só isto NÃO roda: escolher um núcleo por ela
+	// seria abrir o caixa de outro.
+	if ($nuc === "" && $manda_em_todos)
+	{
+		$lista = nucleos_com_caixa();
+		if (is_array($lista) && count($lista))
+		{
+			$ids = array_keys($lista);
+			$nuc = (string)$ids[0];
+		}
+	}
+
+	if ($nuc === "") return "";
+
+	// A escolha ainda passa pela regra de acesso, que começa por pode_ver_financeiro():
+	// sem o papel Beta Tester o módulo inteiro continua fechado.
+	if (!pode_lancar_no_caixa($nuc)) return "";
+
+	return (int)$nuc;
+}
+
+
+// Fluxo de caixa mensal do núcleo (spec §5): quanto entrou, quanto saiu por categoria
+// e o saldo do período, agrupado pela DATA DO FATO (tra_dt) e não pela data de
+// registro — o núcleo lança na segunda o que aconteceu na sexta, e um relatório por
+// data de registro jogaria o gasto no mês errado.
+//
+// SINAL. No razão, a perna do caixa é negativa quando dinheiro ENTRA (o núcleo passa a
+// segurar dinheiro da Rede) e positiva quando sai. O relatório inverte isso na
+// apresentação: quem lê uma prestação de contas lê "entrou 1.000", não "-1.000". Por
+// isso 'entradas' e 'saidas' saem os dois positivos, e o sinal reaparece só no saldo.
+//
+// A classificação NÃO deduz o sentido a partir do tipo: soma entradas e saídas
+// separadas no próprio SQL. Assim um 'ajuste' — que pode ir para os dois lados e chega
+// na fatia seguinte — já cai no lugar certo, e nenhum lançamento some do relatório por
+// não ter sido previsto aqui. Relatório que engole linha é a mentira que este módulo
+// existe para não contar.
+//
+// CONTRATO — array, ou null quando a consulta não rodou ou o núcleo não tem caixa. Ano
+// sem movimento devolve doze meses zerados, que é diferente de null.
+function fluxo_de_caixa_mensal($nuc_id, $ano)
+{
+	$con = conta_do_nucleo($nuc_id);
+	if (!$con) return null;
+
+	$ano = (int)$ano;
+	if ($ano < 2000 || $ano > 2200) return null;
+
+	$de  = sprintf('%04d-01-01 00:00:00', $ano);
+	$ate = sprintf('%04d-01-01 00:00:00', $ano + 1);
+
+	// O que sobrou dos anos anteriores. Sem isto o acumulado de janeiro começaria do
+	// zero e não bateria com o saldo do caixa — dois números para o mesmo dinheiro.
+	$sql = "SELECT SUM(-l.lan_valor) abertura FROM lancamentos l ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " AND t.tra_dt < " . prep_para_bd($de);
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	$abertura = ($row && $row['abertura'] !== null) ? round((float)$row['abertura'], 2) : 0.0;
+
+	$sql = "SELECT MONTH(t.tra_dt) mes, t.tra_tipo tipo, IFNULL(t.tra_categoria,'') categoria, ";
+	$sql.= "SUM(CASE WHEN l.lan_valor < 0 THEN -l.lan_valor ELSE 0 END) entrou, ";
+	$sql.= "SUM(CASE WHEN l.lan_valor > 0 THEN  l.lan_valor ELSE 0 END) saiu ";
+	$sql.= "FROM lancamentos l JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " ";
+	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY mes, tipo, categoria";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$meses = range(1, 12);
+	$zeros = array_fill_keys($meses, 0.0);
+
+	// As linhas fixas nascem TODAS, mesmo zeradas: uma categoria que some do relatório
+	// no mês em que ninguém gastou faria a tabela mudar de forma mês a mês, e quem
+	// compara dois meses lado a lado perderia a referência.
+	$categorias = categorias_de_despesa();
+	$linhas = array();
+
+	$linhas['pagamento'] = array('bloco' => 'entradas', 'chave' => 'pagamento',
+		'rotulo' => 'pagamentos de cestantes', 'lado' => 'entrou', 'meses' => $zeros);
+	$linhas['receita']   = array('bloco' => 'entradas', 'chave' => 'receita',
+		'rotulo' => 'outras receitas', 'lado' => 'entrou', 'meses' => $zeros);
+
+	foreach ($categorias as $chave => $rotulo)
+		$linhas['despesa:' . $chave] = array('bloco' => 'despesas', 'chave' => 'despesa:' . $chave,
+			'rotulo' => $rotulo, 'lado' => 'saiu', 'meses' => $zeros);
+
+	$linhas['repasse'] = array('bloco' => 'repasses', 'chave' => 'repasse',
+		'rotulo' => 'repasse à Rede', 'lado' => 'saiu', 'meses' => $zeros);
+	$linhas['pagamento_produtor'] = array('bloco' => 'repasses', 'chave' => 'pagamento_produtor',
+		'rotulo' => 'pagamento a produtor', 'lado' => 'saiu', 'meses' => $zeros);
+
+	$entradas       = $zeros;
+	$saidas         = $zeros;
+	$total_despesas = $zeros;
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$mes    = (int)$row['mes'];
+		$tipo   = (string)$row['tipo'];
+		$cat    = (string)$row['categoria'];
+		$entrou = round((float)$row['entrou'], 2);
+		$saiu   = round((float)$row['saiu'], 2);
+
+		if (!isset($zeros[$mes])) continue;   // MONTH() fora de 1..12 não existe, mas o laço não depende disso
+
+		$entradas[$mes] = round($entradas[$mes] + $entrou, 2);
+		$saidas[$mes]   = round($saidas[$mes] + $saiu, 2);
+
+		// despesa com categoria que não existe mais no código não vira "outros" em
+		// silêncio: vira linha própria, com o rótulo que está gravado
+		$chave = ($tipo === 'despesa') ? 'despesa:' . $cat : $tipo;
+
+		if ($tipo === 'despesa')
+			$total_despesas[$mes] = round($total_despesas[$mes] + $saiu, 2);
+
+		// Tipo que este código não previu — 'ajuste', quando chegar — entra assim mesmo,
+		// e em bloco próprio, para ficar visível que existe algo fora das linhas fixas.
+		if (!isset($linhas[$chave]))
+			$linhas[$chave] = array('bloco' => 'outros', 'chave' => $chave,
+				'rotulo' => $chave, 'lado' => ($entrou > $saiu) ? 'entrou' : 'saiu', 'meses' => $zeros);
+
+		$valor = ($linhas[$chave]['lado'] === 'entrou') ? $entrou : $saiu;
+		$linhas[$chave]['meses'][$mes] = round($linhas[$chave]['meses'][$mes] + $valor, 2);
+	}
+
+	// totais de linha e saldos, na ordem em que a tela lê
+	foreach ($linhas as $k => $linha)
+		$linhas[$k]['total'] = round(array_sum($linha['meses']), 2);
+
+	$saldo_mes = array();
+	$acumulado = array();
+	$corrente  = $abertura;
+
+	foreach ($meses as $m)
+	{
+		$saldo_mes[$m] = round($entradas[$m] - $saidas[$m], 2);
+		$corrente      = round($corrente + $saldo_mes[$m], 2);
+		$acumulado[$m] = $corrente;
+	}
+
+	return array(
+		'ano'             => $ano,
+		'meses'           => $meses,
+		'saldo_anterior'  => $abertura,
+		'linhas'          => array_values($linhas),
+		'entradas'        => $entradas,
+		'saidas'          => $saidas,
+		'total_despesas'  => $total_despesas,
+		'saldo_mes'       => $saldo_mes,
+		'saldo_acumulado' => $acumulado,
+	);
+}
