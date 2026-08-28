@@ -510,6 +510,31 @@ verifica("nao associado paga o preco com margem e nao paga taxa",
     $linha2 ? "entregue={$linha2['valor_entregue']} taxa={$linha2['taxa']} valor={$linha2['valor']}"
             : "nenhuma linha para cha_id=$cha_t no cestante $usr_t2");
 
+// A consulta que NÃO RODA não pode virar "não deve nada". ONLY_FULL_GROUP_BY é o
+// que quebra exatamente esta consulta e mais nada: o GROUP BY é por cha_id e a
+// lista traz colunas não agregadas, então o servidor a recusa. A função tem de
+// devolver null. O sql_mode volta ao valor original na linha seguinte — tudo o
+// que roda daqui para baixo depende dele.
+$sql_mode_antes = valor_escalar("SELECT @@SESSION.sql_mode");
+executa_sql("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY'");
+$deb_quebrado = debitos_derivados($usr_t);
+executa_sql("SET SESSION sql_mode = " . prep_para_bd((string)$sql_mode_antes));
+
+// O === é obrigatório: em PHP array() == null é VERDADEIRO, e com == este teste
+// passaria também com o `return $linhas` que ele existe justamente para reprovar.
+verifica("consulta recusada pelo servidor devolve null, nao lista vazia",
+    $deb_quebrado === null, var_export($deb_quebrado, true));
+
+// Fecha o teste acima por três lados: prova que o null veio do sql_mode e não de
+// um cestante errado, que a restauração pegou, e que o erro do servidor não levou
+// junto a transação de onde saem todos os fixtures.
+$deb_restaurado = debitos_derivados($usr_t);
+verifica("com o sql_mode restaurado a mesma chamada volta a listar",
+    is_array($deb_restaurado) && count($deb_restaurado) > 0,
+    "sql_mode = " . var_export(valor_escalar("SELECT @@SESSION.sql_mode"), true)
+        . " · resultado = " . var_export($deb_restaurado, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
