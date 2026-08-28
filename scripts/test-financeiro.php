@@ -2114,9 +2114,21 @@ verifica("despesa com categoria inventada e recusada",
     lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_rede,
         array('categoria' => 'churrasco')) === null);
 
-verifica("categoria em lancamento que nao e despesa e recusada",
-    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_rede,
-        array('categoria' => 'passagens')) === null);
+// O formulario manda mv_categoria em TODO lancamento — esconder o campo com
+// display:none nao impede o envio. Recusar por isso rejeitava todo repasse feito pela
+// tela. O que a guarda precisa garantir e que categoria nao seja GRAVADA fora de
+// despesa; a assercao e essa, e nao a recusa.
+// Num caixa DIFERENTE do que o bloco do extrato confere, senao esta linha entraria
+// naquela contagem e o teste de "as quatro formas" passaria a medir cinco.
+$tra_cat_ign = lanca_movimento_nucleo($nuc_livre[2], 'repasse', '2026-08-05 10:00:00', 10.00,
+    $con_rede, array('categoria' => 'passagens'));
+
+verifica("categoria fora de despesa e IGNORADA, e o lancamento acontece",
+    $tra_cat_ign > 0, var_export($tra_cat_ign, true));
+
+verifica("e nao fica gravada: tra_categoria segue NULL",
+    valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_cat_ign) === null,
+    var_export(valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_cat_ign), true));
 
 // A contraparte e a fronteira: sem esta guarda um POST forjado lancaria despesa
 // contra a conta de um cestante, tirando dele dinheiro que ele nao gastou.
@@ -2158,6 +2170,43 @@ verifica("nenhuma recusa gravou transacao pela metade",
 // ---------------------------------------------------------------------------
 echo "\nCaixa do nucleo: categorias e extrato\n";
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+echo "\nCaixa do nucleo: o POST que o FORMULARIO manda, e nao so a forma da API\n";
+// ---------------------------------------------------------------------------
+
+// ESTE bloco existe por causa de um defeito que passou por 210 testes verdes.
+//
+// A tela esconde o campo Categoria quando o tipo nao e despesa — mas display:none NAO
+// impede o envio, entao o navegador manda mv_categoria em TODO lancamento. Os testes
+// acima chamam a funcao com os campos que aquele tipo usa, que e a forma da API, e
+// nunca a forma que o formulario produz. Resultado: repasse pela tela era recusado
+// sempre, e nenhuma assercao via.
+//
+// A regra que fica: quando existe uma TELA chamando, teste tambem a chamada QUE ELA FAZ.
+$caixa_form = conta_do_nucleo($nuc_livre[1]);
+if (!$caixa_form)
+    $caixa_form = cria_conta('nucleo', array('con_nuc' => $nuc_livre[1], 'con_nome' => 'Caixa Formulario'));
+
+verifica("o caixa deste bloco existe (guarda do fixture)", $caixa_form > 0, var_export($caixa_form, true));
+
+foreach (array('despesa' => $con_rede, 'repasse' => $con_rede,
+               'receita' => $con_rede, 'pagamento_produtor' => $con_forn_t) as $tipo_form => $contra)
+{
+    // exatamente o que a tela monta: categoria SEMPRE, historico e comprovante sempre
+    $tra_form = lanca_movimento_nucleo($nuc_livre[1], $tipo_form, '2026-08-06 10:00:00', 25.00,
+        $contra, array('categoria' => 'outros', 'historico' => 'como o formulario manda',
+                       'comprovante' => ''));
+
+    verifica("$tipo_form aceita o POST completo do formulario",
+        $tra_form > 0, var_export($tra_form, true));
+
+    // e a categoria so fica gravada onde ela significa alguma coisa
+    $cat_form = valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_form);
+    verifica("$tipo_form grava categoria so quando e despesa",
+        $tipo_form === 'despesa' ? ($cat_form === 'outros') : ($cat_form === null),
+        var_export($cat_form, true));
+}
 
 $so_rede = contas_de_destino_do_tipo('rede');
 $so_forn = contas_de_destino_do_tipo('produtor');
