@@ -13,12 +13,16 @@
   // __DIR__ porque include relativo depende do diretório de trabalho, e em CLI ele não é
   // este — mesmo padrão do common.inc.php:3 e do cron_lembrete.php:29.
   //
-  // Custo medido, porque agora as 76 páginas da varredura carregam o arquivo (641 linhas,
-  // 32 KB). Pior caso, com opcache DESLIGADO (CLI do container, 300 processos por
-  // rodada, duas rodadas): +62 ms e +124 ms no total, ou seja 0,2 a 0,4 ms por processo.
-  // Com o opcache LIGADO, que é como o container web roda: inicio.php por HTTP saiu 10,0
-  // ms ± 1,4 sem o require e 10,5 ms ± 4,2 com ele (hyperfine, 120+ execuções cada) — a
-  // diferença não se separa do ruído. Medido aqui, não no servidor da Locaweb.
+  // Custo medido, porque agora as 76 páginas da varredura carregam o arquivo — 643 linhas
+  // e 32.327 bytes na hora da medição. (O "641" que esteve escrito aqui estava certo
+  // quando foi medido e ficou velho no mesmo commit, porque duas linhas de comentário
+  // entraram no financeiro.inc.php depois. Número medido também envelhece.)
+  //
+  // Pior caso, com opcache DESLIGADO (CLI do container, 300 processos por rodada, duas
+  // rodadas): +62 ms e +124 ms no total, ou seja 0,2 a 0,4 ms por processo. Com o opcache
+  // LIGADO, que é como o container web roda: inicio.php por HTTP saiu 10,0 ms ± 1,4 sem o
+  // require e 10,5 ms ± 4,2 com ele (hyperfine, 120+ execuções cada) — a diferença não se
+  // separa do ruído. Medido aqui, não no servidor da Locaweb.
   require_once(__DIR__ . "/financeiro.inc.php");
 ?>
  <nav class="navbar navbar-default hidden-print" role="navigation">

@@ -1042,8 +1042,9 @@ echo "\npermissao\n";
 // apagar, sem o banco reclamar. Snapshot e restauração, como no sql_mode acima.
 $sessao_antes = $_SESSION;
 
-// A trava do beta vem ANTES do papel de negócio: enquanto o módulo não está pronto,
-// nem finanças abre.
+// pode_ver_financeiro() impõe DUAS coisas, ligadas por E: o papel Beta Tester e uma
+// sessão logada. Papel de negócio não entra na conta — os dois primeiros casos abaixo
+// deixam PAP_RESP_FINANCAS ligado justamente para provar que ele não fura a trava.
 $_SESSION[PAP_BETA_TESTER]   = false;
 $_SESSION[PAP_RESP_FINANCAS] = true;
 $_SESSION[PAP_RESP_NUCLEO]   = false;
@@ -1062,9 +1063,28 @@ verifica("sem beta tester o modulo nao abre nem para o administrador",
     pode_ver_financeiro() === false);
 $_SESSION[PAP_ADM] = false;
 
-$_SESSION[PAP_BETA_TESTER] = true;
-verifica("com beta tester e papel de negocio, abre",
+// Agora com o papel do beta, e com TODO papel de negócio DESLIGADO. O desligamento não é
+// arrumação: enquanto o PAP_RESP_FINANCAS ficava ligado aqui, este teste passava também
+// contra a forma antiga da função, em que um termo de papel ocupava o lugar do usr.id —
+// e o nome do teste ("com beta tester e papel de negocio") ainda descrevia aquela forma.
+// Medido: a mutação que troca `!empty($_SESSION['usr.id'])` por
+// `!empty($_SESSION[PAP_RESP_FINANCAS])` era pega só de lado, pelos testes de
+// pode_ver_conta_de(); nenhum teste falava da própria pode_ver_financeiro().
+$_SESSION[PAP_BETA_TESTER]   = true;
+$_SESSION[PAP_RESP_FINANCAS] = false;
+$_SESSION[PAP_RESP_NUCLEO]   = false;
+$_SESSION[PAP_ADM]           = false;
+verifica("beta tester e sessao logada bastam: sem papel de negocio nenhum, abre",
     pode_ver_financeiro() === true);
+
+// O OUTRO termo do E, que não tinha teste nenhum: medido, a mutação que apaga
+// `&& !empty($_SESSION['usr.id'])` sobrevivia às 96 asserções. Papel sem sessão não é
+// usuário — é o que sobra numa sessão meio montada, e o módulo não abre para isso.
+$usr_id_guardado = $_SESSION['usr.id'];
+unset($_SESSION['usr.id']);
+verifica("beta tester sem sessao logada nao abre",
+    pode_ver_financeiro() === false);
+$_SESSION['usr.id'] = $usr_id_guardado;
 
 $_SESSION[PAP_RESP_FINANCAS] = false;
 $_SESSION[PAP_RESP_NUCLEO]   = false;
