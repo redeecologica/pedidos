@@ -457,7 +457,7 @@ function extrato_do_cestante($usr_id)
 	// O recorte por cestante é o que mantém a consulta barata: conta_usuario resolve
 	// contas numa linha, lancamento_conta traz só os lançamentos dela e a PK de
 	// transacoes fecha o par.
-	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, l.lan_valor ";
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, t.tra_comprovante, l.lan_valor ";
 	$sql.= "FROM contas c ";
 	$sql.= "JOIN lancamentos l ON l.lan_con = c.con_id ";
 	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
@@ -487,6 +487,9 @@ function extrato_do_cestante($usr_id)
 			'situacao'  => 'gravado',
 			// linha já lançada não tem nada pendente de fechamento
 			'congelavel' => true,
+			// tra_comprovante é nullable; string vazia e null viram a mesma coisa aqui,
+			// porque para quem lê a tela "não tem comprovante" é um estado só
+			'comprovante' => trim((string)$row['tra_comprovante']),
 			'tra_id'    => (int)$row['tra_id'],
 			'cha'       => ($row['tra_cha'] === null) ? null : (int)$row['tra_cha'],
 		);
@@ -517,6 +520,9 @@ function extrato_do_cestante($usr_id)
 			'valor'     => -$d['valor'],
 			'situacao'  => 'derivado',
 			'tra_id'    => null,
+			// entrega não é lançamento e não tem comprovante — a chave existe para quem
+			// consome não precisar testar a situação antes de ler
+			'comprovante' => '',
 			'cha'       => (int)$d['cha_id'],
 			// Derivado quer dizer "ainda não virou lançamento", NÃO "ainda pode mudar".
 			// Quem responde a segunda pergunta é o prazo contábil, e a tela precisa dos
@@ -668,6 +674,23 @@ function pode_lancar_pagamento()
 // Lista vazia e null são entradas diferentes e saem por estados diferentes: é a
 // distinção que debitos_derivados() e extrato_do_cestante() preservam, chegando
 // inteira até a tela, que é onde ela vira palavra lida por gente.
+// O comprovante vira link, ou não. Devolve a URL quando ela é http/https, e "" para
+// qualquer outra coisa — inclusive texto comum, que a tela mostra escapado.
+//
+// A validação de ESQUEMA é o ponto. O comprovante é texto que alguém digitou, e virar
+// href sem conferir aceitaria javascript:… — um clique executando script escolhido por
+// quem lançou o pagamento. Lista de permissão, não de bloqueio: o que não é http nem
+// https não é link, sem exceção.
+function comprovante_como_link($comprovante)
+{
+	$url = trim((string)$comprovante);
+	if ($url === '') return '';
+	if (!preg_match('#^https?://[^\s<>"\']+$#i', $url)) return '';
+
+	return $url;
+}
+
+
 // Último lançamento GRAVADO do extrato, ou null quando ainda não há nenhum.
 //
 // Recebe o extrato já calculado de propósito: quem chama isto no painel já pediu

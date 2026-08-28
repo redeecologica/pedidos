@@ -325,6 +325,21 @@
               if ($hist_ultimo !== '') { ?>
             <br><small class="text-muted"><?php echo(h($hist_ultimo)); ?></small>
             <?php } ?>
+            <?php
+              // Comprovante. Vira link só quando é http/https — comprovante_como_link()
+              // recusa o resto, inclusive javascript:, que num href seria um clique
+              // executando script escolhido por quem lançou o pagamento.
+              //
+              // rel="noopener": sem isso a página aberta alcança window.opener e pode
+              // trocar a aba de origem por outra parecida. O comprovante aponta para
+              // fora do sistema, então a aba destino não é de confiança.
+              $comp_ultimo = trim((string)$ultimo['comprovante']);
+              $comp_link   = comprovante_como_link($comp_ultimo);
+              if ($comp_link !== '') { ?>
+            <br><small><a href="<?php echo(h($comp_link)); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo(h($comp_link)); ?>"><i class="glyphicon glyphicon-link"></i> comprovante</a></small>
+            <?php } else if ($comp_ultimo !== '') { ?>
+            <br><small class="text-muted"><i class="glyphicon glyphicon-paperclip"></i> <?php echo(h($comp_ultimo)); ?></small>
+            <?php } ?>
           <?php } ?>
         </td>
         <td class="text-right">
