@@ -6,50 +6,24 @@
 
   verifica_seguranca();
 
-  // O NÚCLEO EM FOCO É IMPOSTO, NÃO SUGERIDO.
+  // O núcleo em foco sai de nucleo_do_caixa_em_foco(), e não de um bloco escrito aqui:
+  // a spec exige o escopo IMPOSTO e não sugerido, e esta tela e a do fluxo fariam duas
+  // cópias da mesma regra. A função devolve "" quando não há núcleo alcançável.
   //
-  // A spec é explícita: o escopo por núcleo sai de $_SESSION['usr.nuc'], e o padrão
-  // do cestantes.php:18 — ler o núcleo de request_get — não serve numa tela de
-  // dinheiro, porque outro núcleo na URL o contorna. Aqui quem responde por um núcleo
-  // só nunca lê a URL: o valor vem da sessão e ponto. Quem responde por todos escolhe,
-  // e pode_lancar_no_caixa() confere a escolha de novo, logo abaixo.
-  $manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
-  $nuc_sessao     = isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : "";
-
-  $nuc_id = $manda_em_todos ? request_get("nuc_id", $nuc_sessao) : $nuc_sessao;
-
-  if (!is_string($nuc_id) && !is_int($nuc_id)) $nuc_id = "";
-  if (!ctype_digit((string)$nuc_id) || (int)$nuc_id <= 0) $nuc_id = "";
-
-  // Quem responde por todos e não tem núcleo próprio na sessão — ou tem um arquivado —
-  // cairia numa recusa vinda do item de menu, o que se lê como falta de permissão e não
-  // é. Para essa pessoa qualquer núcleo serve de ponto de partida, e o seletor logo
-  // abaixo troca. Para quem responde por um só isto NÃO roda: lá o núcleo é imposto, e
-  // escolher um por ela seria abrir o caixa de outro núcleo.
-  if ($nuc_id === "" && $manda_em_todos)
-  {
-      $res_1o = executa_sql(
-          "SELECT n.nuc_id FROM nucleos n "
-        . "JOIN contas c ON c.con_nuc = n.nuc_id AND c.con_tipo = 'nucleo' AND c.con_archive = 0 "
-        . "WHERE n.nuc_archive = 0 ORDER BY n.nuc_nome_curto LIMIT 1");
-      $row_1o = $res_1o ? mysqli_fetch_array($res_1o, MYSQLI_ASSOC) : null;
-      if ($row_1o) $nuc_id = (string)$row_1o['nuc_id'];
-  }
-
-  // A trava do módulo NÃO passa por verifica_seguranca(): aquela função valida qualquer
-  // chamada de PAP_ADM sem olhar o parâmetro (common.inc.php:103-110), então o módulo
-  // ficaria aberto para administrador sem Beta Tester — o contrário de "invisível até
-  // estar pronto". pode_lancar_no_caixa() começa por pode_ver_financeiro().
+  // A trava do módulo tampouco passa por verifica_seguranca(): aquela função valida
+  // qualquer chamada de PAP_ADM sem olhar o parâmetro (common.inc.php:103-110). Quem
+  // recusa é pode_lancar_no_caixa(), lá dentro, que começa por pode_ver_financeiro().
   //
   // Antes de top(), para a recusa sair com o cabeçalho ainda não enviado.
-  if ($nuc_id === "" || !pode_lancar_no_caixa($nuc_id))
+  $manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+  $nuc_id = nucleo_do_caixa_em_foco(request_get("nuc_id", ""));
+
+  if ($nuc_id === "")
   {
       adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
       redireciona(PAGINAPRINCIPAL);
       exit();
   }
-
-  $nuc_id = (int)$nuc_id;
 
   // Núcleo que a tela não confirmou existir não recebe afirmação nenhuma sobre dinheiro:
   // um id sem núcleo não tem lançamento, o saldo sairia zero e a tela diria "em dia".
@@ -189,17 +163,8 @@
   <div class="form-group">
     <label for="nuc_id">Núcleo:&nbsp;</label>
     <select id="nuc_id" name="nuc_id" class="form-control" onchange="this.form.submit();">
-      <?php
-        // Só núcleo ativo E com caixa aberto: sem conta não há extrato nem lançamento,
-        // e oferecer o núcleo assim mesmo levaria a uma tela que não faz nada.
-        $res_lista = executa_sql(
-            "SELECT n.nuc_id, n.nuc_nome_curto FROM nucleos n "
-          . "JOIN contas c ON c.con_nuc = n.nuc_id AND c.con_tipo = 'nucleo' AND c.con_archive = 0 "
-          . "WHERE n.nuc_archive = 0 ORDER BY n.nuc_nome_curto");
-        while ($res_lista && $linha_nuc = mysqli_fetch_array($res_lista, MYSQLI_ASSOC))
-        {
-      ?>
-      <option value="<?php echo(h($linha_nuc['nuc_id'])); ?>"<?php echo(((string)$linha_nuc['nuc_id'] === (string)$nuc_id) ? ' selected' : ''); ?>><?php echo(h($linha_nuc['nuc_nome_curto'])); ?></option>
+      <?php foreach ((array)nucleos_com_caixa() as $id_nuc => $nome_nuc) { ?>
+      <option value="<?php echo(h($id_nuc)); ?>"<?php echo(((string)$id_nuc === (string)$nuc_id) ? ' selected' : ''); ?>><?php echo(h($nome_nuc)); ?></option>
       <?php } ?>
     </select>
   </div>

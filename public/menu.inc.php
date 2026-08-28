@@ -190,6 +190,19 @@
                       ?> 
 
 					  <?php 
+                            // Fluxo de caixa: mesma pergunta do Caixa, porque e a mesma
+                            // regra de escopo — quem opera o caixa de um nucleo le o
+                            // relatorio dele. A tela refaz a pergunta por dentro, via
+                            // nucleo_do_caixa_em_foco(), antes de qualquer saida.
+                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
+                            {
+                       ?>
+			                    <li><a href="fluxo_caixa.php"><i class="glyphicon glyphicon-stats"></i> Fluxo de caixa</a></li>
+                      <?php 
+                            } 			  
+                      ?> 
+
+					  <?php 
                             // Cadastro de contas: quem cuida do dinheiro da Rede, não quem
                             // lança pagamento no núcleo. Por isso a pergunta aqui é outra.
                             if (pode_ver_financeiro()

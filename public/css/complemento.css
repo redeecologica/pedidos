@@ -118,3 +118,11 @@ tr[id^="cestante-"] { scroll-margin-top: 16px; }
    sinal — que vive no parágrafo acima da tabela e nos popovers do cabeçalho — sairia
    da tela junto com ele, e é justamente enquanto se lê linha a linha que ela faz falta. */
 .extrato-caixa thead th { position: sticky; top: 0; background-color: #fff; z-index: 2; }
+
+/* Fluxo de caixa: doze meses mais o total não cabem nos 940px do container, então a
+   tabela rola dentro do próprio quadro em vez de esticar a página. A coluna dos rótulos
+   fica grudada à esquerda — rolando para dezembro sem ela, os números perdem o nome. */
+.tabela-rolante { overflow-x: auto; }
+.fluxo-caixa { min-width: 900px; }
+.fluxo-caixa .coluna-rotulo { position: sticky; left: 0; background-color: #fff; white-space: nowrap; }
+.fluxo-caixa tr.active .coluna-rotulo { background-color: #f5f5f5; }
