@@ -847,9 +847,15 @@ function edita_descricao_transacao($tra_id, $historico, $comprovante)
 	$sql.= "tra_dt_alteracao = NOW() ";
 	$sql.= "WHERE tra_id = " . prep_para_bd((int)$tra_id);
 
-	// executa_sql() devolve false quando o servidor recusa. Um UPDATE que não rodou
-	// não pode virar "editado com sucesso" na tela.
-	return executa_sql($sql) !== false;
+	// `=== true`, e não `!== false`. São coisas diferentes aqui: executa_sql()
+	// (common.inc.php:389-390) devolve o INTEIRO 0 quando não há conexão, e `0 !== false`
+	// é verdadeiro — a função relataria sucesso com nada gravado, e a tela diria
+	// "Descrição atualizada" sobre um UPDATE que nunca rodou.
+	//
+	// mysqli_query devolve exatamente true para UPDATE que deu certo, então é isso que
+	// se exige. Sucesso relatado sem gravação é a mesma família de "consulta que falha
+	// vira não deve nada" que este módulo já corrigiu em quatro funções.
+	return executa_sql($sql) === true;
 }
 
 
