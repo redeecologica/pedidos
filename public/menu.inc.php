@@ -13,17 +13,17 @@
   // __DIR__ porque include relativo depende do diretório de trabalho, e em CLI ele não é
   // este — mesmo padrão do common.inc.php:3 e do cron_lembrete.php:29.
   //
-  // Custo medido em 2026-08-28, porque agora as 77 páginas da varredura carregam o arquivo
-  // — 870 linhas e 43.681 bytes naquela data. (Antes eram 643 linhas e 32.327 bytes; o
-  // registro de pagamentos cresceu o arquivo em um terço, então a medição foi refeita.
-  // Antes disso, um "641" escrito aqui ficou velho no mesmo commit em que foi medido.
-  // Número medido também envelhece, e este envelhece a cada tarefa.)
+  // Custo medido, porque agora as 77 páginas da varredura carregam o arquivo. Ele cresce
+  // a cada tarefa e o número aqui envelhece junto — já esteve em 641 (velho no mesmo
+  // commit em que foi medido), 643 e 870. Em 2026-08-28, depois do fix round final:
+  // 935 linhas e 47.815 bytes.
   //
   // Pior caso, com opcache DESLIGADO (CLI do container, 300 processos por rodada, duas
-  // rodadas): +209 ms e +139 ms no total, ou seja 0,5 a 0,7 ms por processo. Com o opcache
-  // LIGADO, que é como o container web roda: inicio.php por HTTP saiu 9,5 ms ± 0,9 sem o
-  // require e 9,7 ms ± 1,1 com ele (hyperfine, 150 execuções cada) — a diferença continua
-  // sem se separar do ruído. Medido aqui, não no servidor da Locaweb.
+  // rodadas): +215 ms e +141 ms no total, ou seja 0,5 a 0,7 ms por processo. Com o opcache
+  // LIGADO, que é como o container web roda: inicio.php por HTTP saiu 9,2 ms ± 1,2 sem o
+  // require e 9,2 ms ± 1,2 com ele (hyperfine, 150 execuções cada) — as duas médias
+  // coincidiram, e a diferença segue sem se separar do ruído. Medido aqui, não no
+  // servidor da Locaweb.
   require_once(__DIR__ . "/financeiro.inc.php");
 ?>
  <nav class="navbar navbar-default hidden-print" role="navigation">
