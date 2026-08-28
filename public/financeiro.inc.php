@@ -497,17 +497,19 @@ function extrato_do_cestante($usr_id)
 		return ($a['situacao'] === 'derivado') ? -1 : 1;
 	});
 
-	// O acumulado é arredondado a cada passo, e não só na exibição. O que essa escolha
-	// protege é a deriva de ponto flutuante ACUMULADA ao longo de muitas linhas — e
-	// muitas linhas é o caso real: o cestante 379 da cópia de produção tem 411 linhas
-	// derivadas.
+	// O acumulado é arredondado a cada passo, e não só na exibição. Isso mantém o saldo
+	// de toda linha na grade de centavos, que é o número que a tela mostra.
 	//
-	// Nenhum teste desta suíte distingue as duas políticas, e não dá para inventar um
-	// com dado real: lan_valor é decimal(10,2), prod_valor_venda é decimal(6,2) e o
-	// valor derivado já sai de dois round(...,2). Toda parcela que entra na soma tem no
-	// máximo duas casas, então arredondar passo a passo e arredondar só no fim dão o
-	// mesmo número em qualquer entrada alcançável. Fica registrado como escolha
-	// deliberada e SEM guarda automática, em vez de fingir que há teste segurando.
+	// NÃO é guarda contra deriva de ponto flutuante: medido, as duas políticas dão o
+	// mesmo resultado. lan_valor é decimal(10,2), prod_valor_venda é decimal(6,2) e o
+	// valor derivado já sai de dois round(...,2) — toda parcela entra na soma com no
+	// máximo duas casas, e o round de cada passo reencaixa na grade antes que sobre
+	// deriva para acumular. Divergência exatamente 0,0 somando 411 parcelas (o cestante
+	// 379 da cópia de produção) e também 200.000, com magnitude até 99.999.999,99.
+	//
+	// Como nenhuma entrada alcançável distingue as duas, nenhum teste desta suíte as
+	// distingue. Fica registrado como escolha deliberada e SEM guarda automática, em vez
+	// de fingir que há teste segurando — ou de inventar dado impossível para fabricar um.
 	$saldo = 0.0;
 	foreach ($linhas as $i => $linha)
 	{
