@@ -1,6 +1,10 @@
 <?php
   require  "common.inc.php";
-  require  "financeiro.inc.php";
+  // require_once e __DIR__, por simetria com o menu.inc.php:26, que também carrega o
+  // módulo. Hoje esta linha roda antes do top(), então um `require` simples ainda seria
+  // seguro; a simetria é para a página que vier depois e alcançar o menu antes daqui —
+  // essa morreria por redeclaração de função.
+  require_once(__DIR__ . "/financeiro.inc.php");
 
   $usr_id = request_get("usr_id", isset($_SESSION['usr.id']) ? $_SESSION['usr.id'] : "");
 
