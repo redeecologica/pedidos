@@ -133,8 +133,9 @@
   // hoje, com `contas` zerada na base, o certo é a segunda.
   // O núcleo da tela vai junto: muda a ORDEM da lista, nunca o conteúdo. O conteúdo
   // tem de ser igual ao que registra_pagamento() valida, e ela chama sem núcleo.
-  $destinos     = contas_de_destino($um_so ? null : ($nuc_id !== "" ? $nuc_id : null));
-  $sem_destinos = !is_array($destinos) || !count($destinos);
+  $nuc_foco     = $um_so ? null : ($nuc_id !== "" ? $nuc_id : null);
+  $destinos     = contas_de_destino_por_grupo($nuc_foco);
+  $sem_destinos = !is_array($destinos) || !count($destinos);   // grupo nenhum = destino nenhum
 
   // Todos os cestantes ATIVOS do núcleo, tenham conta ou não: a conta nasce no primeiro
   // lançamento, e quem nunca pagou nada é justamente quem mais deve aparecer aqui.
@@ -386,8 +387,17 @@
                   // dos cestantes, e a tabela de saldos continua valendo. Sem este cast, o
                   // foreach emitiria aviso na tela justamente no caminho de erro; e aviso é
                   // o que o smoke.sh reprova.
-                  foreach ((is_array($destinos) ? $destinos : array()) as $con_id => $rotulo) { ?>
-                <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+                  //
+                  // <optgroup> em vez de traços: separa os blocos e ainda diz o que cada um
+                  // é. Os con_id são os mesmos da lista plana que registra_pagamento()
+                  // valida — as duas saem da mesma consulta, então não há como a tela
+                  // oferecer destino que a fronteira recuse.
+                  foreach ((is_array($destinos) ? $destinos : array()) as $grupo) { ?>
+                <optgroup label="<?php echo(h($grupo['titulo'])); ?>">
+                  <?php foreach ($grupo['contas'] as $con_id => $rotulo) { ?>
+                  <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+                  <?php } ?>
+                </optgroup>
                 <?php } ?>
               </select>
             </div>
