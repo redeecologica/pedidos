@@ -32,10 +32,13 @@
      		 $res = executa_sql($sql);
 			 if($nuc_id=="") $nuc_id=id_inserido();
 
-			 // Caixa do núcleo nasce junto, pelo mesmo motivo do produtor: o vínculo já
-			 // está aqui, e depender de alguém lembrar da tela de Contas é depender de
-			 // alguém lembrar. UNIQUE de con_nuc garante que salvar de novo não duplica.
-			 if($nuc_id!="" && function_exists('cria_conta'))
+			 // Caixa do núcleo nasce junto, e também quando um núcleo arquivado volta a
+			 // ser ativo — o gancho roda em todo salvar, e a condição decide. Só ATIVO
+			 // ganha caixa: núcleo arquivado não é destino de pagamento válido, e é a
+			 // mesma regra de cria_contas_que_faltam() e de contas_de_destino().
+			 //
+			 // UNIQUE de con_nuc garante que salvar de novo não duplica.
+			 if($nuc_id!="" && request_get('nuc_archive','0') != '1' && function_exists('cria_conta'))
 			 	cria_conta('nucleo', array('con_nuc' => $nuc_id,
 			 	                           'con_nome' => 'Caixa ' . request_get('nuc_nome_curto','')));	
 			 
