@@ -98,10 +98,18 @@
       // A recusa não diz QUAL guarda barrou, de propósito: lanca_movimento_nucleo()
       // não distingue engano de quem digitou e POST forjado, e as duas se tratam igual.
       // A mensagem lista o que a tela sabe conferir, que é o que ajuda quem errou.
+      // "Confira a conta de destino" manda conferir um campo que a tela nem mostrou
+      // quando não há produtor com conta aberta — e aí a recusa parece defeito.
+      $sem_produtor = ($tipo === 'pagamento_produtor')
+                   && !count((array)contas_de_destino_do_tipo('produtor'));
+
       adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
           $tra ? "Lançamento registrado."
-               : "Não foi possível registrar. Confira a data, o valor, a conta de destino"
-               . " e — se for despesa — a categoria.");
+               : ($sem_produtor
+                   ? "Nenhum produtor tem conta aberta, então não há como registrar pagamento"
+                   . " a produtor. Quem abre essas contas é a administração, na tela de Contas."
+                   : "Não foi possível registrar. Confira a data, o valor, a conta de destino"
+                   . " e — se for despesa — a categoria."));
 
       // POST-redirect-GET: um F5 depois de gravar não relança. Numa tela de dinheiro
       // isso não é incômodo, é dano.
@@ -211,6 +219,8 @@
           <span class="help-block small">
             Despesa e repasse mexem o saldo do mesmo jeito — o que muda é para onde o
             dinheiro foi, e é isso que o relatório separa.
+            <strong>Outra receita aumenta o que o núcleo deve</strong>, como o pagamento de
+            um cestante: o dinheiro entrou no caixa e pertence à Rede.
           </span>
         </div>
         <div class="col-sm-3">
@@ -375,8 +385,9 @@
 
 <p class="small text-muted">
   Negativo é o que o núcleo <strong>deve</strong> à Rede; positivo é o que tem a receber.
-  Pagamento de cestante entra negativo — é dinheiro que o núcleo segura e ainda vai
-  repassar. Despesa, repasse e pagamento a produtor empurram o saldo de volta para zero.
+  Entram negativo o pagamento de cestante e a <strong>outra receita</strong> — nos dois o
+  dinheiro chega ao caixa pertencendo à Rede, e o núcleo passa a dever esse tanto. Despesa,
+  repasse e pagamento a produtor empurram o saldo de volta para zero.
 </p>
 
 <?php } ?>
