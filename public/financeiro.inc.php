@@ -668,6 +668,27 @@ function pode_lancar_pagamento()
 // Lista vazia e null são entradas diferentes e saem por estados diferentes: é a
 // distinção que debitos_derivados() e extrato_do_cestante() preservam, chegando
 // inteira até a tela, que é onde ela vira palavra lida por gente.
+// Último lançamento GRAVADO do extrato, ou null quando ainda não há nenhum.
+//
+// Recebe o extrato já calculado de propósito: quem chama isto no painel já pediu
+// extrato_do_cestante() para o saldo, e uma segunda consulta por linha custaria 35
+// varreduras a mais numa tela que já leva mais de um segundo.
+//
+// Só linha 'gravado' conta. Débito derivado não é lançamento: ele existe porque a
+// entrega existe, e dizer "último lançamento: entrega de junho" faria a coluna
+// responder outra pergunta — a de quando a pessoa pagou pela última vez.
+function ultimo_lancamento($extrato)
+{
+	if (!is_array($extrato)) return null;
+
+	$ultimo = null;
+	foreach ($extrato as $linha)
+		if (isset($linha['situacao']) && $linha['situacao'] === 'gravado') $ultimo = $linha;
+
+	return $ultimo;
+}
+
+
 function resumo_do_extrato($extrato)
 {
 	if ($extrato === null) return array('estado' => 'indisponivel', 'saldo' => null);

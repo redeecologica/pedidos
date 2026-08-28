@@ -247,10 +247,8 @@
       <tr>
         <th>Cestante</th>
         <th class="text-right">Saldo</th>
-        <th>Data</th>
-        <th>Pagou</th>
-        <th>Destino</th>
-        <th>Comprovante</th>
+        <th>Último lançamento</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -276,8 +274,12 @@
           // resumo_do_extrato() devolve ESTADO, e não um saldo que possa vir nulo: em
           // PHP `null < -0.005` e `null > 0.005` são os dois falsos, então saldo nulo
           // descendo a cadeia de comparações sairia pelo ramo do "em dia".
-          $resumo = resumo_do_extrato(extrato_do_cestante($row['usr_id']));
-          $nao_deu = ($resumo['estado'] === 'indisponivel');
+          // Um cálculo só por cestante: o saldo e o último lançamento saem do MESMO
+          // extrato. Pedir duas vezes dobraria a passada mais cara desta tela.
+          $ext_linha = extrato_do_cestante($row['usr_id']);
+          $resumo    = resumo_do_extrato($ext_linha);
+          $ultimo    = ultimo_lancamento($ext_linha);
+          $nao_deu   = ($resumo['estado'] === 'indisponivel');
 
           if ($nao_deu) $sem_saldo++;
           else if ($resumo['saldo'] < -0.005) $total_aberto += $resumo['saldo'];
@@ -307,46 +309,79 @@
             <?php echo(h(formata_moeda($resumo['saldo']))); ?>
           <?php } ?>
         </td>
-        <?php if (!$em_edicao) { ?>
-        <td colspan="4">
-          <a class="btn btn-default btn-xs" href="conta_pagamentos.php?<?php echo(h($ctx)); ?><?php echo($ctx === "" ? "" : "&amp;"); ?>editar=<?php echo(h($row['usr_id'])); ?>#linha">
+        <td>
+          <?php if ($ultimo === null) { ?>
+            <span class="text-muted">—</span>
+          <?php } else { ?>
+            <?php echo(h(date('d/m/Y', strtotime($ultimo['dt'])))); ?>
+            &nbsp;<span class="<?php echo($ultimo['valor'] < 0 ? 'text-danger' : 'text-success'); ?>"><?php echo(h(formata_moeda($ultimo['valor']))); ?></span>
+          <?php } ?>
+        </td>
+        <td class="text-right">
+          <?php if (!$em_edicao) { ?>
+          <a class="btn btn-default btn-xs" href="conta_pagamentos.php?<?php echo(h($ctx)); ?><?php echo($ctx === "" ? "" : "&amp;"); ?>editar=<?php echo(h($row['usr_id'])); ?>">
             <i class="glyphicon glyphicon-pencil"></i> registrar pagamento
           </a>
-        </td>
-        <?php } else { ?>
-        <td><input type="text" class="form-control data" name="pg_dt[]" value="<?php echo(h($hoje)); ?>" size="10" /></td>
-        <td><input type="text" class="form-control numero" name="pg_valor[]" value="" /></td>
-        <td>
-          <select class="form-control pg-destino" name="pg_destino[]">
-            <?php
-              // A primeira opção é vazia de propósito. Com um destino real em primeiro
-              // lugar, quem esquecesse de escolher lançaria para ele sem perceber — e
-              // pagamento com destino errado é dinheiro debitado de quem não recebeu.
-              // Linha sem destino é recusada por registra_pagamento() e entra na conta
-              // das não gravadas, que a mensagem mostra.
-            ?>
-            <option value="">-- escolha o destino --</option>
-          <?php
-            // $destinos pode ser NULL — a consulta dos destinos falhando não impede a dos
-            // cestantes, e a tabela de saldos continua valendo. Sem este cast, o foreach
-            // emitiria aviso na tela justamente no caminho de erro; e aviso é o que o
-            // smoke.sh reprova.
-            foreach ((is_array($destinos) ? $destinos : array()) as $con_id => $rotulo) { ?>
-            <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
           <?php } ?>
-          </select>
         </td>
-        <td><input type="text" class="form-control" name="pg_comprovante[]" value="" maxlength="300" /></td>
-        <?php } ?>
       </tr>
+
+      <?php if ($em_edicao) { ?>
+      <?php
+        // O formulário abre numa linha PRÓPRIA, abaixo da pessoa. Espremido nas colunas
+        // da tabela, o comprovante ficava com uns poucos caracteres visíveis — e ele é
+        // tipicamente uma URL longa. Aqui ele ocupa a largura toda, sozinho.
+      ?>
+      <tr class="info">
+        <td colspan="4">
+          <div class="row">
+            <div class="col-sm-3">
+              <label for="pg_dt">Data</label>
+              <input type="text" id="pg_dt" class="form-control data" name="pg_dt[]" value="<?php echo(h($hoje)); ?>" />
+            </div>
+            <div class="col-sm-3">
+              <label for="pg_valor">Pagou</label>
+              <input type="text" id="pg_valor" class="form-control numero" name="pg_valor[]" value="" autofocus />
+            </div>
+            <div class="col-sm-6">
+              <label for="pg_destino">Destino</label>
+              <select id="pg_destino" class="form-control pg-destino" name="pg_destino[]">
+                <?php
+                  // A primeira opção é vazia de propósito. Com um destino real em primeiro
+                  // lugar, quem esquecesse de escolher lançaria para ele sem perceber — e
+                  // pagamento com destino errado é dinheiro debitado de quem não recebeu.
+                  // Linha sem destino é recusada por registra_pagamento() e entra na conta
+                  // das não gravadas, que a mensagem mostra.
+                ?>
+                <option value="">-- escolha o destino --</option>
+                <?php
+                  // $destinos pode ser NULL — a consulta dos destinos falhando não impede a
+                  // dos cestantes, e a tabela de saldos continua valendo. Sem este cast, o
+                  // foreach emitiria aviso na tela justamente no caminho de erro; e aviso é
+                  // o que o smoke.sh reprova.
+                  foreach ((is_array($destinos) ? $destinos : array()) as $con_id => $rotulo) { ?>
+                <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="col-sm-12">
+              <label for="pg_comprovante">Comprovante</label>
+              <input type="text" id="pg_comprovante" class="form-control" name="pg_comprovante[]" value="" maxlength="300" placeholder="link do comprovante, ou como identificá-lo" />
+            </div>
+          </div>
+        </td>
+      </tr>
+      <?php } ?>
     <?php } ?>
       <?php if (!$cestantes) { ?>
-      <tr><td colspan="6">Nenhum cestante nesta lista.</td></tr>
+      <tr><td colspan="4">Nenhum cestante nesta lista.</td></tr>
       <?php } ?>
       <tr>
         <th>TOTAL EM ABERTO<?php if ($sem_saldo) { ?> (parcial)<?php } ?></th>
         <th class="text-right"><?php echo(h(formata_moeda($total_aberto))); ?></th>
-        <th colspan="4">
+        <th colspan="2">
           <?php
             // Total que ignora linha quebrada em silêncio é pior que total nenhum: quem
             // olha para ele acha que está vendo a dívida do núcleo inteira.

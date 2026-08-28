@@ -1736,6 +1736,36 @@ verifica("o bloco de pagamento devolveu a sessao ao que era",
     !isset($_SESSION['usr.id']) && !isset($_SESSION[PAP_BETA_TESTER]),
     "sessao = " . json_encode($_SESSION));
 
+// ---------------------------------------------------------------------------
+echo "\nultimo lancamento do extrato\n";
+// ---------------------------------------------------------------------------
+
+verifica("sem extrato devolve null",
+    ultimo_lancamento(null) === null && ultimo_lancamento(array()) === null);
+
+// Só linha gravada conta: débito derivado não é lançamento, e contá-lo faria a
+// coluna responder "quando entregaram" em vez de "quando pagou".
+$so_derivadas = array(
+    array('situacao' => 'derivado', 'dt' => '2026-01-01 00:00:00', 'valor' => -10.0),
+    array('situacao' => 'derivado', 'dt' => '2026-02-01 00:00:00', 'valor' => -20.0),
+);
+verifica("extrato so com linhas derivadas devolve null",
+    ultimo_lancamento($so_derivadas) === null,
+    var_export(ultimo_lancamento($so_derivadas), true));
+
+// O extrato chega ordenado por data crescente, então o último gravado é o mais
+// recente. Este teste cai se alguém trocar o foreach por "o primeiro que achar".
+$mistura = array(
+    array('situacao' => 'derivado', 'dt' => '2026-01-01 00:00:00', 'valor' => -10.0),
+    array('situacao' => 'gravado',  'dt' => '2026-02-01 00:00:00', 'valor' =>  30.0),
+    array('situacao' => 'derivado', 'dt' => '2026-03-01 00:00:00', 'valor' => -40.0),
+    array('situacao' => 'gravado',  'dt' => '2026-04-01 00:00:00', 'valor' =>  50.0),
+);
+$u = ultimo_lancamento($mistura);
+verifica("devolve o ultimo gravado, nao o primeiro nem o ultimo da lista",
+    $u !== null && $u['dt'] === '2026-04-01 00:00:00' && $u['valor'] == 50.0,
+    var_export($u, true));
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
