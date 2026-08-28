@@ -28,7 +28,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-TABELAS="contas transacoes lancamentos chamadas chamadaprodutos pedidos pedidoprodutos usuarios"
+TABELAS="contas transacoes lancamentos chamadas chamadaprodutos pedidos pedidoprodutos usuarios nucleos fornecedores"
 
 # todas as contagens numa linha só, separadas por tab
 contagens() {
