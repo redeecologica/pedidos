@@ -519,3 +519,95 @@ function extrato_do_cestante($usr_id)
 
 	return $linhas;
 }
+
+
+// O módulo inteiro fica atrás do papel Beta Tester até estar pronto, e a trava vale
+// por TELA, não só no menu: item escondido é conveniência, não impedimento — quem
+// digita o endereço chega igual.
+//
+// O que a condição faz, sem prometer mais do que isso: exige o papel Beta Tester e
+// uma sessão de usuário. A lista de papéis de negócio não estreita nada hoje, porque
+// login.php:40 preenche usr.id antes de atribuir papel nenhum, então toda sessão
+// passa pelo último termo. Ela está escrita para dizer a quem o módulo se destina
+// quando a trava do beta sair; enquanto ela estiver aqui, quem segura é o Beta Tester.
+function pode_ver_financeiro()
+{
+	if (empty($_SESSION[PAP_BETA_TESTER])) return false;
+
+	return !empty($_SESSION[PAP_ADM])
+	    || !empty($_SESSION[PAP_RESP_FINANCAS])
+	    || !empty($_SESSION[PAP_RESP_NUCLEO])
+	    || !empty($_SESSION['usr.id']);   // cestante, para o próprio extrato
+}
+
+
+// Quem alcança a conta de quem. Escopo por núcleo IMPOSTO, não sugerido: em
+// cestantes.php:18 o núcleo é um padrão vindo de request_get, que outro núcleo na URL
+// contorna. Numa tela de dinheiro isso não serve, então o vínculo é conferido no banco.
+//
+// A POLARIDADE DA FALHA AQUI É A INVERSA da do resto do módulo, e é de propósito.
+// debitos_derivados() e extrato_do_cestante() devolvem null quando a consulta não
+// roda, porque responder "não deve nada" a uma pergunta que não chegou a ser feita
+// engana o cestante. Aqui a consulta que não roda cai no `return false` do fim: acesso
+// NEGADO. Falhar para o lado fechado numa checagem de permissão protege; falhar para o
+// valor vazio num cálculo de dinheiro mente. As duas regras não se unificam — e a
+// desta função tem teste próprio, com a consulta quebrada de propósito.
+function pode_ver_conta_de($usr_id)
+{
+	// usr_id chega da URL. Inteiro positivo ou nada: o que não é id não vira consulta.
+	// Não é zelo abstrato — com o sql_mode vazio deste servidor o banco NÃO recusa
+	// texto colado num id. Medido nesta cópia de produção: `usr_id = '1 abc'` devolve a
+	// linha do usr_id 1, com warning 1292 e mais nada.
+	// Só string e int passam: ?usr_id[]=1 entrega array a request_get, e converter
+	// array em string emitiria warning na tela.
+	if (!is_string($usr_id) && !is_int($usr_id)) return false;
+	if (!ctype_digit((string)$usr_id) || (int)$usr_id <= 0) return false;
+
+	if (!pode_ver_financeiro()) return false;
+
+	if (!empty($_SESSION[PAP_ADM]) || !empty($_SESSION[PAP_RESP_FINANCAS])) return true;
+
+	if (isset($_SESSION['usr.id']) && $_SESSION['usr.id'] == $usr_id) return true;   // o próprio
+
+	if (!empty($_SESSION[PAP_RESP_NUCLEO]) && isset($_SESSION['usr.nuc']))
+	{
+		$sql = "SELECT usr_id FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id);
+		$sql.= " AND usr_nuc = " . prep_para_bd($_SESSION['usr.nuc']);
+		$res = executa_sql($sql);
+		if ($res && mysqli_num_rows($res)) return true;
+	}
+
+	return false;
+}
+
+
+// Traduz o extrato no que a TELA pode afirmar. Devolve um ESTADO, e não um saldo que
+// possa vir nulo: em PHP `null < -0.005` e `null > 0.005` são os dois falsos, então um
+// saldo nulo descendo a cadeia de comparações sairia pelo ramo final e a tela
+// imprimiria "em dia" para um cestante endividado — exatamente o desastre que o
+// contrato de null de extrato_do_cestante() existe para impedir. Com estado, esse ramo
+// não é alcançável a partir de null.
+//
+//   indisponivel  a consulta não rodou; não há o que afirmar, e o saldo vem null
+//   devedor       deve
+//   credor        tem a receber
+//   em_dia        a consulta rodou e o saldo é zero — inclusive com extrato vazio
+//
+// Lista vazia e null são entradas diferentes e saem por estados diferentes: é a
+// distinção que debitos_derivados() e extrato_do_cestante() preservam, chegando
+// inteira até a tela, que é onde ela vira palavra lida por gente.
+function resumo_do_extrato($extrato)
+{
+	if ($extrato === null) return array('estado' => 'indisponivel', 'saldo' => null);
+
+	// o acumulado da última linha é o saldo; extrato_do_cestante() já o deixa somado
+	$saldo = count($extrato) ? end($extrato)['saldo'] : 0.0;
+
+	// Meio centavo em torno de zero conta como em dia. O saldo chega de round(...,2),
+	// então nenhuma linha alcançável cai dentro da faixa: ela cobre o zero, e não
+	// arredondamento.
+	if ($saldo < -0.005) return array('estado' => 'devedor', 'saldo' => $saldo);
+	if ($saldo >  0.005) return array('estado' => 'credor',  'saldo' => $saldo);
+
+	return array('estado' => 'em_dia', 'saldo' => $saldo);
+}
