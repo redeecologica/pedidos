@@ -72,6 +72,23 @@
 	<legend>Conta de <?php echo(h($cestante['nome'])); ?></legend>
 
 <?php
+  // O botão do lançamento avulso. A pergunta é pode_lancar_pagamento(), e não uma lista
+  // de papéis escrita aqui: a mesma regra vive no menu e na tela de pagamentos, e três
+  // cópias dela seriam duas a mais do que dá para manter de acordo.
+  //
+  // Fica FORA do ramo do extrato de propósito. Ele é navegação para outra tela, que faz
+  // as próprias conferências; escondê-lo quando a consulta do extrato não roda tiraria o
+  // caminho justamente de quem foi ali para resolver alguma coisa.
+  if (pode_lancar_pagamento()) { ?>
+
+	<div class="hidden-print" style="margin-bottom:10px;">
+	  <a class="btn btn-info" href="conta_pagamentos.php?usr_id=<?php echo(h($usr_id)); ?>">
+		<i class="glyphicon glyphicon-plus"></i> registrar pagamento deste cestante
+	  </a>
+	</div>
+
+<?php }
+
   // Consulta que não rodou não vira número. A tela para aqui: sem situação, sem tabela
   // e, principalmente, sem dizer que está quite quem não chegou a ser consultado — a
   // mentira que o contrato de null de extrato_do_cestante() existe para impedir. Erro

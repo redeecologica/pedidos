@@ -13,16 +13,17 @@
   // __DIR__ porque include relativo depende do diretório de trabalho, e em CLI ele não é
   // este — mesmo padrão do common.inc.php:3 e do cron_lembrete.php:29.
   //
-  // Custo medido, porque agora as 76 páginas da varredura carregam o arquivo — 643 linhas
-  // e 32.327 bytes na hora da medição. (O "641" que esteve escrito aqui estava certo
-  // quando foi medido e ficou velho no mesmo commit, porque duas linhas de comentário
-  // entraram no financeiro.inc.php depois. Número medido também envelhece.)
+  // Custo medido, porque agora as 77 páginas da varredura carregam o arquivo — 870 linhas
+  // e 43.681 bytes na hora desta medição. (Antes eram 643 linhas e 32.327 bytes; o
+  // registro de pagamentos cresceu o arquivo em um terço, então a medição foi refeita.
+  // Antes disso, um "641" escrito aqui ficou velho no mesmo commit em que foi medido.
+  // Número medido também envelhece, e este envelhece a cada tarefa.)
   //
   // Pior caso, com opcache DESLIGADO (CLI do container, 300 processos por rodada, duas
-  // rodadas): +62 ms e +124 ms no total, ou seja 0,2 a 0,4 ms por processo. Com o opcache
-  // LIGADO, que é como o container web roda: inicio.php por HTTP saiu 10,0 ms ± 1,4 sem o
-  // require e 10,5 ms ± 4,2 com ele (hyperfine, 120+ execuções cada) — a diferença não se
-  // separa do ruído. Medido aqui, não no servidor da Locaweb.
+  // rodadas): +209 ms e +139 ms no total, ou seja 0,5 a 0,7 ms por processo. Com o opcache
+  // LIGADO, que é como o container web roda: inicio.php por HTTP saiu 9,5 ms ± 0,9 sem o
+  // require e 9,7 ms ± 1,1 com ele (hyperfine, 150 execuções cada) — a diferença continua
+  // sem se separar do ruído. Medido aqui, não no servidor da Locaweb.
   require_once(__DIR__ . "/financeiro.inc.php");
 ?>
  <nav class="navbar navbar-default hidden-print" role="navigation">
@@ -48,6 +49,18 @@
 			{
 		   ?>
             <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-usd"></i> Meu Extrato</a></li>
+		  <?php
+			}
+
+		   // O painel de saldos do núcleo, que é também a tela de lançamento em lote.
+		   // Pergunta diferente da de cima: cestante vê o próprio extrato e não lança
+		   // nada. Aqui também não há segunda cópia da regra — só a chamada, e quem
+		   // tranca é a mesma pergunta refeita dentro do conta_pagamentos.php, antes de
+		   // qualquer saída.
+			if(pode_lancar_pagamento())
+			{
+		   ?>
+            <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-list-alt"></i> Pagamentos</a></li>
 		  <?php
 			}
 		   ?>

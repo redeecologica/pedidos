@@ -1264,6 +1264,322 @@ verifica("consulta recusada e 'indisponivel', nunca 'inexistente'",
 verifica("derrubada a sombra, o cestante volta a ser encontrado",
     cestante_da_conta($usr_t)['estado'] === 'ok');
 
+
+echo "\npagamento\n";
+
+// O pagamento credita o cestante e debita quem recebeu o dinheiro. As contas de
+// destino deste fixture já nasceram no bloco "contas": $con_nuc_t é núcleo,
+// $con_forn_t é produtor, $con_a e $con_b são da Rede. $con_t é a conta do
+// cestante $usr_t — e é justamente ela que NÃO pode ser destino.
+
+$destinos = contas_de_destino();
+
+verifica("nucleo, produtor e rede entram na lista de destinos, com rotulo",
+    is_array($destinos)
+    && isset($destinos[$con_nuc_t]) && trim($destinos[$con_nuc_t]) !== ''
+    && isset($destinos[$con_forn_t]) && trim($destinos[$con_forn_t]) !== ''
+    && isset($destinos[$con_a]) && trim($destinos[$con_a]) !== '',
+    json_encode(is_array($destinos) ? array_slice($destinos, 0, 6, true) : $destinos));
+
+// É o defeito que o brief da tarefa trazia: o `<select>` da tela oferece só os
+// destinos legítimos, mas um POST carrega qualquer con_id. Com a conta de OUTRO
+// cestante como destino, o lançamento debitaria a conta dele — e as duas pernas
+// continuariam somando zero. Razão íntegro e errado, que nenhum invariante pega.
+verifica("conta de cestante nao aparece entre os destinos",
+    is_array($destinos) && !isset($destinos[$con_t]),
+    "con_t = " . var_export($con_t, true));
+
+$saldo_antes_cest = saldo_da_conta($con_t);
+$saldo_antes_nuc  = saldo_da_conta($con_nuc_t);
+
+$tra_p = registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, $con_nuc_t,
+                            'http://exemplo/comprovante', 'pago na entrega');
+
+verifica("registra_pagamento devolve o id da transacao",
+    is_numeric($tra_p) && $tra_p > 0, var_export($tra_p, true));
+
+verifica("o pagamento credita o cestante",
+    round(saldo_da_conta($con_t) - $saldo_antes_cest, 2) == 30.00,
+    "variacao = " . (saldo_da_conta($con_t) - $saldo_antes_cest));
+
+verifica("o pagamento debita a conta de destino",
+    round(saldo_da_conta($con_nuc_t) - $saldo_antes_nuc, 2) == -30.00,
+    "variacao = " . (saldo_da_conta($con_nuc_t) - $saldo_antes_nuc));
+
+verifica("o comprovante, a observacao e o tipo ficam guardados",
+    valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_p) === 'http://exemplo/comprovante'
+    && valor_escalar("SELECT tra_obs FROM transacoes WHERE tra_id = " . (int)$tra_p) === 'pago na entrega'
+    && valor_escalar("SELECT tra_tipo FROM transacoes WHERE tra_id = " . (int)$tra_p) === 'pagamento');
+
+// Pagamento direto ao produtor: quem recebeu o dinheiro foi ele, e é ele que fica
+// devendo à Rede. O destino é escolha de quem lança, não consequência do núcleo.
+$saldo_antes_forn = saldo_da_conta($con_forn_t);
+registra_pagamento($usr_t, '2026-08-10 09:00:00', 20.00, $con_forn_t, '', '');
+
+verifica("pagamento direto a produtor debita o produtor",
+    round(saldo_da_conta($con_forn_t) - $saldo_antes_forn, 2) == -20.00,
+    "variacao = " . (saldo_da_conta($con_forn_t) - $saldo_antes_forn));
+
+// A contagem de lançamentos na MESMA asserção é o que torna o teste real: sem ela,
+// uma versão que devolvesse null DEPOIS de gravar passaria verde.
+//
+// $usr_t3 nasceu no bloco "contas" e nunca ganhou conta — as tentativas de lá foram
+// todas recusadas —, então a conta dele nasce aqui, só para ser oferecida como
+// destino ilegítimo.
+$con_t3    = conta_do_cestante($usr_t3, true);
+$lan_antes = (int)valor_escalar("SELECT COUNT(*) FROM lancamentos");
+
+verifica("conta de cestante nao recebe pagamento, e nada e gravado",
+    registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, $con_t3, '', '') === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM lancamentos") === $lan_antes,
+    "con_t3 = " . var_export($con_t3, true)
+        . " · lancamentos antes = $lan_antes · depois = " . valor_escalar("SELECT COUNT(*) FROM lancamentos"));
+
+verifica("con_id que nao existe nao recebe pagamento, e nada e gravado",
+    registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, $con_t3 + 999999, '', '') === null
+    && registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, 'abc', '', '') === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM lancamentos") === $lan_antes);
+
+// pg_destino[0][] entrega ARRAY onde se espera escalar, e no PHP 8 `isset($a[$k])` com
+// $k array é TypeError, não false — medido no container. Sem a recusa por tipo, a tela
+// de pagamentos cai inteira por causa de um nome de campo no POST, e a alavanca deste
+// teste é essa queda: sem a guarda, a suíte morre aqui em vez de ficar vermelha.
+verifica("destino que chega como array e recusado, e nao derruba a pagina",
+    registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, array($con_nuc_t), '', '') === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM lancamentos") === $lan_antes);
+
+// Conta arquivada é conta que a administração tirou de circulação. Ela continua
+// existindo — e o saldo dela continua contando —, mas não é mais oferecida nem
+// aceita. Devolve a coluna ao original ANTES das asserções.
+executa_sql("UPDATE contas SET con_archive = 1 WHERE con_id = " . (int)$con_forn_t);
+$destinos_arq  = contas_de_destino();
+$pag_arquivado = registra_pagamento($usr_t, '2026-08-10 09:00:00', 15.00, $con_forn_t, '', '');
+executa_sql("UPDATE contas SET con_archive = 0 WHERE con_id = " . (int)$con_forn_t);
+
+verifica("conta arquivada sai da lista e nao recebe pagamento",
+    is_array($destinos_arq) && !isset($destinos_arq[$con_forn_t])
+    && $pag_arquivado === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM lancamentos") === $lan_antes,
+    "pagamento = " . var_export($pag_arquivado, true));
+
+$destinos_desarq = contas_de_destino();
+verifica("desarquivada, a conta volta a ser destino",
+    is_array($destinos_desarq) && isset($destinos_desarq[$con_forn_t]));
+
+// A polaridade de contas_de_destino(), que o brief deixava em aberto: consulta
+// recusada devolve NULL, e lista vazia quer dizer "não há destino cadastrado" —
+// que é o estado da cópia de produção hoje, com `contas` zerada. A tela diz coisas
+// diferentes para cada um, e por isso os dois não podem se confundir.
+//
+// A alavanca é uma TEMPORARY TABLE sem nuc_id sobre `nucleos`, e NÃO a sombra de
+// `contas` usada nos outros blocos. A escolha é o teste: sombreando `contas`, quem
+// recusa o pagamento é conta_do_cestante(), que cai na mesma sombra, e a guarda
+// daqui fica sem alavanca — medido, a versão que aceita o destino quando a lista
+// não vem sobreviveu às 125 asserções. Com a sombra em `nucleos`, o LEFT JOIN de
+// contas_de_destino() é recusado (ERROR 1054) e todo o resto continua de pé: se a
+// guarda cair, o pagamento é gravado de verdade, e a contagem pega.
+$lan_antes_sombra = (int)valor_escalar("SELECT COUNT(*) FROM lancamentos");
+
+executa_sql("CREATE TEMPORARY TABLE nucleos (
+    nuc_nome_curto varchar(100) NOT NULL) ENGINE=InnoDB");
+
+$sombra_dest_de_pe  = (executa_sql("SELECT nuc_id FROM nucleos") === false);
+$conta_ainda_de_pe  = (conta_do_cestante($usr_t) == $con_t);
+$destinos_sem_banco = contas_de_destino();
+$pag_sem_banco      = registra_pagamento($usr_t, '2026-08-10 09:00:00', 30.00, $con_nuc_t, '', '');
+
+executa_sql("DROP TEMPORARY TABLE nucleos");
+
+// Guarda do fixture: sem ela o teste ficaria verde por não haver o que quebrar — e a
+// segunda metade é o que separa esta sombra da de `contas`.
+verifica("a sombra sem nuc_id recusa so a lista de destinos, e nao a busca de conta",
+    $sombra_dest_de_pe && $conta_ainda_de_pe,
+    "sombra de pe = " . var_export($sombra_dest_de_pe, true)
+        . " · conta de pe = " . var_export($conta_ainda_de_pe, true));
+
+verifica("consulta recusada devolve null, e nao lista vazia de destinos",
+    $destinos_sem_banco === null, var_export($destinos_sem_banco, true));
+
+// Sem lista não há contra o que conferir o destino, e destino não conferido é o
+// defeito inteiro. A alavanca é a versão que "conserta" a tela deixando passar
+// quando a lista não vem: essa grava, e a contagem a pega.
+verifica("sem a lista de destinos nao se grava pagamento nenhum",
+    $pag_sem_banco === null
+    && (int)valor_escalar("SELECT COUNT(*) FROM lancamentos") === $lan_antes_sombra,
+    "pagamento = " . var_export($pag_sem_banco, true)
+        . " · lancamentos antes = $lan_antes_sombra · depois = "
+        . valor_escalar("SELECT COUNT(*) FROM lancamentos"));
+
+// O pagamento tem de aparecer no extrato e mover o saldo PARA CIMA — é a regra de
+// sinal do módulo, e é o teste que a segura: trocar as pernas em registra_pagamento
+// faz o saldo afundar, e as duas pernas continuam somando zero.
+$resumo_antes  = resumo_do_extrato(extrato_do_cestante($usr_t));
+$tra_ext       = registra_pagamento($usr_t, '2026-08-11 09:00:00', 7.00, $con_nuc_t, '', '');
+$extrato_pos   = extrato_do_cestante($usr_t);
+$resumo_depois = resumo_do_extrato($extrato_pos);
+
+verifica("o pagamento sobe o saldo do cestante, na regra de sinal do modulo",
+    is_numeric($tra_ext) && $tra_ext > 0
+    && round($resumo_depois['saldo'] - $resumo_antes['saldo'], 2) == 7.00,
+    "antes = " . var_export($resumo_antes['saldo'], true)
+        . " · depois = " . var_export($resumo_depois['saldo'], true));
+
+$linha_pag = null;
+foreach ((is_array($extrato_pos) ? $extrato_pos : array()) as $l)
+    if ($l['tra_id'] === (int)$tra_ext) { $linha_pag = $l; break; }
+
+verifica("o pagamento aparece no extrato como lancamento gravado",
+    $linha_pag !== null && $linha_pag['situacao'] === 'gravado'
+    && $linha_pag['valor'] == 7.00 && $linha_pag['cha'] === null,
+    json_encode($linha_pag));
+
+
+// --- leitura do formulário em lote -------------------------------------------
+//
+// A tela não tem alavanca automática nenhuma, então a leitura do POST mora numa
+// função para poder ter uma. O que se testa aqui é o que o addendum chama de A5 —
+// os arrays do POST não são fonte de verdade sobre a própria forma — mais a data,
+// que é um caminho para derrubar a página.
+
+$dt_ok = date('d/m/Y');
+
+$lote_ok = linhas_de_pagamento(array(
+    'pg_usr'         => array($usr_t, $usr_t3),
+    'pg_dt'          => array($dt_ok, $dt_ok),
+    'pg_valor'       => array('30,00', ''),
+    'pg_destino'     => array($con_nuc_t, $con_nuc_t),
+    'pg_comprovante' => array('pix', ''),
+));
+
+verifica("a linha preenchida e lida e a em branco e pulada sem virar recusa",
+    count($lote_ok['linhas']) === 1 && $lote_ok['ignoradas'] === 0
+    && $lote_ok['linhas'][0]['usr'] == $usr_t
+    && $lote_ok['linhas'][0]['valor'] == 30.00
+    && $lote_ok['linhas'][0]['dt'] === date('Y-m-d')
+    && $lote_ok['linhas'][0]['comprovante'] === 'pix',
+    json_encode($lote_ok));
+
+// sizeof() sobre string lança TypeError no PHP 8: um POST com pg_usr=1, escalar em
+// vez de array, derrubaria a tela inteira. Aqui não há linha para ler, e ponto.
+$lote_escalar = linhas_de_pagamento(array(
+    'pg_usr'     => '1',
+    'pg_dt'      => $dt_ok,
+    'pg_valor'   => '30,00',
+    'pg_destino' => (string)$con_nuc_t,
+));
+
+verifica("POST sem a forma de lote nao vira linha nenhuma, e nao derruba a pagina",
+    $lote_escalar['linhas'] === array() && $lote_escalar['ignoradas'] === 0,
+    json_encode($lote_escalar));
+
+// Arrays paralelos de tamanhos diferentes: o índice que falta vira linha
+// malformada, e linha malformada se pula — não se adivinha.
+$lote_torto = linhas_de_pagamento(array(
+    'pg_usr'     => array($usr_t, $usr_t3),
+    'pg_dt'      => array($dt_ok),
+    'pg_valor'   => array('30,00'),
+    'pg_destino' => array($con_nuc_t),
+));
+
+verifica("indice que falta num dos arrays vira linha ignorada, nao adivinhada",
+    count($lote_torto['linhas']) === 1 && $lote_torto['ignoradas'] === 1,
+    json_encode($lote_torto));
+
+// A data é caminho de queda, e não só de erro: date_format(false, ...) é TypeError
+// no PHP 8, e date_create_from_format devolve false para "ontem". Já '30/02/2026'
+// é pior — ele PARSEIA e escorrega para 02/03, então a conferência olha os avisos,
+// e não só o retorno.
+$lote_data = linhas_de_pagamento(array(
+    'pg_usr'     => array($usr_t, $usr_t, $usr_t),
+    'pg_dt'      => array('ontem', '30/02/2026', $dt_ok . 'abc'),
+    'pg_valor'   => array('30,00', '30,00', '30,00'),
+    'pg_destino' => array($con_nuc_t, $con_nuc_t, $con_nuc_t),
+));
+
+verifica("data que nao e data vira linha ignorada, e nao derruba a pagina",
+    $lote_data['linhas'] === array() && $lote_data['ignoradas'] === 3,
+    json_encode($lote_data));
+
+// Valor: o que não vira número positivo não vira lançamento. '1.234,56' entra
+// porque é como a Rede escreve dinheiro; sem o tratamento do separador de milhar,
+// formata_numero_para_mysql() devolveria '1,234.56', que não é número.
+$lote_valor = linhas_de_pagamento(array(
+    'pg_usr'     => array($usr_t, $usr_t, $usr_t, $usr_t),
+    'pg_dt'      => array($dt_ok, $dt_ok, $dt_ok, $dt_ok),
+    'pg_valor'   => array('0', '-5', 'trinta', '1.234,56'),
+    'pg_destino' => array($con_nuc_t, $con_nuc_t, $con_nuc_t, $con_nuc_t),
+));
+
+verifica("valor que nao e numero positivo e ignorado, e o separador de milhar passa",
+    count($lote_valor['linhas']) === 1 && $lote_valor['ignoradas'] === 3
+    && $lote_valor['linhas'][0]['valor'] == 1234.56,
+    json_encode($lote_valor));
+
+// pg_destino[0][] entrega ARRAY onde se espera escalar. Sem a recusa por tipo, o
+// valor seguiria para dentro de registra_pagamento e o (string) de algum ponto
+// adiante emitiria "Array to string conversion" — aviso é o que o smoke.sh reprova.
+$aviso_lote = '';
+set_error_handler(function ($n, $s) use (&$aviso_lote) { $aviso_lote = $s; return true; });
+$lote_array = linhas_de_pagamento(array(
+    'pg_usr'     => array(array($usr_t)),
+    'pg_dt'      => array($dt_ok),
+    'pg_valor'   => array('30,00'),
+    'pg_destino' => array($con_nuc_t),
+));
+restore_error_handler();
+
+verifica("campo que chega como array e ignorado sem emitir aviso",
+    $lote_array['linhas'] === array() && $lote_array['ignoradas'] === 1 && $aviso_lote === '',
+    json_encode($lote_array) . " · aviso = " . var_export($aviso_lote, true));
+
+
+// --- quem pode lançar --------------------------------------------------------
+//
+// A trava da tela mora numa função pela mesma razão da leitura do POST: escrita
+// solta dentro do conta_pagamentos.php, nenhum teste a alcança. Snapshot e
+// restauração da sessão como no bloco de permissão — lanca_transacao lê
+// $_SESSION['usr.id'], e o bloco "caminho de producao" confere que ele saiu limpo.
+$sessao_antes_pag = $_SESSION;
+
+$_SESSION[PAP_BETA_TESTER]   = false;
+$_SESSION[PAP_RESP_FINANCAS] = false;
+$_SESSION[PAP_RESP_NUCLEO]   = false;
+$_SESSION[PAP_ADM]           = true;
+$_SESSION['usr.id']          = $usr_t;
+$_SESSION['usr.nuc']         = 1;
+
+// O administrador é o caso que decide se o módulo continua invisível: é ele que
+// verifica_seguranca() valida sem olhar o parâmetro (common.inc.php:103-110).
+verifica("sem beta tester ninguem lanca pagamento, nem o administrador",
+    pode_lancar_pagamento() === false);
+
+$_SESSION[PAP_BETA_TESTER] = true;
+verifica("beta tester mais administrador lanca",
+    pode_lancar_pagamento() === true);
+
+$_SESSION[PAP_ADM]         = false;
+$_SESSION[PAP_RESP_NUCLEO] = true;
+verifica("beta tester mais responsavel de nucleo lanca",
+    pode_lancar_pagamento() === true);
+
+$_SESSION[PAP_RESP_NUCLEO]   = false;
+$_SESSION[PAP_RESP_FINANCAS] = true;
+verifica("beta tester mais responsavel financas lanca",
+    pode_lancar_pagamento() === true);
+
+// O cestante comum passa por pode_ver_financeiro() — vê o próprio extrato — e não
+// passa por aqui. É a distinção entre as duas funções, e sem este caso a lista de
+// papéis poderia sumir inteira sem nenhum teste reclamar.
+$_SESSION[PAP_RESP_FINANCAS] = false;
+verifica("cestante comum ve o proprio extrato, mas nao lanca pagamento",
+    pode_ver_financeiro() === true && pode_lancar_pagamento() === false);
+
+$_SESSION = $sessao_antes_pag;
+
+verifica("o bloco de pagamento devolveu a sessao ao que era",
+    !isset($_SESSION['usr.id']) && !isset($_SESSION[PAP_BETA_TESTER]),
+    "sessao = " . json_encode($_SESSION));
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
