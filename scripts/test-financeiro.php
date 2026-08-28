@@ -2322,6 +2322,180 @@ verifica("extrato de consulta recusada e null, e nao caixa vazio",
 verifica("derrubada a sombra, o extrato volta com as quatro linhas",
     is_array(extrato_do_nucleo($nuc_livre[3])) && count(extrato_do_nucleo($nuc_livre[3])) === 4);
 
+// ---------------------------------------------------------------------------
+echo "\nnucleo em foco: a regra mora numa funcao so\n";
+// ---------------------------------------------------------------------------
+
+// A spec exige escopo por nucleo IMPOSTO, nao sugerido. Com duas telas de caixa a
+// regra passaria a existir em duas copias, e e assim que uma delas fica para tras.
+$papeis_guardados = array(
+    PAP_RESP_FINANCAS => isset($_SESSION[PAP_RESP_FINANCAS]) ? $_SESSION[PAP_RESP_FINANCAS] : null,
+    PAP_ADM           => isset($_SESSION[PAP_ADM])           ? $_SESSION[PAP_ADM]           : null,
+    PAP_RESP_NUCLEO   => isset($_SESSION[PAP_RESP_NUCLEO])   ? $_SESSION[PAP_RESP_NUCLEO]   : null,
+    PAP_BETA_TESTER   => isset($_SESSION[PAP_BETA_TESTER])   ? $_SESSION[PAP_BETA_TESTER]   : null,
+);
+$sessao_guardada = array(
+    'usr.id'  => isset($_SESSION['usr.id'])  ? $_SESSION['usr.id']  : null,
+    'usr.nuc' => isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : null,
+);
+
+function sessao_de_teste($papeis, $nuc)
+{
+    foreach (array(PAP_RESP_FINANCAS, PAP_ADM, PAP_RESP_NUCLEO, PAP_BETA_TESTER) as $p)
+        unset($_SESSION[$p]);
+    foreach ($papeis as $p) $_SESSION[$p] = 1;
+    $_SESSION['usr.id']  = 1;
+    $_SESSION['usr.nuc'] = $nuc;
+}
+
+// responsavel de nucleo: o pedido da URL nao entra na conta, nunca
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_NUCLEO), $nuc_livre[3]);
+
+verifica("resp. de nucleo sem pedir nada cai no proprio nucleo",
+    nucleo_do_caixa_em_foco("") === (int)$nuc_livre[3],
+    var_export(nucleo_do_caixa_em_foco(""), true));
+
+verifica("resp. de nucleo pedindo OUTRO nucleo continua no proprio",
+    nucleo_do_caixa_em_foco((string)$nuc_livre[2]) === (int)$nuc_livre[3],
+    "pediu $nuc_livre[2], veio " . var_export(nucleo_do_caixa_em_foco((string)$nuc_livre[2]), true));
+
+verifica("pedido em ARRAY nao derruba nada, so e ignorado",
+    nucleo_do_caixa_em_foco(array(9)) === (int)$nuc_livre[3]);
+
+// financas: escolhe, e a escolha ainda passa por pode_lancar_no_caixa
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_FINANCAS), $nuc_livre[3]);
+
+verifica("financas alcanca o nucleo que pedir",
+    nucleo_do_caixa_em_foco((string)$nuc_livre[2]) === (int)$nuc_livre[2],
+    var_export(nucleo_do_caixa_em_foco((string)$nuc_livre[2]), true));
+
+verifica("financas sem pedir nada cai no nucleo da propria sessao",
+    nucleo_do_caixa_em_foco("") === (int)$nuc_livre[3]);
+
+// sem o papel Beta Tester o modulo inteiro esta fechado, e isto e o que garante que
+// a extracao nao deixou a trava para tras
+sessao_de_teste(array(PAP_RESP_FINANCAS), $nuc_livre[3]);
+verifica("sem Beta Tester nao ha nucleo em foco",
+    nucleo_do_caixa_em_foco((string)$nuc_livre[3]) === "",
+    var_export(nucleo_do_caixa_em_foco((string)$nuc_livre[3]), true));
+
+// cestante comum nao opera caixa de ninguem
+sessao_de_teste(array(PAP_BETA_TESTER), $nuc_livre[3]);
+verifica("sessao sem papel de negocio nao alcanca caixa nenhum",
+    nucleo_do_caixa_em_foco("") === "");
+
+// ---------------------------------------------------------------------------
+echo "\nfluxo de caixa mensal\n";
+// ---------------------------------------------------------------------------
+
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_FINANCAS), $nuc_livre[3]);
+
+// Caixa proprio, para o fluxo nao somar os lancamentos dos outros blocos.
+$nuc_fx = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+    VALUES ('nucfluxo', 'Nucleo do fluxo', 0)");
+$con_fx = cria_conta('nucleo', array('con_nuc' => $nuc_fx, 'con_nome' => 'Caixa Fluxo'));
+$usr_fx = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Cestante Fluxo','fluxo','fluxo@teste.local','x','0'," . (int)$nuc_fx . ")");
+
+verifica("o caixa do fluxo existe (guarda do fixture)", $con_fx > 0, var_export($con_fx, true));
+
+// ANO ANTERIOR: entra 100 e nao sai nada. Vira saldo de abertura de 2026.
+registra_pagamento($usr_fx, '2025-12-10', 100.00, $con_fx, '', '');
+
+// 2026: janeiro entra 1.000; fevereiro gasta 45 de passagem, 500 de motorista,
+// repassa 300 e recebe 60 de doacao.
+registra_pagamento($usr_fx, '2026-01-15', 1000.00, $con_fx, '', '');
+lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-03', 45.00,  $con_rede, array('categoria' => 'passagens'));
+lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-10', 500.00, $con_rede, array('categoria' => 'motorista'));
+lanca_movimento_nucleo($nuc_fx, 'repasse', '2026-02-20', 300.00, $con_rede);
+lanca_movimento_nucleo($nuc_fx, 'receita', '2026-02-25', 60.00,  $con_rede);
+
+$fx = fluxo_de_caixa_mensal($nuc_fx, 2026);
+
+verifica("o fluxo devolve os doze meses",
+    is_array($fx) && isset($fx['meses']) && count($fx['meses']) === 12,
+    is_array($fx) ? json_encode(array_keys($fx)) : var_export($fx, true));
+
+verifica("o saldo de abertura vem do que sobrou do ano anterior",
+    is_array($fx) && round($fx['saldo_anterior'], 2) == 100.00,
+    is_array($fx) ? var_export($fx['saldo_anterior'], true) : '?');
+
+// ENTRADAS aparecem como valor POSITIVO no relatorio, embora a perna do caixa seja
+// negativa: quem le uma prestacao de contas le "entrou 1.000", nao "-1.000".
+verifica("janeiro: entrou 1.000 e nao saiu nada",
+    is_array($fx) && round($fx['entradas'][1], 2) == 1000.00 && round($fx['saidas'][1], 2) == 0.00,
+    is_array($fx) ? "entradas=" . $fx['entradas'][1] . " saidas=" . $fx['saidas'][1] : '?');
+
+verifica("fevereiro: entrou 60 de doacao e sairam 845",
+    is_array($fx) && round($fx['entradas'][2], 2) == 60.00
+                  && round($fx['saidas'][2], 2) == 845.00,
+    is_array($fx) ? "entradas=" . $fx['entradas'][2] . " saidas=" . $fx['saidas'][2] : '?');
+
+function linha_do_fluxo($fx, $chave)
+{
+    foreach ((array)$fx['linhas'] as $l) if ($l['chave'] === $chave) return $l;
+    return null;
+}
+
+verifica("cada categoria de despesa e uma linha propria",
+    ($l = linha_do_fluxo($fx, 'despesa:passagens')) && round($l['meses'][2], 2) == 45.00
+ && ($l = linha_do_fluxo($fx, 'despesa:motorista')) && round($l['meses'][2], 2) == 500.00
+ && ($l = linha_do_fluxo($fx, 'despesa:outros'))    && round($l['meses'][2], 2) == 0.00);
+
+// A escolha que voce confirmou: repasse NAO e custo do nucleo, e somado as despesas
+// tornaria a linha de despesa incomparavel entre nucleos.
+verifica("repasse fica FORA do bloco de despesas",
+    ($l = linha_do_fluxo($fx, 'repasse')) && $l['bloco'] === 'repasses'
+ && ($d = linha_do_fluxo($fx, 'despesa:motorista')) && $d['bloco'] === 'despesas');
+
+verifica("o total de despesas do mes nao inclui o repasse",
+    is_array($fx) && round($fx['total_despesas'][2], 2) == 545.00,
+    is_array($fx) ? var_export($fx['total_despesas'][2], true) : '?');
+
+verifica("saldo do mes = entrou - saiu",
+    is_array($fx) && round($fx['saldo_mes'][1], 2) == 1000.00
+                  && round($fx['saldo_mes'][2], 2) == -785.00,
+    is_array($fx) ? "jan=" . $fx['saldo_mes'][1] . " fev=" . $fx['saldo_mes'][2] : '?');
+
+// O acumulado tem de bater com o proprio caixa: e o mesmo dinheiro, contado de dois
+// jeitos. Se divergirem, um dos dois esta mentindo e nao da para saber qual.
+verifica("o acumulado de dezembro bate com o saldo da conta",
+    is_array($fx) && round($fx['saldo_acumulado'][12], 2) == round(-saldo_da_conta($con_fx), 2),
+    is_array($fx) ? "fluxo=" . $fx['saldo_acumulado'][12] . " conta=" . (-saldo_da_conta($con_fx)) : '?');
+
+verifica("o acumulado de janeiro ja inclui a abertura",
+    is_array($fx) && round($fx['saldo_acumulado'][1], 2) == 1100.00,
+    is_array($fx) ? var_export($fx['saldo_acumulado'][1], true) : '?');
+
+// Ano sem movimento nao e erro: e um ano sem movimento.
+$fx_vazio = fluxo_de_caixa_mensal($nuc_fx, 2019);
+verifica("ano sem lancamento devolve doze meses zerados, e nao null",
+    is_array($fx_vazio) && round($fx_vazio['entradas'][6], 2) == 0.00
+                        && round($fx_vazio['saldo_anterior'], 2) == 0.00,
+    var_export($fx_vazio === null ? null : $fx_vazio['saldo_anterior'], true));
+
+verifica("nucleo sem caixa devolve null, e nao um relatorio zerado",
+    fluxo_de_caixa_mensal(99999999, 2026) === null);
+
+// CONTRATO da familia: consulta que nao roda devolve null. Num relatorio de dinheiro,
+// "nao deu para perguntar" exibido como "nao houve movimento" e a mentira de sempre.
+executa_sql("CREATE TEMPORARY TABLE lancamentos (
+    lan_id  int(10) unsigned NOT NULL,
+    lan_tra int(10) unsigned NOT NULL,
+    lan_con mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_fx = (executa_sql("SELECT lan_valor FROM lancamentos") === false);
+$fx_sem_bd = fluxo_de_caixa_mensal($nuc_fx, 2026);
+executa_sql("DROP TEMPORARY TABLE lancamentos");
+
+verifica("a sombra sem lan_valor faz o servidor recusar o fluxo", $sombra_fx);
+verifica("fluxo de consulta recusada e null, e nao ano sem movimento",
+    $fx_sem_bd === null, var_export($fx_sem_bd, true));
+
+// devolve a sessao ao estado em que estava, senao os testes seguintes herdam papeis
+foreach ($papeis_guardados as $p => $v) { if ($v === null) unset($_SESSION[$p]); else $_SESSION[$p] = $v; }
+foreach ($sessao_guardada as $k => $v)  { if ($v === null) unset($_SESSION[$k]); else $_SESSION[$k] = $v; }
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
