@@ -535,6 +535,65 @@ verifica("com o sql_mode restaurado a mesma chamada volta a listar",
         . " · resultado = " . var_export($deb_restaurado, true));
 
 
+// O SELECT que NÃO RODA não pode virar "não existe conta" e cair no cria_conta:
+// criar por cima de uma pergunta sem resposta é pedir uma segunda conta para quem
+// já tem uma. A alavanca é uma TEMPORARY TABLE `contas` SEM a coluna con_id — ela
+// sombreia a tabela real só nesta sessão, faz o servidor recusar os dois SELECTs
+// (ERROR 1054 Unknown column 'con_id') e deixa de pé o INSERT do cria_conta, que
+// não menciona con_id. Uma sombra só cobre as duas funções.
+//
+// DDL de tabela TEMPORÁRIA é a exceção documentada que NÃO faz COMMIT implícito,
+// e é o que torna esta alavanca usável aqui dentro: a transação que envolve todo
+// o fixture sobrevive. Se não sobrevivesse, o rollback do fim não desfaria nada e
+// a contagem de tabelas do runner reprovaria a corrida — a prova é automática.
+//
+// O bloco é apertado de propósito: enquanto a sombra existe, TODA consulta a
+// `contas` cai nela. Por isso ele vem depois de tudo que usa a tabela de verdade,
+// e a sombra é derrubada antes das asserções.
+executa_sql("CREATE TEMPORARY TABLE contas (
+    con_tipo  varchar(10) NOT NULL,
+    con_usr   mediumint(6) unsigned DEFAULT NULL,
+    con_nuc   mediumint(6) unsigned DEFAULT NULL,
+    con_forn  mediumint(6) unsigned DEFAULT NULL,
+    con_nome  varchar(120) DEFAULT NULL,
+    con_chave varchar(30)  DEFAULT NULL) ENGINE=InnoDB");
+
+$sombra_de_pe   = (executa_sql("SELECT con_tipo FROM contas") !== false);
+$select_recusado= (executa_sql("SELECT con_id FROM contas WHERE con_usr = 1") === false);
+
+$cestante_no_erro = conta_do_cestante($usr_t, true);
+$rede_no_erro     = conta_da_rede();
+$gravadas_na_sombra = (int)valor_escalar("SELECT COUNT(*) FROM contas");
+
+executa_sql("DROP TEMPORARY TABLE contas");
+
+// Guarda do fixture: sem ela o teste ficaria verde por não haver o que quebrar.
+verifica("a sombra sem con_id faz o servidor recusar a busca de conta",
+    $sombra_de_pe && $select_recusado,
+    "sombra=" . var_export($sombra_de_pe, true)
+        . " · select recusado=" . var_export($select_recusado, true));
+
+// O === null é obrigatório, e não é preciosismo: com a guarda revertida o INSERT
+// do cria_conta entra na sombra, que não tem AUTO_INCREMENT, id_inserido()
+// devolve 0 e cria_conta devolve 0 — falsy. Escrito como `!$r`, este teste
+// passaria também contra a versão defeituosa.
+verifica("busca recusada nao vira conta nova: conta_do_cestante devolve null",
+    $cestante_no_erro === null, var_export($cestante_no_erro, true));
+
+verifica("busca recusada nao vira conta nova: conta_da_rede devolve null",
+    $rede_no_erro === null, var_export($rede_no_erro, true));
+
+// A prova direta de que o cria_conta nem foi chamado: o INSERT dele cairia na
+// sombra, e é lá que se conta. Com a guarda revertida este número é 2.
+verifica("com a busca recusada nenhum INSERT de conta chega a ser tentado",
+    $gravadas_na_sombra === 0, "linhas gravadas na sombra = $gravadas_na_sombra");
+
+// Derrubada a sombra, a tabela real tem de voltar a aparecer — senão tudo o que
+// vier depois estaria olhando para a tabela errada sem avisar.
+verifica("derrubada a sombra, a busca volta a enxergar a conta real do cestante",
+    conta_do_cestante($usr_t) == $con_t,
+    "esperado $con_t · veio " . var_export(conta_do_cestante($usr_t), true));
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

@@ -221,11 +221,15 @@ function cria_conta($tipo, $campos = array())
 // UNIQUE KEY conta_usuario recusaria esse INSERT, mas contar com uma rede que o
 // código não sabe que tem é o defeito, não a proteção.
 //
-// Esta guarda é DEFENSIVA e NÃO TEM TESTE. Quebrar só este SELECT deixando o
-// INSERT irmão de pé exigiria DDL (que faz COMMIT implícito e derrubaria o
-// rollback da suíte); prep_para_bd cita e escapa, então pelo argumento também
-// não dá. A suíte cobre achou / não achou / criou — o ramo do erro fica sem
-// prova, e quem mexer aqui não tem rede.
+// A guarda tem teste, e ele quebra o SELECT de propósito: a suíte sombreia
+// `contas` com uma TEMPORARY TABLE sem a coluna con_id, o que faz o servidor
+// recusar esta busca (ERROR 1054) e deixa de pé o INSERT do cria_conta, que não
+// menciona con_id. DDL de tabela TEMPORÁRIA não faz COMMIT implícito, então a
+// transação da suíte sobrevive. A mesma sombra cobre conta_da_rede().
+//
+// Sem esta guarda o INSERT entra e a função devolve 0, não null — id_inserido()
+// numa tabela sem AUTO_INCREMENT devolve 0. Por isso a asserção lá é `=== null`:
+// escrita como `!$conta` ela passaria também na versão defeituosa.
 function conta_do_cestante($usr_id, $criar = false)
 {
 	$res = executa_sql("SELECT con_id FROM contas WHERE con_usr = " . prep_para_bd($usr_id));
@@ -254,14 +258,15 @@ function conta_do_cestante($usr_id, $criar = false)
 //
 // A consulta que falha sai por null sem passar pelo cria_conta, pelo mesmo motivo
 // detalhado em conta_do_cestante — aqui quem seguraria o estrago seria a UNIQUE
-// KEY conta_chave, e o ponto é justamente não depender dela.
+// KEY conta_chave, e o ponto é justamente não depender dela. A sombra sem con_id
+// descrita lá recusa esta busca também, e o teste confere as duas de uma vez.
 function conta_da_rede()
 {
 	$chave = CONTA_CHAVE_REDE;
 	$nome  = 'Rede Ecológica';
 
 	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
-	if (!$res) return null;              // idem conta_do_cestante: guarda defensiva, sem teste
+	if (!$res) return null;              // idem conta_do_cestante, e coberta pelo mesmo teste
 	if ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
 
 	return cria_conta('rede', array('con_nome' => $nome, 'con_chave' => $chave));
