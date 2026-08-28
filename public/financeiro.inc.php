@@ -693,7 +693,7 @@ function cestante_da_conta($usr_id)
 // conferido antes de se saber de quem é o pagamento. O que a mantém barata é o tamanho
 // da tabela, não o filtro: `contas` é dimensão, com teto de uma linha por cestante
 // (1210 hoje) mais 30 núcleos e 205 produtores, e o WHERE já entra pelo índice
-// conta_tipo. Medido nesta cópia, média de 30 corridas em quatro rodadas: com a tabela
+// conta_tipo. Medido nesta cópia em 2026-08-28, média de 30 corridas em quatro rodadas: com a tabela
 // como está hoje, zerada, 0,09 a 0,16 ms; com o TETO carregado — 1446 contas, sendo 1210
 // de cestante, 30 de núcleo, 205 de produtor e a da Rede —, 236 destinos em 0,90 a
 // 1,75 ms, o extremo de cima sendo a primeira corrida, ainda fria.
