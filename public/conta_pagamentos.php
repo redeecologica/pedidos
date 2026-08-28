@@ -131,7 +131,9 @@
   // CONTRATO de contas_de_destino(): null é "a consulta não rodou", array() é "não há
   // destino cadastrado". São coisas diferentes e a tela diz as duas de forma diferente —
   // hoje, com `contas` zerada na base, o certo é a segunda.
-  $destinos     = contas_de_destino();
+  // O núcleo da tela vai junto: muda a ORDEM da lista, nunca o conteúdo. O conteúdo
+  // tem de ser igual ao que registra_pagamento() valida, e ela chama sem núcleo.
+  $destinos     = contas_de_destino($um_so ? null : ($nuc_id !== "" ? $nuc_id : null));
   $sem_destinos = !is_array($destinos) || !count($destinos);
 
   // Todos os cestantes ATIVOS do núcleo, tenham conta ou não: a conta nasce no primeiro

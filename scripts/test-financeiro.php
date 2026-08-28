@@ -344,16 +344,21 @@ verifica("nenhuma conta foi gravada pelas recusas",
 // produtor só existiam no mapa. Confirmam que a montagem genérica das colunas
 // serve a vínculos além do primeiro, e que o rótulo acompanha um tipo que não o
 // exige. Vêm DEPOIS da contagem acima, que exige que nada tenha sido gravado.
-$con_nuc_t = cria_conta('nucleo', array('con_nuc' => 1, 'con_nome' => 'Teste Nucleo'));
+// Núcleo 21 e produtor 10 são ATIVOS de propósito (o 2 já é usado acima): contas_de_destino() não lista
+// conta de núcleo ou produtor arquivado, e o fixture antes usava o núcleo 1 e o
+// produtor 1, os dois arquivados nesta cópia. Passava porque não havia o filtro; com
+// ele, o destino sumia da lista e registra_pagamento() recusava o pagamento — a
+// falha aparecia nos testes de pagamento, longe de onde a causa estava.
+$con_nuc_t = cria_conta('nucleo', array('con_nuc' => 21, 'con_nome' => 'Teste Nucleo'));
 verifica("conta de nucleo nasce com o vinculo e o rotulo",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_nuc_t
-        . " AND con_tipo = 'nucleo' AND con_nuc = 1 AND con_nome = 'Teste Nucleo'") == 1,
+        . " AND con_tipo = 'nucleo' AND con_nuc = 21 AND con_nome = 'Teste Nucleo'") == 1,
     var_export($con_nuc_t, true));
 
-$con_forn_t = cria_conta('produtor', array('con_forn' => 1));
+$con_forn_t = cria_conta('produtor', array('con_forn' => 10));
 verifica("conta de produtor nasce com o vinculo",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_forn_t
-        . " AND con_tipo = 'produtor' AND con_forn = 1") == 1,
+        . " AND con_tipo = 'produtor' AND con_forn = 10") == 1,
     var_export($con_forn_t, true));
 
 echo "\ndebito derivado\n";
