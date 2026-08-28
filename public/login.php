@@ -70,7 +70,7 @@
         // Volta para a página que a pessoa tentou abrir antes de ser mandada para
         // cá. redireciona() valida o alvo: qualquer coisa que não seja página da
         // própria aplicação vira a página inicial.
-        $volta = request_get("volta", "");
+        $volta = destino_interno_valido(request_get("volta", ""));
         redireciona($volta !== "" ? $volta : PAGINAPRINCIPAL);
         exit();
       }
@@ -115,6 +115,16 @@ Então não teremos problema de inconsistência de dados.
 
      <form class="form-signin" action="login.php" method="POST" role="form">     
     <fieldset>        
+        <?php
+          // O destino tem de atravessar o POST: o action do formulário é
+          // "login.php" sem query, então o volta que veio na URL some no envio se
+          // não for carregado aqui. Validado na entrada e escapado na saída — o
+          // valor vem da requisição.
+          $volta_form = destino_interno_valido(request_get("volta", ""));
+          if ($volta_form !== "") {
+        ?>
+        <input type="hidden" name="volta" value="<?php echo(h($volta_form)); ?>" />
+        <?php } ?>
         <h2 class="form-signin-heading" align="center">Entrar no Sistema</h2>      
             <br>
             <label for="login_usr_email">Login</label> (seu email principal cadastrado)
