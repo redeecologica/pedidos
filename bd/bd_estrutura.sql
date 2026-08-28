@@ -293,6 +293,8 @@ CREATE TABLE IF NOT EXISTS `transacoes` (
   `tra_obs`          varchar(400) DEFAULT NULL,
   `tra_usr_registro` mediumint(6) unsigned NOT NULL,
   `tra_dt_registro`  timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `tra_usr_alteracao` mediumint(6) unsigned DEFAULT NULL COMMENT 'quem editou a descricao; nulo = nunca editada',
+  `tra_dt_alteracao`  datetime DEFAULT NULL COMMENT 'quando a descricao foi editada',
   PRIMARY KEY (`tra_id`),
   KEY `transacao_data`    (`tra_dt`),
   KEY `transacao_chamada` (`tra_cha`),

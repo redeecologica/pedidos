@@ -457,7 +457,7 @@ function extrato_do_cestante($usr_id)
 	// O recorte por cestante é o que mantém a consulta barata: conta_usuario resolve
 	// contas numa linha, lancamento_conta traz só os lançamentos dela e a PK de
 	// transacoes fecha o par.
-	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, t.tra_comprovante, l.lan_valor ";
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor ";
 	$sql.= "FROM contas c ";
 	$sql.= "JOIN lancamentos l ON l.lan_con = c.con_id ";
 	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
@@ -490,6 +490,9 @@ function extrato_do_cestante($usr_id)
 			// tra_comprovante é nullable; string vazia e null viram a mesma coisa aqui,
 			// porque para quem lê a tela "não tem comprovante" é um estado só
 			'comprovante' => trim((string)$row['tra_comprovante']),
+			// null enquanto ninguém editou a descrição — a tela usa isso para dizer
+			// que o texto mudou depois do lançamento
+			'editado_em' => $row['tra_dt_alteracao'],
 			'tra_id'    => (int)$row['tra_id'],
 			'cha'       => ($row['tra_cha'] === null) ? null : (int)$row['tra_cha'],
 		);
@@ -815,6 +818,59 @@ function cestante_da_conta($usr_id)
 // e uma tela que oferecesse destino que a fronteira recusa seria pior que destino de
 // menos. Por isso caixa de núcleo arquivado sai para todo mundo — quem está num
 // núcleo assim paga para a Rede ou direto ao produtor.
+// Edita a DESCRIÇÃO de uma transação: histórico e comprovante. Devolve true quando
+// gravou, false quando não.
+//
+// O que NÃO se edita aqui: valor, contas e data. Esses estão na aritmética — o saldo
+// é SUM(lan_valor) e o invariante conta pernas — e em partidas dobradas o certo é
+// lançar um ajuste, não reescrever o passado. Histórico e comprovante são
+// descritivos: nenhuma conta os lê, então mudá-los não move um centavo.
+//
+// O rastro é obrigatório, e é a razão de esta função existir em vez de um UPDATE na
+// tela. transacoes guarda quem CRIOU e quando; sem carimbar quem alterou, a edição
+// ficaria invisível e a linha continuaria dizendo que foi registrada por quem a
+// criou, na data original.
+//
+// Autorização é do CHAMADOR: esta função não sabe qual tela a invocou. Quem chama
+// tem de ter passado por pode_ver_conta_de() do dono da conta — conta_cestante.php
+// faz isso antes de qualquer saída.
+function edita_descricao_transacao($tra_id, $historico, $comprovante)
+{
+	if (!is_numeric($tra_id) || (int)$tra_id <= 0) return false;
+
+	$usr = isset($_SESSION['usr.id']) ? prep_para_bd($_SESSION['usr.id']) : "0";
+
+	$sql = "UPDATE transacoes SET ";
+	$sql.= "tra_historico = "     . prep_para_bd(trim((string)$historico))   . ", ";
+	$sql.= "tra_comprovante = "   . prep_para_bd(trim((string)$comprovante)) . ", ";
+	$sql.= "tra_usr_alteracao = " . $usr . ", ";
+	$sql.= "tra_dt_alteracao = NOW() ";
+	$sql.= "WHERE tra_id = " . prep_para_bd((int)$tra_id);
+
+	// executa_sql() devolve false quando o servidor recusa. Um UPDATE que não rodou
+	// não pode virar "editado com sucesso" na tela.
+	return executa_sql($sql) !== false;
+}
+
+
+// De quem é a conta que esta transação movimenta, para o chamador poder aplicar
+// pode_ver_conta_de(). Devolve o usr_id, ou null quando a transação não toca conta de
+// cestante nenhuma (transferência entre núcleo e Rede, por exemplo) ou não existe.
+function cestante_da_transacao($tra_id)
+{
+	$sql = "SELECT c.con_usr FROM lancamentos l ";
+	$sql.= "JOIN contas c ON c.con_id = l.lan_con AND c.con_tipo = 'cestante' ";
+	$sql.= "WHERE l.lan_tra = " . prep_para_bd($tra_id) . " AND c.con_usr IS NOT NULL ";
+	$sql.= "LIMIT 1";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+
+	return $row ? (int)$row['con_usr'] : null;
+}
+
+
 // A lista PLANA, que é o contrato que registra_pagamento() valida. Derivada da
 // agrupada de propósito: uma segunda consulta seria uma segunda cópia da regra, e as
 // duas poderiam discordar sobre o que é destino válido — a tela oferecendo o que a
