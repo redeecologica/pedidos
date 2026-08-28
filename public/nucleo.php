@@ -1,5 +1,6 @@
 <?php  
   require  "common.inc.php"; 
+  require  "financeiro.inc.php";
   verifica_seguranca($_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_RESP_NUCLEO]);
   top();
 ?>
@@ -29,7 +30,14 @@
  			 $campos = array('nuc_nome_completo','nuc_nome_curto','nuc_entrega_horario','nuc_entrega_endereco','nuc_email','nuc_archive','nuc_nuct');  			
 			 $sql=prepara_sql_atualizacao("nuc_id",$campos,"nucleos");
      		 $res = executa_sql($sql);
-			 if($nuc_id=="") $nuc_id=id_inserido();	
+			 if($nuc_id=="") $nuc_id=id_inserido();
+
+			 // Caixa do núcleo nasce junto, pelo mesmo motivo do produtor: o vínculo já
+			 // está aqui, e depender de alguém lembrar da tela de Contas é depender de
+			 // alguém lembrar. UNIQUE de con_nuc garante que salvar de novo não duplica.
+			 if($nuc_id!="" && function_exists('cria_conta'))
+			 	cria_conta('nucleo', array('con_nuc' => $nuc_id,
+			 	                           'con_nome' => 'Caixa ' . request_get('nuc_nome_curto','')));	
 			 
 			 
 			 if($res && ($_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_PEDIDO] || $_SESSION[PAP_ACOMPANHA_PRODUTOR])) 
