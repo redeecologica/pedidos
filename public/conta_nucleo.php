@@ -373,13 +373,26 @@
   </div>
 <?php } else { ?>
 
-<table class="table table-striped table-bordered table-condensed">
+<p class="small text-muted">
+  O caixa mostra quanto do dinheiro <strong>da Rede</strong> ainda está com o núcleo — não
+  quanto o núcleo tem de seu.
+  Os pagamentos que os cestantes fizeram no caixa aparecem aqui sozinhos: eles se lançam em
+  <strong>Pagamentos</strong>, não nesta tela. Junto com a outra receita, eles
+  <strong>põem</strong> dinheiro no caixa, e por isso aparecem com valor negativo — é o que
+  ainda falta sair. Despesa, repasse e pagamento a produtor <strong>tiram</strong>, e
+  aparecem positivos.
+  Quando tudo que entrou já saiu, o saldo fica zero.
+</p>
+
+<table class="table table-striped table-bordered table-condensed extrato-caixa">
   <thead>
     <tr>
       <th>Data</th>
       <th>Lançamento</th>
-      <th class="text-right">Valor</th>
-      <th class="text-right">Saldo</th>
+      <th class="text-right">Valor<?php adiciona_popover_descricao("Valor",
+        "Negativo = <b>entrou</b> dinheiro no caixa (pagamento de cestante, outra receita).<br>Positivo = <b>saiu</b> (despesa, repasse, pagamento a produtor)."); ?></th>
+      <th class="text-right">Saldo<?php adiciona_popover_descricao("Saldo",
+        "Quanto do dinheiro <b>da Rede</b> ainda está com o núcleo.<br>Negativo: falta sair. Positivo: o núcleo gastou mais do que arrecadou. Zero: tudo acertado."); ?></th>
     </tr>
   </thead>
   <tbody>
@@ -428,17 +441,6 @@
   <?php } ?>
   </tbody>
 </table>
-
-<p class="small text-muted">
-  O caixa mostra quanto do dinheiro <strong>da Rede</strong> ainda está com o núcleo — não
-  quanto o núcleo tem de seu.
-  Os pagamentos que os cestantes fizeram no caixa aparecem aqui sozinhos: eles se lançam em
-  <strong>Pagamentos</strong>, não nesta tela. Junto com a outra receita, eles
-  <strong>põem</strong> dinheiro no caixa, e por isso aparecem com valor negativo — é o que
-  ainda falta sair. Despesa, repasse e pagamento a produtor <strong>tiram</strong>, e
-  aparecem positivos.
-  Quando tudo que entrou já saiu, o saldo fica zero.
-</p>
 
 <?php } ?>
 
