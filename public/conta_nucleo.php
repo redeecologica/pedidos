@@ -63,6 +63,14 @@
       exit();
   }
 
+  // Campo de texto vindo do POST. request_get devolve ARRAY quando alguém manda
+  // `mv_valor[]`, e converter array em string emite warning na tela; aqui vira "".
+  function campo_texto($nome)
+  {
+      $v = request_get($nome, "");
+      return (is_string($v) || is_int($v) || is_float($v)) ? trim((string)$v) : "";
+  }
+
   if (request_get("action", "") == ACAO_SALVAR)
   {
       // O nuc_id do POST NÃO é consultado aqui: o núcleo é o que já foi imposto e
@@ -111,8 +119,28 @@
                    : "Não foi possível registrar. Confira a data, o valor, a conta de destino"
                    . " e — se for despesa — a categoria."));
 
-      // POST-redirect-GET: um F5 depois de gravar não relança. Numa tela de dinheiro
-      // isso não é incômodo, é dano.
+      // O POST-redirect-GET existe para um F5 não relançar — numa tela de dinheiro
+      // isso não é incômodo, é dano. Mas RECUSA não gravou nada, então não há reenvio
+      // a temer, e devolver o formulário em branco cobra o preço do redirect sem a
+      // contrapartida: quem esqueceu o valor perdia junto a data, a categoria, a conta
+      // e a descrição que já tinha digitado.
+      //
+      // O rascunho atravessa o redirect pela sessão, do mesmo jeito que a mensagem de
+      // status (common.inc.php:401), e é lido UMA vez só — senão reaparece na visita
+      // seguinte, quando já não é rascunho de ninguém.
+      if ($tra) unset($_SESSION['caixa.rascunho']);
+      else $_SESSION['caixa.rascunho'] = array(
+          'nuc'         => $nuc_id,
+          'tipo'        => $tipo,
+          'dt'          => campo_texto("mv_dt"),
+          'valor'       => campo_texto("mv_valor"),
+          'categoria'   => campo_texto("mv_categoria"),
+          'rede'        => campo_texto("mv_rede"),
+          'produtor'    => campo_texto("mv_produtor"),
+          'historico'   => campo_texto("mv_historico"),
+          'comprovante' => campo_texto("mv_comprovante"),
+      );
+
       redireciona("conta_nucleo.php?nuc_id=" . urlencode($nuc_id));
       exit();
   }
@@ -127,6 +155,22 @@
   $contas_forn = contas_de_destino_do_tipo('produtor');
   $categorias  = categorias_de_despesa();
   $hoje        = date('d/m/Y');
+
+  // Rascunho de uma tentativa recusada, se houver. O nuc_id faz parte da guarda: um
+  // rascunho reaparecendo no caixa de OUTRO núcleo levaria alguém a lançar ali sem
+  // perceber que os campos vieram de outra tela.
+  $rascunho = array();
+  if (isset($_SESSION['caixa.rascunho']) && is_array($_SESSION['caixa.rascunho'])
+      && isset($_SESSION['caixa.rascunho']['nuc'])
+      && (int)$_SESSION['caixa.rascunho']['nuc'] === $nuc_id)
+      $rascunho = $_SESSION['caixa.rascunho'];
+
+  unset($_SESSION['caixa.rascunho']);   // lido uma vez só, como a mensagem de status
+
+  function rasc($rascunho, $chave, $padrao = "")
+  {
+      return (isset($rascunho[$chave]) && $rascunho[$chave] !== "") ? $rascunho[$chave] : $padrao;
+  }
 
   $rotulo_tipo = array(
       'despesa'            => 'despesa',
@@ -213,7 +257,7 @@
           <label for="mv_tipo">O que foi</label>
           <select id="mv_tipo" name="mv_tipo" class="form-control">
             <?php foreach ($rotulo_tipo as $chave => $rotulo) { ?>
-            <option value="<?php echo(h($chave)); ?>"><?php echo(h($rotulo)); ?></option>
+            <option value="<?php echo(h($chave)); ?>"<?php echo(rasc($rascunho, 'tipo') === $chave ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
             <?php } ?>
           </select>
           <span class="help-block small">
@@ -225,11 +269,13 @@
         </div>
         <div class="col-sm-3">
           <label for="mv_dt">Data</label>
-          <input type="text" id="mv_dt" class="form-control data" name="mv_dt" value="<?php echo(h($hoje)); ?>" />
+          <input type="text" id="mv_dt" class="form-control data" name="mv_dt" required="required"
+                 value="<?php echo(h(rasc($rascunho, 'dt', $hoje))); ?>" />
         </div>
         <div class="col-sm-3">
           <label for="mv_valor">Valor</label>
-          <input type="text" id="mv_valor" class="form-control numero" name="mv_valor" value="" autofocus />
+          <input type="text" id="mv_valor" class="form-control numero" name="mv_valor" required="required"
+                 value="<?php echo(h(rasc($rascunho, 'valor'))); ?>" autofocus />
         </div>
       </div>
 
@@ -242,7 +288,7 @@
               // em branco convidaria justamente a recusa. 'outros' existe para o gasto
               // que não cabe nas outras cinco, e é o padrão honesto.
               foreach ($categorias as $chave => $rotulo) { ?>
-            <option value="<?php echo(h($chave)); ?>"<?php echo($chave === 'outros' ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
+            <option value="<?php echo(h($chave)); ?>"<?php echo($chave === rasc($rascunho, 'categoria', 'outros') ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
             <?php } ?>
           </select>
         </div>
@@ -251,7 +297,7 @@
           <label for="mv_rede">Conta da Rede</label>
           <select id="mv_rede" name="mv_rede" class="form-control">
             <?php foreach ($contas_rede as $con_id => $rotulo) { ?>
-            <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+            <option value="<?php echo(h($con_id)); ?>"<?php echo((string)$con_id === (string)rasc($rascunho, 'rede') ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
             <?php } ?>
           </select>
         </div>
@@ -261,7 +307,7 @@
           <?php if (is_array($contas_forn) && count($contas_forn)) { ?>
           <select id="mv_produtor" name="mv_produtor" class="form-control">
             <?php foreach ($contas_forn as $con_id => $rotulo) { ?>
-            <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+            <option value="<?php echo(h($con_id)); ?>"<?php echo((string)$con_id === (string)rasc($rascunho, 'produtor') ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
             <?php } ?>
           </select>
           <?php } else { ?>
@@ -273,11 +319,11 @@
       <div class="row" style="margin-top:10px;">
         <div class="col-sm-6">
           <label for="mv_historico">Descrição <small class="text-muted">(opcional)</small></label>
-          <input type="text" id="mv_historico" class="form-control" name="mv_historico" maxlength="200" value="" />
+          <input type="text" id="mv_historico" class="form-control" name="mv_historico" maxlength="200" value="<?php echo(h(rasc($rascunho, 'historico'))); ?>" />
         </div>
         <div class="col-sm-6">
           <label for="mv_comprovante">Comprovante <small class="text-muted">(opcional)</small></label>
-          <input type="text" id="mv_comprovante" class="form-control" name="mv_comprovante" maxlength="300" value="" placeholder="link do recibo, ou uma referência" />
+          <input type="text" id="mv_comprovante" class="form-control" name="mv_comprovante" maxlength="300" value="<?php echo(h(rasc($rascunho, 'comprovante'))); ?>" placeholder="link do recibo, ou uma referência" />
         </div>
       </div>
 
