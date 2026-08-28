@@ -133,13 +133,17 @@
 	  //
 	  // Fica FORA do ramo do saldo e antes da tabela, para valer também para quem está
 	  // "em dia" — um zero sem esta ressalva também mente.
+	  //
+	  // E NÃO leva hidden-print: o rótulo vermelho de :114 não tem, então esconder a
+	  // ressalva na impressão entregaria ao cestante justamente o papel com o número
+	  // grande e sem a frase que o explica.
 	?>
-	<div class="alert alert-warning hidden-print" style="margin-top:10px;">
+	<div class="alert alert-warning" style="margin-top:10px;">
 	  <strong>Estes valores ainda não incluem pagamentos anteriores.</strong><br>
 	  O extrato mostra as entregas registradas no sistema desde o início e os pagamentos
 	  lançados aqui. O que foi pago antes de o módulo entrar em operação ainda está na
-	  planilha e será lançado como saldo de abertura. Até lá, o saldo abaixo não é o que
-	  você deve.
+	  planilha e será lançado como saldo de abertura. Até lá, o valor acima não é a
+	  dívida desta pessoa.
 	</div>
 
 	<br>
