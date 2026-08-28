@@ -69,7 +69,13 @@
   $indisponivel = ($cestante['estado'] === 'indisponivel') || ($resumo['estado'] === 'indisponivel');
 ?>
 
-	<legend>Conta de <?php echo(h($cestante['nome'])); ?></legend>
+	<legend>
+	  Conta de <?php echo(h($cestante['nome'])); ?><?php
+	    // O núcleo é o de HOJE (usuarios.usr_nuc). Quem trocou de núcleo tem entregas
+	    // de mais de um no extrato, então isto identifica a pessoa, não a procedência
+	    // das linhas. Some quando não há núcleo, em vez de imprimir um travessão solto.
+	    if ($cestante['nucleo'] !== null) { ?><small class="text-muted"> · núcleo <?php echo(h($cestante['nucleo'])); ?></small><?php } ?>
+	</legend>
 
 <?php
   // O botão do lançamento avulso. A pergunta é pode_lancar_pagamento(), e não uma lista
