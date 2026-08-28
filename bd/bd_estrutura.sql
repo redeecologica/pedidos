@@ -449,7 +449,7 @@ BEGIN
 END//
 DELIMITER ;
 
------------
+-- --------------------------------------------------------
 
 ALTER TABLE `pedidos` ADD UNIQUE( `ped_usr`, `ped_cha`);
 
