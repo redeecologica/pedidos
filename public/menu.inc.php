@@ -48,19 +48,7 @@
 			if(pode_ver_financeiro())
 			{
 		   ?>
-            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-usd"></i> Meu Extrato</a></li>
-		  <?php
-			}
-
-		   // O painel de saldos do núcleo, que é também a tela de lançamento em lote.
-		   // Pergunta diferente da de cima: cestante vê o próprio extrato e não lança
-		   // nada. Aqui também não há segunda cópia da regra — só a chamada, e quem
-		   // tranca é a mesma pergunta refeita dentro do conta_pagamentos.php, antes de
-		   // qualquer saída.
-			if(pode_lancar_pagamento())
-			{
-		   ?>
-            <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-list-alt"></i> Pagamentos</a></li>
+            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-piggy-bank"></i> Meu Extrato</a></li>
 		  <?php
 			}
 		   ?>
@@ -160,6 +148,24 @@
                             {
                        ?>
 			                    <li><a href="financas.php"><i class="glyphicon glyphicon-usd"></i> Finanças</a></li>    
+                      <?php 
+                            } 			  
+                      ?> 
+
+					  <?php 
+                            // Mora aqui, junto de Finanças, e não no menu de primeiro
+                            // nível: é tela de quem administra, não de cestante.
+                            //
+                            // Mudar de lugar não muda regra de acesso:
+                            // pode_lancar_pagamento() exige RESP_NÚCLEO, RESP_FINANÇAS ou
+                            // ADM, e os três já estão entre os papéis que abrem este
+                            // dropdown — ninguém que via o item deixou de ver. E quem
+                            // tranca continua sendo a mesma pergunta refeita dentro do
+                            // conta_pagamentos.php, antes de qualquer saída.
+                            if (pode_lancar_pagamento())
+                            {
+                       ?>
+			                    <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-list-alt"></i> Pagamentos</a></li>
                       <?php 
                             } 			  
                       ?> 
