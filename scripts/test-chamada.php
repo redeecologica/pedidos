@@ -165,6 +165,50 @@ verifica("prazo anterior à entrega é recusado",
 verifica("prazo vazio é recusado",
     prazo_contabil_valido('', $ENTREGA) === false);
 
+// ---------------------------------------------------------------------------
+echo "\npadrão nunca sobrescreve prazo já existente\n";
+// ---------------------------------------------------------------------------
+
+// A regra: prazo contábil já definido é decisão de quem definiu, e o padrão da
+// criação não encosta nele. Quem garante isso é o COALESCE do chamada.php — a
+// função aqui do lado não sabe se existe prazo, ela só calcula o sugerido.
+//
+// Estes dois testes são de naturezas diferentes, e vale dizer qual é qual em vez
+// de fingir que são o mesmo:
+
+// 1. COMPORTAMENTAL: a semântica do COALESCE, exercitada de verdade no banco.
+$cha_com_prazo = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_prazo_contabil)
+    VALUES ($PRODT_FRESCOS, '2027-10-05 23:59:59', '2027-10-30 09:00:00')");
+
+executa_sql("UPDATE chamadas SET cha_dt_prazo_contabil = COALESCE(cha_dt_prazo_contabil, '2027-10-09 23:59:59')
+    WHERE cha_id = $cha_com_prazo");
+
+verifica("gravar de novo NÃO troca o prazo que já existia",
+    valor_escalar("SELECT cha_dt_prazo_contabil FROM chamadas WHERE cha_id = $cha_com_prazo") === '2027-10-30 09:00:00',
+    var_export(valor_escalar("SELECT cha_dt_prazo_contabil FROM chamadas WHERE cha_id = $cha_com_prazo"), true));
+
+$cha_sem_prazo = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega)
+    VALUES ($PRODT_FRESCOS, '2027-10-05 23:59:59')");
+
+executa_sql("UPDATE chamadas SET cha_dt_prazo_contabil = COALESCE(cha_dt_prazo_contabil, '2027-10-09 23:59:59')
+    WHERE cha_id = $cha_sem_prazo");
+
+verifica("a mesma gravação PREENCHE quando o prazo estava nulo",
+    valor_escalar("SELECT cha_dt_prazo_contabil FROM chamadas WHERE cha_id = $cha_sem_prazo") === '2027-10-09 23:59:59',
+    var_export(valor_escalar("SELECT cha_dt_prazo_contabil FROM chamadas WHERE cha_id = $cha_sem_prazo"), true));
+
+// 2. ESTRUTURAL: o teste acima prova o COALESCE, não prova que chamada.php usa
+// COALESCE. Trocar aquela linha por um SET direto deixaria os dois testes verdes
+// e passaria a sobrescrever prazo de finanças a cada edição de chamada. Como a
+// gravação mora inline numa página, e página não se chama de teste, o que dá
+// para travar é a forma do SQL. É guarda de forma, não de comportamento — o
+// comportamento está verificado por HTTP e registrado no PR.
+$fonte_chamada = file_get_contents('/var/www/html/chamada.php');
+
+verifica("chamada.php grava o prazo por COALESCE, e não por atribuição direta",
+    strpos($fonte_chamada, 'cha_dt_prazo_contabil = COALESCE(cha_dt_prazo_contabil,') !== false,
+    "a linha que grava o prazo em chamada.php mudou de forma");
+
 mysqli_rollback($conn_link);
 
 // ---------------------------------------------------------------------------
