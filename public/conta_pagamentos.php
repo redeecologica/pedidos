@@ -303,12 +303,12 @@
     // derivado desde 2013, saldo de abertura ainda não lançado — e frases falsas sobre o
     // núcleo, se ninguém disser o que eles são.
   ?>
-  <div class="alert alert-warning hidden-print">
+  <div class="alert alert-warning">
     <strong>Os saldos ainda não incluem pagamentos anteriores.</strong><br>
     A coluna e o total somam as entregas registradas desde o início do sistema menos os
     pagamentos lançados aqui. O que a Rede recebeu antes de o módulo entrar em operação
-    continua na planilha e será lançado como saldo de abertura — até lá, estes valores
-    servem para localizar quem está em dia no período novo, não para cobrar.
+    continua na planilha e será lançado como saldo de abertura. Até lá estes valores não
+    dizem quem deve o quê, e não servem para cobrar ninguém.
   </div>
 
   <?php if (!$sem_destinos && $cestantes) { ?>
