@@ -327,7 +327,18 @@ function debitos_derivados($usr_id)
 	$sql.= "AND cp.chaprod_disponibilidade <> '0' ";
 	$sql.= "AND pp.pedprod_entregue > 0 ";
 	$sql.= "GROUP BY c.cha_id ";
-	$sql.= "ORDER BY c.cha_dt_entrega";
+	// O desempate por cha_id não é enfeite. Sem ele o servidor devolve os empates de
+	// data na ordem que quiser, e ele exerce essa liberdade: na cópia de produção o
+	// cestante 379 tem 411 linhas derivadas com 88 datas empatadas, e a mesma consulta
+	// devolveu três ordens diferentes em três corridas sobre dados que não mudaram.
+	// Quem lê isso no extrato vê a coluna de saldo mudar entre um carregamento e outro,
+	// para o mesmo cestante e os mesmos dados. O saldo final comuta, então não é erro
+	// de dinheiro — é um extrato que não se repete, e vai para uma tela.
+	//
+	// O conserto mora AQUI, e não no comparador de extrato_do_cestante(): assim vale
+	// para todo chamador de uma vez, e a estabilidade do usort de lá carrega o extrato
+	// de graça. cha_id é a PK, então o desempate é total.
+	$sql.= "ORDER BY c.cha_dt_entrega, c.cha_id";
 
 	$res = executa_sql($sql);
 	if (!$res) return null;              // consulta não rodou — ver o CONTRATO acima
@@ -428,7 +439,10 @@ function extrato_do_cestante($usr_id)
 
 		$gravadas[] = array(
 			'dt'        => $row['tra_dt'],
-			'historico' => $row['tra_historico'],
+			// tra_historico é NULLABLE, e o lado derivado sempre monta uma string: sem o
+			// cast, o mesmo campo sairia com dois tipos diferentes na mesma lista e quem
+			// descobriria seria a tela.
+			'historico' => (string)$row['tra_historico'],
 			'valor'     => (float)$row['lan_valor'],
 			'situacao'  => 'gravado',
 			'tra_id'    => (int)$row['tra_id'],
@@ -483,9 +497,17 @@ function extrato_do_cestante($usr_id)
 		return ($a['situacao'] === 'derivado') ? -1 : 1;
 	});
 
-	// O acumulado é arredondado a cada passo, e não só na exibição: assim a conta que
-	// o cestante faz de cabeça — saldo da linha anterior mais o valor desta — fecha
-	// em toda linha, sem sobra de centavo vinda do float.
+	// O acumulado é arredondado a cada passo, e não só na exibição. O que essa escolha
+	// protege é a deriva de ponto flutuante ACUMULADA ao longo de muitas linhas — e
+	// muitas linhas é o caso real: o cestante 379 da cópia de produção tem 411 linhas
+	// derivadas.
+	//
+	// Nenhum teste desta suíte distingue as duas políticas, e não dá para inventar um
+	// com dado real: lan_valor é decimal(10,2), prod_valor_venda é decimal(6,2) e o
+	// valor derivado já sai de dois round(...,2). Toda parcela que entra na soma tem no
+	// máximo duas casas, então arredondar passo a passo e arredondar só no fim dão o
+	// mesmo número em qualquer entrada alcançável. Fica registrado como escolha
+	// deliberada e SEM guarda automática, em vez de fingir que há teste segurando.
 	$saldo = 0.0;
 	foreach ($linhas as $i => $linha)
 	{

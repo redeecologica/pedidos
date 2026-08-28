@@ -713,8 +713,18 @@ verifica("depois do retroativo o saldo de cada linha continua batendo",
 // A segunda metade da asserção é tão necessária quanto a primeira: um descarte
 // grosso demais, que jogasse fora TODA linha derivada, também deixaria a primeira
 // verde. A entrega de 2014 não foi lançada e tem de continuar aparecendo.
-$valor_deb_t = $linha ? $linha['valor'] : 1.00;
-$tra_deb = lanca_transacao($dt_entrega_t, 'debito_entrega', $con_t, $con_rede, $valor_deb_t,
+//
+// O valor do lançamento sai do PRÓPRIO extrato, e não do $linha do bloco do débito
+// derivado, ~290 linhas acima: uma variável emprestada daquela distância continua
+// funcionando hoje e cai calada num valor qualquer no dia em que alguém renomear
+// ou mover a de lá — e o teste seguiria verde medindo outra coisa. Sem fallback,
+// de propósito: se a linha derivada não estiver aqui, lanca_transacao recebe null,
+// devolve null e a asserção reprova alto.
+$valor_derivado_cha_t = null;
+foreach ($ext2 as $l)
+    if ($l['situacao'] === 'derivado' && $l['cha'] == $cha_t) $valor_derivado_cha_t = -$l['valor'];
+
+$tra_deb = lanca_transacao($dt_entrega_t, 'debito_entrega', $con_t, $con_rede, $valor_derivado_cha_t,
                            'entrega lancada', array('cha' => $cha_t));
 $ext3 = extrato_do_cestante($usr_t);
 $ext3 = is_array($ext3) ? $ext3 : array();
@@ -920,6 +930,106 @@ verifica("pagamento com chamada nao apaga o debito derivado dela",
     && $gravada_com_cha_velha === 1,
     "derivada antes = $derivada_velha_antes · depois = $derivada_velha_depois"
         . " · gravada com a mesma chamada = $gravada_com_cha_velha");
+
+// tra_historico é NULLABLE no banco. Uma transação nascida por lanca_transacao()
+// nunca chega a NULL — o histórico passa por prep_para_bd() e um null vira '' —,
+// então a linha com NULL de verdade vem por INSERT direto, que é o que uma carga
+// ou uma correção à mão faz.
+//
+// O lado DERIVADO do extrato sempre monta uma string; o GRAVADO repassava o que
+// viesse do banco. Sem normalizar, o mesmo campo sai com dois tipos diferentes na
+// mesma lista, e quem descobriria seria a tela da Task 6.
+//
+// As duas pernas vão juntas para a base continuar coerente para
+// transacoes_desbalanceadas().
+$tra_sem_hist = insere("INSERT INTO transacoes (tra_dt, tra_tipo, tra_historico, tra_usr_registro)
+    VALUES ('2021-05-05 07:00:00','ajuste',NULL,0)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_sem_hist, $con_t, 1.00)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_sem_hist, $con_rede, -1.00)");
+
+// Guarda do fixture: prova que o NULL chegou mesmo ao banco. Sem ela, um INSERT que
+// gravasse '' deixaria a asserção verde sem haver o que normalizar.
+$hist_nulo_no_banco = (valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = "
+    . (int)$tra_sem_hist) === null);
+
+$ext7 = extrato_do_cestante($usr_t);
+$ext7 = is_array($ext7) ? $ext7 : array();
+
+$achou_sem_hist   = false;
+$hist_da_sem_hist = null;
+foreach ($ext7 as $l)
+    if ($l['tra_id'] === (int)$tra_sem_hist) { $achou_sem_hist = true; $hist_da_sem_hist = $l['historico']; }
+
+verifica("historico nulo no banco sai como string, igual ao lado derivado",
+    $hist_nulo_no_banco && $achou_sem_hist && is_string($hist_da_sem_hist),
+    "nulo no banco = " . var_export($hist_nulo_no_banco, true)
+        . " · achou a linha = " . var_export($achou_sem_hist, true)
+        . " · historico = " . var_export($hist_da_sem_hist, true));
+
+
+// Duas chamadas com o MESMO cha_dt_entrega. debitos_derivados() ordenava só pela
+// data, sem desempate, e o servidor é livre para devolver os empates na ordem que
+// quiser: medido na cópia de produção, o cestante 379 tem 411 linhas derivadas com
+// 88 datas empatadas, e a mesma consulta devolveu TRÊS ordens diferentes em três
+// corridas sobre dados que não mudaram.
+//
+// O extrato repassa isso fielmente — o comparador devolve 0 no empate e o usort é
+// estável —, então a coluna `saldo` daquelas linhas mudava a cada leitura, para o
+// mesmo cestante e os mesmos dados. O saldo final comuta, então não é erro de
+// dinheiro; é um extrato que não se repete, e a Task 6 vai pôr isso numa tela.
+//
+// O conserto é o desempate por cha_id dentro de debitos_derivados(), que serve a
+// TODOS os chamadores de uma vez; a estabilidade do usort carrega o extrato de
+// graça. Desempatar no comparador do extrato consertaria só o extrato.
+//
+// Honestidade sobre o que esta asserção prova: sem o desempate ela só falha quando
+// o servidor resolver devolver a outra ordem, o que não é garantido numa corrida.
+// Quem a prova carregadora é a mutação `ORDER BY c.cha_dt_entrega, c.cha_id DESC`,
+// determinística, que a derruba na hora.
+$cha_gemea = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, " . prep_para_bd($dt_entrega_velha) . ", '2014-05-20 10:00:00', '2014-05-28 10:00:00', 0.10, '2014-07-01 10:00:00')");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_gemea, 1, 2)");
+$ped_gemeo = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t, 1, 1, $cha_gemea, '1')");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_gemeo, 1, 5, 2)");
+
+$deb_gemeo = debitos_derivados($usr_t);
+$deb_gemeo = is_array($deb_gemeo) ? $deb_gemeo : array();
+
+// Guarda do fixture: sem DUAS linhas na mesma data não existe empate para desempatar.
+$empatadas = array();
+foreach ($deb_gemeo as $d) if ($d['cha_dt_entrega'] === $dt_entrega_velha) $empatadas[] = (int)$d['cha_id'];
+
+// A lista inteira, e não só o par: a chave (data, cha_id) com o id preenchido à
+// esquerda ordena como texto na mesma ordem em que o SQL a ordena por (data, id).
+$chave_derivada = array();
+foreach ($deb_gemeo as $d)
+    $chave_derivada[] = $d['cha_dt_entrega'] . '#' . str_pad((string)$d['cha_id'], 10, '0', STR_PAD_LEFT);
+$chave_ordenada = $chave_derivada;
+sort($chave_ordenada);
+
+verifica("debito derivado desempata a data pelo cha_id, e nao pela sorte do servidor",
+    count($empatadas) === 2 && $empatadas === array((int)$cha_velha, (int)$cha_gemea)
+    && $chave_derivada === $chave_ordenada,
+    "empatadas = " . json_encode($empatadas) . " · esperado = "
+        . json_encode(array((int)$cha_velha, (int)$cha_gemea))
+        . " · chaves = " . json_encode($chave_derivada));
+
+// O extrato herda o desempate de graça: o comparador devolve 0 entre duas derivadas
+// de mesma data e o usort preserva a ordem de inserção, que é a da consulta.
+$ext8 = extrato_do_cestante($usr_t);
+$ext8 = is_array($ext8) ? $ext8 : array();
+
+$ordem_derivadas_empatadas = array();
+foreach ($ext8 as $l)
+    if ($l['situacao'] === 'derivado' && $l['dt'] === $dt_entrega_velha)
+        $ordem_derivadas_empatadas[] = (int)$l['cha'];
+
+verifica("o extrato herda o desempate: derivadas de mesma data saem em ordem de chamada",
+    $ordem_derivadas_empatadas === array((int)$cha_velha, (int)$cha_gemea),
+    "ordem = " . json_encode($ordem_derivadas_empatadas) . " · esperado = "
+        . json_encode(array((int)$cha_velha, (int)$cha_gemea)));
 
 mysqli_rollback($conn_link);
 
