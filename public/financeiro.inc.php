@@ -354,3 +354,144 @@ function debitos_derivados($usr_id)
 
 	return $linhas;
 }
+
+
+// Extrato do cestante: uma lista só, com o débito que ainda é DERIVADO da entrega
+// e o lançamento que já está GRAVADO no razão, em ordem de data e com o saldo
+// somado linha a linha.
+//
+// Cada linha traz:
+//   dt         data do fato (cha_dt_entrega no derivado, tra_dt no gravado)
+//   historico  o texto que o cestante lê
+//   valor      com sinal, na regra do módulo: negativo deve, positivo tem a receber
+//   saldo      o acumulado até esta linha, inclusive
+//   situacao   'derivado' ou 'gravado'
+//   tra_id     a transação, null quando derivado
+//   cha        a chamada de procedência, null quando não há
+//
+// O SALDO É SOMADO AQUI, na leitura, e nunca gravado. O núcleo lança na segunda um
+// pagamento feito na sexta; com saldo gravado, cada lançamento retroativo obrigaria
+// a reescrever todas as linhas seguintes — e uma reescrita que falhasse no meio
+// deixaria o extrato mentindo em silêncio, que é pior do que não ter extrato. O
+// caso do lançamento retroativo tem teste.
+//
+// CONTRATO — null e array() NÃO são a mesma coisa, pelo mesmo motivo de
+// debitos_derivados():
+//   array()  as consultas rodaram e não há nada a mostrar
+//   null     alguma consulta NÃO rodou
+// São DUAS consultas, e as DUAS saem por null: a do débito derivado e a de
+// lançamentos. Cada uma tem a sua alavanca na suíte, porque uma guarda sem teste é
+// uma guarda que alguém apaga. Diante de null a tela diz "não deu para carregar";
+// extrato vazio diria ao cestante que ele está quite, e um extrato só com os
+// derivados — se a segunda consulta falhasse calada — cobraria dele o que já foi
+// pago. Nenhuma das duas mentiras é aceitável num módulo de dinheiro.
+function extrato_do_cestante($usr_id)
+{
+	$derivados = debitos_derivados($usr_id);
+	if ($derivados === null) return null;        // a consulta não rodou — ver o CONTRATO
+
+	// Lançamento gravado e débito já materializado saem da MESMA varredura. Separá-las
+	// em duas consultas abriria a chance de as duas discordarem sobre o que já virou
+	// lançamento — e a que perdesse a discussão duplicaria ou sumiria com uma linha.
+	//
+	// O recorte é por c.con_usr, com JOIN em contas, e não por um con_id vindo de
+	// conta_do_cestante(): o null daquela função junta "não tem conta" com "a
+	// consulta foi recusada", e é exatamente essa diferença que o extrato precisa
+	// preservar. Cestante sem conta não tem lançamento nenhum e sai daqui com zero
+	// linhas, sem erro. A regra de busca é a MESMA de conta_do_cestante() — só
+	// con_usr, sem con_tipo e sem con_archive, que são editáveis — e quem garante
+	// uma conta só por cestante é a UNIQUE KEY conta_usuario. Se aquela regra mudar,
+	// esta tem de mudar junto.
+	//
+	// O recorte por cestante é o que mantém a consulta barata: conta_usuario resolve
+	// contas numa linha, lancamento_conta traz só os lançamentos dela e a PK de
+	// transacoes fecha o par.
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, l.lan_valor ";
+	$sql.= "FROM contas c ";
+	$sql.= "JOIN lancamentos l ON l.lan_con = c.con_id ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE c.con_usr = " . prep_para_bd($usr_id) . " ";
+	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;                      // idem — ver o CONTRATO
+
+	$gravadas       = array();
+	$materializadas = array();
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		// A entrega que já virou lançamento sai da lista de derivados: senão o
+		// cestante veria a MESMA entrega duas vezes e o saldo dobraria a dívida.
+		if ($row['tra_tipo'] === 'debito_entrega' && $row['tra_cha'] !== null)
+			$materializadas[(string)$row['tra_cha']] = true;
+
+		$gravadas[] = array(
+			'dt'        => $row['tra_dt'],
+			'historico' => $row['tra_historico'],
+			'valor'     => (float)$row['lan_valor'],
+			'situacao'  => 'gravado',
+			'tra_id'    => (int)$row['tra_id'],
+			'cha'       => ($row['tra_cha'] === null) ? null : (int)$row['tra_cha'],
+		);
+	}
+
+	$linhas = array();
+
+	foreach ($derivados as $d)
+	{
+		if (isset($materializadas[(string)$d['cha_id']])) continue;   // já é lançamento
+
+		// debitos_derivados() devolve o valor POSITIVO — é quanto a entrega custou.
+		// Quem o põe na regra de sinal do razão é o extrato: entrega recebida é
+		// dívida, logo negativa. Sem a inversão, entrega e pagamento somariam no
+		// mesmo sentido e o saldo cresceria a cada entrega.
+		//
+		// prodt_nome vem de um LEFT JOIN, mas NULL não chega aqui: cha_prodt é NOT
+		// NULL com FK para produtotipos, então o par sempre casa. O que chega é nome
+		// EM BRANCO — a coluna é NOT NULL e, com sql_mode vazio, um '' entra sem
+		// reclamação. Concatenado seco viraria 'entrega ' com espaço solto e sem
+		// dizer de quê; sem nome o extrato diz só 'entrega', e a identidade da
+		// chamada fica no campo 'cha', que é onde ela é útil para quem for lançar.
+		$nome = trim((string)$d['prodt_nome']);
+
+		$linhas[] = array(
+			'dt'        => $d['cha_dt_entrega'],
+			'historico' => ($nome === '') ? 'entrega' : 'entrega ' . $nome,
+			'valor'     => -$d['valor'],
+			'situacao'  => 'derivado',
+			'tra_id'    => null,
+			'cha'       => (int)$d['cha_id'],
+		);
+	}
+
+	$linhas = array_merge($linhas, $gravadas);
+
+	// Ordena por data. No empate entre situações diferentes a derivada vem antes da
+	// gravada, que é a leitura natural: a entrega acontece, depois o pagamento.
+	//
+	// Empate entre linhas da MESMA situação devolve 0, de propósito. usort é estável
+	// desde o PHP 8.0, então o empate preserva a ordem de inserção — que para as
+	// gravadas é o `ORDER BY t.tra_dt, t.tra_id` da consulta acima. Devolver 1 aqui
+	// diria que cada uma das duas linhas é maior que a outra: comparador não
+	// antissimétrico, que o PHP não confere e que embaralha justamente a ordem que o
+	// SQL acabou de estabelecer. E o empate exato acontece de verdade —
+	// cha_dt_entrega e tra_dt são os dois datetime.
+	usort($linhas, function($a, $b) {
+		if ($a['dt'] !== $b['dt'])             return ($a['dt'] < $b['dt']) ? -1 : 1;
+		if ($a['situacao'] === $b['situacao']) return 0;
+		return ($a['situacao'] === 'derivado') ? -1 : 1;
+	});
+
+	// O acumulado é arredondado a cada passo, e não só na exibição: assim a conta que
+	// o cestante faz de cabeça — saldo da linha anterior mais o valor desta — fecha
+	// em toda linha, sem sobra de centavo vinda do float.
+	$saldo = 0.0;
+	foreach ($linhas as $i => $linha)
+	{
+		$saldo = round($saldo + $linha['valor'], 2);
+		$linhas[$i]['saldo'] = $saldo;
+	}
+
+	return $linhas;
+}
