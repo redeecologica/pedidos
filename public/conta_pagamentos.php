@@ -61,6 +61,17 @@
 
   $escolhe_nucleo = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
 
+  // Qual linha abre em modo de edição. A tela é de LEITURA por padrão: 35 conjuntos de
+  // campos abertos ao mesmo tempo são 35 chances de digitar na linha errada, e o erro
+  // aqui credita dinheiro para quem não recebeu.
+  //
+  // Passa pela mesma validação de um usr_id qualquer vindo da URL, e depois por
+  // pode_ver_conta_de(): abrir a linha é ver a conta da pessoa, então a regra é a mesma.
+  $editar = request_get("editar", "");
+  if (!is_string($editar) && !is_int($editar)) $editar = "";
+  if (!ctype_digit((string)$editar) || (int)$editar <= 0) $editar = "";
+  if ($editar !== "" && !pode_ver_conta_de($editar)) $editar = "";
+
   top();
 
   if ($action == ACAO_SALVAR)
@@ -102,6 +113,15 @@
                  .  " o valor e o destino de cada uma.";
 
       adiciona_mensagem_status($recusados ? MSG_TIPO_AVISO : MSG_TIPO_SUCESSO, $aviso);
+
+      // POST-redirect-GET: a linha volta para leitura com o saldo recalculado, e um F5
+      // não relança o pagamento. Sem isto, atualizar a página depois de gravar cobraria
+      // de novo — numa tela de dinheiro isso não é incômodo, é dano.
+      $volta_para = "conta_pagamentos.php";
+      if ($um_so)             $volta_para .= "?usr_id=" . urlencode($usr_id);
+      else if ($nuc_id !== "") $volta_para .= "?nuc_id=" . urlencode($nuc_id);
+      redireciona($volta_para);
+      exit();
 
       // top() já imprimiu as mensagens pendentes antes de este bloco rodar; a desta
       // gravação precisa da segunda chamada para aparecer.
@@ -236,6 +256,9 @@
     <tbody>
     <?php
       $hoje          = date('d/m/Y');
+      // mesmo recorte do laço, disponível depois dele para o botão cancelar
+      $ctx_form      = $um_so ? ("usr_id=" . urlencode($usr_id))
+                              : ($nuc_id !== "" ? ("nuc_id=" . urlencode($nuc_id)) : "");
       $total_aberto  = 0.0;
       $sem_saldo     = 0;   // linhas cujo extrato não pôde ser calculado
       $cestantes     = 0;
@@ -259,10 +282,23 @@
           if ($nao_deu) $sem_saldo++;
           else if ($resumo['saldo'] < -0.005) $total_aberto += $resumo['saldo'];
     ?>
-      <tr>
+      <?php
+        // Uma linha por vez em edição. As demais ficam em leitura, sem campo nenhum —
+        // inclusive sem o pg_usr[] escondido, para o laço de gravação receber só a linha
+        // que a pessoa realmente abriu.
+        $em_edicao = ($editar !== "" && (string)$row['usr_id'] === (string)$editar);
+
+        // Preserva o recorte da tela ao abrir/fechar a linha, senão voltar de uma edição
+        // jogaria o responsável de finanças para outro núcleo.
+        $ctx = $um_so ? ("usr_id=" . urlencode($usr_id))
+                      : ($nuc_id !== "" ? ("nuc_id=" . urlencode($nuc_id)) : "");
+      ?>
+      <tr<?php echo($em_edicao ? ' class="info"' : ''); ?>>
         <td>
           <a href="conta_cestante.php?usr_id=<?php echo(h($row['usr_id'])); ?>"><?php echo(h($row['usr_nome_curto'])); ?></a>
+          <?php if ($em_edicao) { ?>
           <input type="hidden" name="pg_usr[]" value="<?php echo(h($row['usr_id'])); ?>" />
+          <?php } ?>
         </td>
         <td class="text-right<?php echo((!$nao_deu && $resumo['saldo'] < -0.005) ? ' text-danger' : ''); ?>">
           <?php if ($nao_deu) { ?>
@@ -271,6 +307,13 @@
             <?php echo(h(formata_moeda($resumo['saldo']))); ?>
           <?php } ?>
         </td>
+        <?php if (!$em_edicao) { ?>
+        <td colspan="4">
+          <a class="btn btn-default btn-xs" href="conta_pagamentos.php?<?php echo(h($ctx)); ?><?php echo($ctx === "" ? "" : "&amp;"); ?>editar=<?php echo(h($row['usr_id'])); ?>#linha">
+            <i class="glyphicon glyphicon-pencil"></i> registrar pagamento
+          </a>
+        </td>
+        <?php } else { ?>
         <td><input type="text" class="form-control data" name="pg_dt[]" value="<?php echo(h($hoje)); ?>" size="10" /></td>
         <td><input type="text" class="form-control numero" name="pg_valor[]" value="" /></td>
         <td>
@@ -294,6 +337,7 @@
           </select>
         </td>
         <td><input type="text" class="form-control" name="pg_comprovante[]" value="" maxlength="300" /></td>
+        <?php } ?>
       </tr>
     <?php } ?>
       <?php if (!$cestantes) { ?>
@@ -334,9 +378,13 @@
     dizem quem deve o quê, e não servem para cobrar ninguém.
   </div>
 
-  <?php if (!$sem_destinos && $cestantes) { ?>
+  <?php
+    // O botão só aparece com uma linha aberta: sem isso ele convidaria a gravar uma tela
+    // que é só leitura, e o clique não faria nada.
+    if (!$sem_destinos && $cestantes && $editar !== "") { ?>
   <div align="right">
-    <button class="btn btn-success btn-lg" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamentos</button>
+    <a class="btn btn-default btn-lg" href="conta_pagamentos.php?<?php echo(h($ctx_form)); ?>">cancelar</a>
+    <button class="btn btn-success btn-lg" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamento</button>
   </div>
   <?php } ?>
 </form>
