@@ -57,6 +57,32 @@ mysqli_begin_transaction($conn_link);
 // desfaz nada.
 $financeiro_em_transacao = true;
 
+// ---------------------------------------------------------------------------
+// Núcleos e produtores DESCARTÁVEIS, criados aqui dentro da transação.
+//
+// Antes a suíte pendurava as contas de teste em ids fixos da cópia (núcleo 2, 3,
+// 21; produtor 2, 3, 10). Isso a fazia depender de `contas` estar VAZIA, e produção
+// nunca vai estar — assim que o módulo entrar, todo núcleo e produtor ativo terá a
+// sua conta, e a UNIQUE de con_nuc/con_forn passaria a recusar os INSERTs do
+// fixture.
+//
+// Pior que o incômodo: com aquelas contas já existentes, o teste da chave reservada
+// passava pelo motivo ERRADO. Ele espera null de cria_conta(), e o null viria da
+// UNIQUE de con_nuc em vez da regra da chave — verde sem testar nada.
+//
+// Entidades próprias resolvem os dois: o vínculo é garantidamente livre, e elas são
+// ATIVAS, o que importa porque contas_de_destino() exclui núcleo e produtor
+// arquivados. Tudo desfeito no rollback.
+$nuc_livre = array();
+for ($i = 0; $i < 4; $i++)
+    $nuc_livre[] = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+        VALUES ('nucteste$i', 'Nucleo de teste $i', 0)");
+
+$forn_livre = array();
+for ($i = 0; $i < 3; $i++)
+    $forn_livre[] = insere("INSERT INTO fornecedores (forn_prodt, forn_nome_curto, forn_nome_completo, forn_archive)
+        VALUES (1, 'fornteste$i', 'Produtor de teste $i', 0)");
+
 $con_a = insere("INSERT INTO contas (con_tipo, con_nome) VALUES ('rede','Teste A')");
 $con_b = insere("INSERT INTO contas (con_tipo, con_nome) VALUES ('rede','Teste B')");
 
@@ -195,8 +221,8 @@ executa_sql("UPDATE contas SET con_archive = 0 WHERE con_id = " . (int)$con_t);
 $contas_antes_reserva = (int)valor_escalar("SELECT COUNT(*) FROM contas");
 
 verifica("chave reservada e recusada em tipo que nao e o dono",
-    cria_conta('nucleo',      array('con_nuc'  => 3, 'con_chave' => 'rede_principal')) === null
-    && cria_conta('produtor', array('con_forn' => 3, 'con_chave' => 'rede_principal')) === null
+    cria_conta('nucleo',      array('con_nuc'  => $nuc_livre[0],  'con_chave' => 'rede_principal')) === null
+    && cria_conta('produtor', array('con_forn' => $forn_livre[0], 'con_chave' => 'rede_principal')) === null
     && (int)valor_escalar("SELECT COUNT(*) FROM contas") === $contas_antes_reserva);
 
 
@@ -290,11 +316,11 @@ verifica("renomear a conta da Rede nao faz a busca perder a conta",
 // chave reservada recusaria antes de o SQL sair, e o teste passaria verde mesmo
 // sem índice nenhum — deixaria de falar do banco e passaria a falar da validação,
 // que já tem teste próprio logo abaixo.
-$con_chave_a = cria_conta('nucleo', array('con_nuc' => 2, 'con_chave' => 'teste_chave_unica'));
+$con_chave_a = cria_conta('nucleo', array('con_nuc' => $nuc_livre[1], 'con_chave' => 'teste_chave_unica'));
 
 verifica("chave repetida e recusada pelo banco",
     is_numeric($con_chave_a) && $con_chave_a > 0
-    && cria_conta('produtor', array('con_forn' => 2, 'con_chave' => 'teste_chave_unica')) === null,
+    && cria_conta('produtor', array('con_forn' => $forn_livre[1], 'con_chave' => 'teste_chave_unica')) === null,
     "primeira conta = " . var_export($con_chave_a, true));
 
 // Usuários novos, ainda sem conta: as recusas abaixo têm de vir da validação, e
@@ -349,16 +375,16 @@ verifica("nenhuma conta foi gravada pelas recusas",
 // produtor 1, os dois arquivados nesta cópia. Passava porque não havia o filtro; com
 // ele, o destino sumia da lista e registra_pagamento() recusava o pagamento — a
 // falha aparecia nos testes de pagamento, longe de onde a causa estava.
-$con_nuc_t = cria_conta('nucleo', array('con_nuc' => 21, 'con_nome' => 'Teste Nucleo'));
+$con_nuc_t = cria_conta('nucleo', array('con_nuc' => $nuc_livre[2], 'con_nome' => 'Teste Nucleo'));
 verifica("conta de nucleo nasce com o vinculo e o rotulo",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_nuc_t
-        . " AND con_tipo = 'nucleo' AND con_nuc = 21 AND con_nome = 'Teste Nucleo'") == 1,
+        . " AND con_tipo = 'nucleo' AND con_nuc = " . (int)$nuc_livre[2] . " AND con_nome = 'Teste Nucleo'") == 1,
     var_export($con_nuc_t, true));
 
-$con_forn_t = cria_conta('produtor', array('con_forn' => 10));
+$con_forn_t = cria_conta('produtor', array('con_forn' => $forn_livre[2]));
 verifica("conta de produtor nasce com o vinculo",
     valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_forn_t
-        . " AND con_tipo = 'produtor' AND con_forn = 10") == 1,
+        . " AND con_tipo = 'produtor' AND con_forn = " . (int)$forn_livre[2]) == 1,
     var_export($con_forn_t, true));
 
 echo "\ndebito derivado\n";
