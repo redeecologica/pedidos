@@ -1737,6 +1737,41 @@ verifica("o bloco de pagamento devolveu a sessao ao que era",
     "sessao = " . json_encode($_SESSION));
 
 // ---------------------------------------------------------------------------
+echo "\ncomprovante como link\n";
+// ---------------------------------------------------------------------------
+
+verifica("http e https viram link",
+    comprovante_como_link('http://exemplo.org/a.pdf') === 'http://exemplo.org/a.pdf'
+    && comprovante_como_link('https://drive.google.com/file/d/abc/view') === 'https://drive.google.com/file/d/abc/view');
+
+// O que este teste protege: virar href sem conferir o esquema aceitaria
+// javascript:..., e um clique executaria script escolhido por quem lancou o
+// pagamento. Lista de PERMISSAO, nao de bloqueio.
+$hostis = array(
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:text/html;base64,PHNjcmlwdD4=',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    '//exemplo.org/sem-esquema',
+);
+$virou_link = array();
+foreach ($hostis as $h) if (comprovante_como_link($h) !== '') $virou_link[] = $h;
+
+verifica("esquema que nao e http/https nunca vira link",
+    count($virou_link) === 0,
+    "viraram link: " . implode(' | ', $virou_link));
+
+verifica("texto comum nao vira link",
+    comprovante_como_link('recibo 4432 do caderno') === ''
+    && comprovante_como_link('') === '' && comprovante_como_link(null) === '');
+
+// Aspas e sinais de marcacao fora, para o valor nao escapar do atributo href.
+verifica("url com aspas ou marcacao nao vira link",
+    comprovante_como_link('https://x.org/a" onmouseover="alert(1)') === ''
+    && comprovante_como_link('https://x.org/<script>') === '');
+
+// ---------------------------------------------------------------------------
 echo "\nultimo lancamento do extrato\n";
 // ---------------------------------------------------------------------------
 
