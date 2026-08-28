@@ -805,14 +805,34 @@ function cestante_da_conta($usr_id)
 // destinos em 0,92 a 1,09 ms, mediana 0,94. Com o buffer pool FRIO, logo depois de o
 // container subir, o mesmo teto sai em 1,70 a 1,97 ms: mesmo código, e a diferença é
 // disco, não CPU.
-function contas_de_destino()
+// $nuc_prioritario: o núcleo que a tela está mostrando. A ordem da lista é a ordem
+// em que a pessoa procura — contas da Rede primeiro, depois o caixa DAQUELE núcleo,
+// depois os outros núcleos, e produtores por último. Numa lista de quinze destinos,
+// o certo estar em terceiro ou em décimo é a diferença entre conferir e rolar.
+//
+// $nuc_prioritario muda só a ORDEM, nunca o conteúdo. É condição de a lista exibida
+// ser a MESMA que valida: registra_pagamento() chama esta função sem núcleo nenhum,
+// e uma tela que oferecesse destino que a fronteira recusa seria pior que destino de
+// menos. Por isso caixa de núcleo arquivado sai para todo mundo — quem está num
+// núcleo assim paga para a Rede ou direto ao produtor.
+function contas_de_destino($nuc_prioritario = null)
 {
-	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto ";
+	$nuc_bd = (is_numeric($nuc_prioritario) && (int)$nuc_prioritario > 0)
+	        ? (int)$nuc_prioritario : 0;
+
+	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto, ";
+	// a ordem vive no SQL para o desempate de rótulo, abaixo, receber a lista já pronta
+	$sql.= "CASE c.con_tipo ";
+	$sql.= "  WHEN 'rede' THEN 0 ";
+	$sql.= "  WHEN 'nucleo' THEN IF(c.con_nuc = $nuc_bd, 1, 2) ";
+	$sql.= "  ELSE 3 END grupo ";
 	$sql.= "FROM contas c ";
 	$sql.= "LEFT JOIN nucleos n ON n.nuc_id = c.con_nuc ";
 	$sql.= "LEFT JOIN fornecedores f ON f.forn_id = c.con_forn ";
 	$sql.= "WHERE c.con_archive = 0 AND c.con_tipo IN ('nucleo','rede','produtor') ";
-	$sql.= "ORDER BY c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto";
+	$sql.= "AND (c.con_tipo <> 'nucleo' OR n.nuc_archive = 0) ";
+	$sql.= "AND (c.con_tipo <> 'produtor' OR f.forn_archive = 0) ";
+	$sql.= "ORDER BY grupo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto";
 
 	$res = executa_sql($sql);
 	if (!$res) return null;              // ver o CONTRATO acima
