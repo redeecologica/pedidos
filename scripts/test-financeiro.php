@@ -459,6 +459,25 @@ verifica("com prazo contabil vencido a chamada e congelavel",
     $linha_velha && $linha_velha['congelavel'],
     var_export($linha_velha, true));
 
+// O extrato TEM de repassar o congelavel: a tela marca "a confirmar" e esse aviso é
+// sobre o valor PODER MUDAR, não sobre estar lançado. Sem o campo, toda linha
+// derivada levava o aviso — 606 das 679 chamadas do cestante 101 já estão fechadas.
+$ext_cong = extrato_do_cestante($usr_t);
+$deriv_cong = array();
+foreach ((array)$ext_cong as $l) if ($l['situacao'] === 'derivado') $deriv_cong[$l['cha']] = $l;
+
+verifica("o extrato repassa congelavel nas linhas derivadas",
+    isset($deriv_cong[$cha_t]) && array_key_exists('congelavel', $deriv_cong[$cha_t]),
+    var_export(isset($deriv_cong[$cha_t]) ? $deriv_cong[$cha_t] : null, true));
+
+verifica("chamada de prazo vencido chega ao extrato como congelavel",
+    isset($deriv_cong[$cha_velha]) && $deriv_cong[$cha_velha]['congelavel'] === true,
+    var_export(isset($deriv_cong[$cha_velha]) ? $deriv_cong[$cha_velha]['congelavel'] : null, true));
+
+verifica("chamada de prazo no futuro chega ao extrato como NAO congelavel",
+    isset($deriv_cong[$cha_t]) && $deriv_cong[$cha_t]['congelavel'] === false,
+    var_export(isset($deriv_cong[$cha_t]) ? $deriv_cong[$cha_t]['congelavel'] : null, true));
+
 // O preço tem de ser o da data da entrega, não o de hoje. A guarda de desigualdade
 // está na mesma asserção porque, se as duas versões do produto tivessem o mesmo
 // preço, o teste passaria sem exercitar nada.
