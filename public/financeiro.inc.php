@@ -1277,6 +1277,37 @@ function tipo_de_conta($con_id)
 }
 
 
+// As contas de destino de um tipo só, para a tela do caixa poder oferecer contas da
+// Rede num lançamento e produtores noutro.
+//
+// Filtra a lista de contas_de_destino() em vez de repetir o SELECT dela. Repetir traria
+// junto as regras de exclusão — arquivada, núcleo arquivado, produtor arquivado — e
+// duas cópias delas ficariam diferentes no primeiro dia em que uma mudasse. Também
+// herda de graça o desempate de rótulo repetido, que é o que impede dois <option> com
+// texto idêntico numa tela que move dinheiro.
+//
+// Mesmo contrato: null quando a consulta não rodou, array() quando não há conta daquele
+// tipo — e a tela precisa dos dois separados, porque o segundo é "cadastre um produtor"
+// e o primeiro é "tente de novo mais tarde".
+function contas_de_destino_do_tipo($tipo)
+{
+	$todas = contas_de_destino();
+	if ($todas === null) return null;
+
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = " . prep_para_bd($tipo));
+	if (!$res) return null;
+
+	$do_tipo = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$id = (int)$row['con_id'];
+		if (isset($todas[$id])) $do_tipo[$id] = $todas[$id];
+	}
+
+	return $do_tipo;
+}
+
+
 // Um lançamento do caixa do núcleo. Devolve tra_id, ou null quando não pôde virar
 // lançamento — e recusar em silêncio é de propósito: quem chama é a tela, que sabe
 // dizer o que faltou; a função não tem como saber se a recusa é engano de quem digitou

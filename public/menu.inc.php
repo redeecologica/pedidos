@@ -171,6 +171,25 @@
                       ?> 
 
 					  <?php 
+                            // Caixa do núcleo. A pergunta é pode_lancar_no_caixa() SEM
+                            // núcleo, e não a mesma de Pagamentos: aqui o alcance depende
+                            // de qual núcleo, e no menu ainda não há um escolhido. Passa-se
+                            // o núcleo da sessão, que é exatamente o que a tela vai impor
+                            // para quem responde por um só. Quem responde por todos entra
+                            // de qualquer forma, pelo primeiro ramo da função.
+                            //
+                            // Item escondido é conveniência, não impedimento: quem trancar
+                            // de verdade é a mesma pergunta refeita dentro do
+                            // conta_nucleo.php, antes de qualquer saída.
+                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
+                            {
+                       ?>
+			                    <li><a href="conta_nucleo.php"><i class="glyphicon glyphicon-inbox"></i> Caixa do núcleo</a></li>
+                      <?php 
+                            } 			  
+                      ?> 
+
+					  <?php 
                             // Cadastro de contas: quem cuida do dinheiro da Rede, não quem
                             // lança pagamento no núcleo. Por isso a pergunta aqui é outra.
                             if (pode_ver_financeiro()
