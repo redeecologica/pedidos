@@ -1031,6 +1031,175 @@ verifica("o extrato herda o desempate: derivadas de mesma data saem em ordem de 
     "ordem = " . json_encode($ordem_derivadas_empatadas) . " · esperado = "
         . json_encode(array((int)$cha_velha, (int)$cha_gemea)));
 
+
+echo "\npermissao\n";
+
+// $_SESSION não é privado deste bloco. lanca_transacao lê $_SESSION['usr.id'] para
+// gravar tra_usr_registro (financeiro.inc.php:23), e a coluna NÃO tem chave
+// estrangeira — conferido no SHOW CREATE TABLE transacoes. Sessão deixada suja aqui
+// faria o bloco "caminho de producao", que roda depois do rollback e grava de
+// verdade na cópia de produção, carimbar um id de usuário que o rollback acabou de
+// apagar, sem o banco reclamar. Snapshot e restauração, como no sql_mode acima.
+$sessao_antes = $_SESSION;
+
+// A trava do beta vem ANTES do papel de negócio: enquanto o módulo não está pronto,
+// nem finanças abre.
+$_SESSION[PAP_BETA_TESTER]   = false;
+$_SESSION[PAP_RESP_FINANCAS] = true;
+$_SESSION[PAP_RESP_NUCLEO]   = false;
+$_SESSION[PAP_ADM]           = false;
+$_SESSION['usr.id']          = $usr_t;
+$_SESSION['usr.nuc']         = 1;
+
+verifica("sem beta tester o modulo nao abre, mesmo para financas",
+    pode_ver_financeiro() === false);
+
+// O administrador é o caso que decide se o módulo fica mesmo invisível:
+// verifica_seguranca() valida qualquer chamada vinda de PAP_ADM sem sequer olhar o
+// parâmetro (common.inc.php:105-108), então a trava do beta não pode depender dela.
+$_SESSION[PAP_ADM] = true;
+verifica("sem beta tester o modulo nao abre nem para o administrador",
+    pode_ver_financeiro() === false);
+$_SESSION[PAP_ADM] = false;
+
+$_SESSION[PAP_BETA_TESTER] = true;
+verifica("com beta tester e papel de negocio, abre",
+    pode_ver_financeiro() === true);
+
+$_SESSION[PAP_RESP_FINANCAS] = false;
+$_SESSION[PAP_RESP_NUCLEO]   = false;
+$_SESSION[PAP_ADM]           = false;
+$_SESSION['usr.id']          = $usr_t;
+verifica("cestante alcanca o proprio extrato",
+    pode_ver_conta_de($usr_t) === true);
+
+verifica("cestante nao alcanca o extrato de outro",
+    pode_ver_conta_de($usr_t + 99999) === false);
+
+// Escopo por núcleo conferido no banco, e não no que veio na URL. A sessão é de
+// OUTRO usuário de propósito: com usr.id igual ao alvo, o ramo "o próprio"
+// responderia antes e o vínculo de núcleo não seria exercitado.
+$_SESSION[PAP_RESP_NUCLEO] = true;
+$_SESSION['usr.id']        = $usr_t2;
+$_SESSION['usr.nuc']       = 1;                 // $usr_t nasce com usr_nuc = 1
+verifica("responsavel de nucleo alcanca o cestante do seu nucleo",
+    pode_ver_conta_de($usr_t) === true);
+
+$_SESSION['usr.nuc'] = 2;
+verifica("responsavel de nucleo nao alcanca o cestante de outro nucleo",
+    pode_ver_conta_de($usr_t) === false);
+
+// A polaridade da falha aqui é a INVERSA da do resto do módulo: consulta que não
+// roda resulta em acesso NEGADO. A alavanca é a sombra de TEMPORARY TABLE já usada
+// no extrato, agora sobre usuarios e sem a coluna usr_id — o SELECT da função passa
+// a ser recusado (ERROR 1054) sem que nada mais na sessão mude.
+$_SESSION['usr.nuc'] = 1;
+executa_sql("CREATE TEMPORARY TABLE usuarios (
+    usr_nuc mediumint(6) unsigned DEFAULT NULL) ENGINE=InnoDB");
+
+$sombra_usr_de_pe = (executa_sql("SELECT usr_id FROM usuarios") === false);
+$pode_com_sombra  = pode_ver_conta_de($usr_t);
+
+executa_sql("DROP TEMPORARY TABLE usuarios");
+
+verifica("consulta recusada NEGA o acesso, em vez de conceder",
+    $sombra_usr_de_pe && $pode_com_sombra === false,
+    "sombra de pe = " . var_export($sombra_usr_de_pe, true)
+        . " · pode = " . var_export($pode_com_sombra, true));
+
+verifica("derrubada a sombra, o responsavel volta a alcancar o seu nucleo",
+    pode_ver_conta_de($usr_t) === true);
+
+// usr_id chega da URL como texto. Com o sql_mode vazio deste servidor, texto colado
+// num id NÃO é recusado pelo banco: medido nesta cópia, `usr_id = '1 abc'` devolve a
+// linha do usr_id 1, com warning 1292 e mais nada. Por isso a recusa é na entrada da
+// função, antes de a consulta existir.
+verifica("usr_id que nao e inteiro positivo e recusado na entrada",
+    pode_ver_conta_de("$usr_t abc") === false
+    && pode_ver_conta_de("1 OR 1=1") === false
+    && pode_ver_conta_de("") === false
+    && pode_ver_conta_de("0") === false
+    && pode_ver_conta_de("-1") === false);
+
+// ?usr_id[]=1 entrega ARRAY a request_get, e esse caso precisa de alavanca própria:
+// sem a recusa por tipo, o retorno continua false — o que quebra é o silêncio, porque
+// (string)array() emite "Array to string conversion" e segue. Warning é justamente o
+// que o smoke.sh reprova na varredura das páginas, então a asserção olha para o aviso
+// e não só para o retorno.
+$aviso_array = '';
+set_error_handler(function ($n, $s) use (&$aviso_array) { $aviso_array = $s; return true; });
+$pode_array = pode_ver_conta_de(array($usr_t));
+restore_error_handler();
+
+verifica("usr_id em array e recusado sem emitir aviso",
+    $pode_array === false && $aviso_array === '',
+    "pode = " . var_export($pode_array, true) . " · aviso = " . var_export($aviso_array, true));
+
+$_SESSION = $sessao_antes;
+
+// Não é o `===` contra a própria variável que acabou de ser atribuída — esse não
+// falharia nunca. O que se afirma é que a sessão voltou a ser a de uma corrida em
+// CLI, sem usuário e sem papel: falha se alguém mover o snapshot para depois da
+// primeira atribuição, ou apagar a restauração. Quem confere o efeito lá na frente
+// é a asserção de tra_usr_registro, no bloco "caminho de producao".
+verifica("o bloco de permissao devolveu a sessao ao que era",
+    !isset($_SESSION['usr.id']) && !isset($_SESSION[PAP_BETA_TESTER]),
+    "sessao = " . json_encode($_SESSION));
+
+
+echo "\nresumo da tela\n";
+
+// A tela não pode afirmar NADA sobre o saldo quando a consulta não rodou. É o motivo
+// de o resumo devolver um estado, e não um saldo que possa ser nulo: `null < -0.005`
+// e `null > 0.005` são os dois falsos, então um saldo nulo caindo na cadeia de
+// comparações sairia pelo ramo final e a tela imprimiria "em dia" para quem deve.
+//
+// A alavanca é a de sempre: ONLY_FULL_GROUP_BY recusa a consulta agrupada de
+// debitos_derivados() e extrato_do_cestante() sai null. Restaurado ANTES da asserção,
+// para uma falha no meio não deixar a sessão adulterada.
+$sql_mode_antes_resumo = valor_escalar("SELECT @@SESSION.sql_mode");
+executa_sql("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY'");
+$ext_indisponivel = extrato_do_cestante($usr_t);
+executa_sql("SET SESSION sql_mode = " . prep_para_bd((string)$sql_mode_antes_resumo));
+
+$resumo_indisponivel = resumo_do_extrato($ext_indisponivel);
+
+verifica("extrato indisponivel nao vira saldo, e muito menos 'em dia'",
+    $ext_indisponivel === null
+    && $resumo_indisponivel['estado'] === 'indisponivel'
+    && $resumo_indisponivel['saldo'] === null,
+    "extrato = " . var_export($ext_indisponivel, true)
+        . " · resumo = " . json_encode($resumo_indisponivel));
+
+// Lista vazia é o CONTRÁRIO de null: a consulta rodou e não há o que mostrar. É a
+// única entrada em que "em dia" é a resposta certa.
+$resumo_vazio = resumo_do_extrato(array());
+verifica("extrato vazio, esse sim, e 'em dia' com saldo zero",
+    $resumo_vazio['estado'] === 'em_dia' && $resumo_vazio['saldo'] === 0.0,
+    json_encode($resumo_vazio));
+
+// O saldo do resumo é o da ÚLTIMA linha, que é onde extrato_do_cestante() deixa o
+// acumulado. Sobre o extrato real do fixture, não sobre lista inventada.
+$ext_real    = extrato_do_cestante($usr_t);
+$ext_real    = is_array($ext_real) ? $ext_real : array();
+$ultima      = count($ext_real) ? $ext_real[count($ext_real) - 1] : null;
+$resumo_real = resumo_do_extrato($ext_real);
+
+verifica("o resumo leva o saldo da ultima linha do extrato",
+    $ultima !== null && $resumo_real['saldo'] === $ultima['saldo'],
+    "linhas = " . count($ext_real) . " · resumo = " . json_encode($resumo_real)
+        . " · ultima = " . json_encode($ultima));
+
+// Os três estados de saldo, cada um com a sua fronteira. Meio centavo é o que separa
+// "em dia" de dívida: o saldo chega de round(...,2) em round(...,2), então nenhuma
+// linha alcançável cai dentro da faixa — ela existe para o zero, não para arredondar.
+verifica("saldo negativo e devedor, positivo e credor, zero e em dia",
+    resumo_do_extrato(array(array('saldo' => -10.0)))['estado'] === 'devedor'
+    && resumo_do_extrato(array(array('saldo' =>  10.0)))['estado'] === 'credor'
+    && resumo_do_extrato(array(array('saldo' =>   0.0)))['estado'] === 'em_dia'
+    && resumo_do_extrato(array(array('saldo' => -0.004)))['estado'] === 'em_dia'
+    && resumo_do_extrato(array(array('saldo' => -0.01)))['estado'] === 'devedor');
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
@@ -1082,6 +1251,18 @@ verifica("o caminho de producao comita mesmo: as duas pernas sobrevivem a um rol
 verifica("o caminho de producao devolve a flag para false",
     $financeiro_em_transacao === false,
     "flag = " . var_export($financeiro_em_transacao, true));
+
+// Esta linha GRAVOU de verdade na cópia de produção, e o autor do registro saiu de
+// $_SESSION['usr.id'] (financeiro.inc.php:23). Numa corrida em CLI não há sessão,
+// então tem de sair 0. Se o bloco de permissão lá em cima deixar a sessão suja, sai
+// aqui o id de um usuário de fixture que o rollback já apagou — e tra_usr_registro
+// não tem chave estrangeira para reclamar, conferido no SHOW CREATE TABLE.
+$autor_prod = valor_escalar("SELECT tra_usr_registro FROM transacoes WHERE tra_id = " . (int)$tra_prod);
+
+verifica("o registro gravado de verdade nao carrega usuario de fixture",
+    (int)$autor_prod === 0,
+    "tra_usr_registro = " . var_export($autor_prod, true)
+        . " · sessao = " . json_encode($_SESSION));
 
 echo "\n";
 if ($falhas === 0) { echo "TODOS OS $total TESTES PASSARAM\n"; exit(0); }

@@ -1,0 +1,111 @@
+<?php
+  require  "common.inc.php";
+  require  "financeiro.inc.php";
+
+  $usr_id = request_get("usr_id", isset($_SESSION['usr.id']) ? $_SESSION['usr.id'] : "");
+
+  // Primeiro a sessão: logado, não arquivado. Sem parâmetro, porque a regra deste
+  // módulo não cabe aqui dentro — ver logo abaixo.
+  verifica_seguranca();
+
+  // A trava do módulo NÃO passa por verifica_seguranca(). Aquela função valida
+  // qualquer chamada vinda de PAP_ADM sem sequer olhar o parâmetro
+  // (common.inc.php:105-108), então `verifica_seguranca(pode_ver_conta_de($usr_id))`
+  // — a forma que o brief propõe — deixaria a tela aberta para todo administrador,
+  // com ou sem o papel Beta Tester, que é justo o contrário de "o módulo fica
+  // invisível até estar pronto".
+  //
+  // Medido por curl nesta cópia, com o mesmo administrador SEM o papel Beta Tester:
+  // pela forma do brief a página respondeu HTTP 200 com a legenda "Conta de" e a
+  // situação impressas; com a recusa abaixo responde HTTP 302 para inicio.php e
+  // corpo nenhum. Fica antes de top() para a recusa acontecer com o cabeçalho ainda
+  // não enviado.
+  if (!pode_ver_conta_de($usr_id))
+  {
+    adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
+    redireciona(PAGINAPRINCIPAL);
+  }
+
+  // pode_ver_conta_de() já recusou o que não fosse inteiro positivo: daqui para
+  // baixo o cast é exato, e nada de texto da URL chega às consultas.
+  $usr_id = (int)$usr_id;
+
+  top();
+
+  $sql = "SELECT usr_nome_curto FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id);
+  $res = executa_sql($sql);
+  $usr_nome_curto = ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) ? $row['usr_nome_curto'] : "";
+
+  // A tela não decide nada sobre o saldo por conta própria: resumo_do_extrato()
+  // traduz o extrato — inclusive o null de "a consulta não rodou" — num estado, e
+  // aqui só se escolhe o que desenhar para cada estado.
+  $extrato = extrato_do_cestante($usr_id);
+  $resumo  = resumo_do_extrato($extrato);
+?>
+
+	<legend>Conta de <?php echo(h($usr_nome_curto)); ?></legend>
+
+<?php
+  // Consulta que não rodou não vira número. A tela para aqui: sem situação, sem tabela
+  // e, principalmente, sem dizer que está quite quem não chegou a ser consultado — a
+  // mentira que o contrato de null de extrato_do_cestante() existe para impedir. Erro
+  // visível é o resultado certo; silêncio não é.
+  //
+  // Comentário de PHP, e não de HTML: comentário de HTML é enviado ao navegador. O
+  // primeiro rascunho desta tela explicava o ramo num <!-- --> que citava a expressão
+  // "em dia", e ela saía no corpo da página justamente no caso em que a tela não pode
+  // dizer isso. Raciocínio fica no arquivo.
+  if ($resumo['estado'] === 'indisponivel') { ?>
+
+	<div class="alert alert-danger">
+	  <strong>Não foi possível carregar o extrato desta conta.</strong><br>
+	  Nenhum valor pode ser mostrado agora — inclusive o saldo. Tente de novo daqui a
+	  alguns minutos e, se continuar assim, avise a coordenação.
+	</div>
+
+<?php } else { ?>
+
+	<div class="row">
+	  <div class="col-md-6">
+		<strong>Situação:</strong>
+		<?php if ($resumo['estado'] === 'devedor') { ?>
+		  <span class="label label-danger" style="font-size:larger;">em aberto: R$ <?php echo(formata_moeda(-$resumo['saldo'])); ?></span>
+		<?php } else if ($resumo['estado'] === 'credor') { ?>
+		  <span class="label label-info" style="font-size:larger;">crédito: R$ <?php echo(formata_moeda($resumo['saldo'])); ?></span>
+		<?php } else { ?>
+		  <span class="label label-success" style="font-size:larger;">em dia</span>
+		<?php } ?>
+	  </div>
+	</div>
+
+	<br>
+
+	<table class="table table-striped table-bordered table-condensed">
+	  <thead>
+		<tr><th>Data</th><th>Histórico</th><th class="text-right">Valor</th><th class="text-right">Saldo</th></tr>
+	  </thead>
+	  <tbody>
+	  <?php foreach ($extrato as $linha) { ?>
+		<tr>
+		  <td><?php echo(date('d/m/Y', strtotime($linha['dt']))); ?></td>
+		  <td>
+			<?php echo(h($linha['historico'])); ?>
+			<?php
+			  // entrega ainda não lançada no razão: o valor sai da entrega registrada
+			  if ($linha['situacao'] === 'derivado') { ?>
+			  &nbsp;<span class="label label-default">a confirmar</span>
+			<?php } ?>
+		  </td>
+		  <td class="text-right"><?php echo(formata_moeda($linha['valor'])); ?></td>
+		  <td class="text-right"><?php echo(formata_moeda($linha['saldo'])); ?></td>
+		</tr>
+	  <?php } ?>
+	  <?php if (!count($extrato)) { ?>
+		<tr><td colspan="4">Nenhum lançamento nesta conta.</td></tr>
+	  <?php } ?>
+	  </tbody>
+	</table>
+
+<?php } ?>
+
+<?php footer(); ?>

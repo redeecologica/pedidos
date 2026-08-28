@@ -11,7 +11,25 @@
           
             <li><a href="index.php"><i class="glyphicon glyphicon-home"></i> Início</a></li>
             <li><a href="meuspedidos.php"><i class="icon-pedidos-shopping-bag"></i> Meus Pedidos</a></li>
-		    <li><a href="contatos.php"><i class="glyphicon glyphicon-phone-alt"></i> Contatos</a></li>        
+
+		  <?php
+		   // Módulo financeiro, ainda atrás do papel Beta Tester. O function_exists não
+		   // é zelo: este arquivo é incluído pelo header.inc.php, que top() carrega em
+		   // TODA página, e a maioria delas não requer o financeiro.inc.php. Conferido
+		   // tirando o teste e abrindo o inicio.php: "Fatal error: Uncaught Error: Call
+		   // to undefined function pode_ver_financeiro() in menu.inc.php".
+		   //
+		   // Esconder o item não tranca nada; quem tranca é a mesma pergunta feita
+		   // dentro do conta_cestante.php.
+			if(function_exists('pode_ver_financeiro') && pode_ver_financeiro())
+			{
+		   ?>
+            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-usd"></i> Meu Extrato</a></li>
+		  <?php
+			}
+		   ?>
+
+		    <li><a href="contatos.php"><i class="glyphicon glyphicon-phone-alt"></i> Contatos</a></li>
           
             		  
 		  <?php  
