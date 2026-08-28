@@ -1742,6 +1742,62 @@ verifica("o bloco de pagamento devolveu a sessao ao que era",
     "sessao = " . json_encode($_SESSION));
 
 // ---------------------------------------------------------------------------
+echo "\nedicao da descricao de um lancamento\n";
+// ---------------------------------------------------------------------------
+
+// lanca_transacao() carimba tra_usr_registro a partir da sessao, entao o bloco
+// precisa de um usr.id — e precisa DEVOLVER a sessao como estava, senao um teste
+// mais adiante ve usuario de fixture onde nao devia. Ja aconteceu.
+$sessao_usr_antes = isset($_SESSION['usr.id']) ? $_SESSION['usr.id'] : null;
+$_SESSION['usr.id'] = $usr_t;
+$tra_ed = lanca_transacao('2026-03-01 10:00:00', 'pagamento', $con_nuc_t, $con_t, 33.00,
+    'texto original', array('comprovante' => 'http://original.example/a.pdf'));
+
+verifica("fixture da edicao foi lancado",
+    is_numeric($tra_ed) && $tra_ed > 0, var_export($tra_ed, true));
+
+$saldo_antes_ed = saldo_da_conta($con_t);
+
+verifica("editar a descricao devolve true",
+    edita_descricao_transacao($tra_ed, 'texto corrigido', 'http://novo.example/b.pdf') === true);
+
+verifica("o texto e o comprovante mudaram",
+    valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_ed) === 'texto corrigido'
+    && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_ed) === 'http://novo.example/b.pdf');
+
+// O ponto da funcao: editar descricao NAO pode mexer em dinheiro.
+verifica("o saldo NAO muda ao editar a descricao",
+    abs(saldo_da_conta($con_t) - $saldo_antes_ed) < 0.001,
+    "antes=$saldo_antes_ed depois=" . saldo_da_conta($con_t));
+
+verifica("as duas pernas continuam somando zero",
+    !in_array((int)$tra_ed, array_map('intval', transacoes_desbalanceadas()), true));
+
+// O rastro e a razao de a funcao existir: sem ele a edicao ficaria invisivel, e a
+// linha continuaria dizendo que foi registrada por quem a criou, na data original.
+verifica("o rastro registra quem editou e quando",
+    (int)valor_escalar("SELECT tra_usr_alteracao FROM transacoes WHERE tra_id = " . (int)$tra_ed) === (int)$usr_t
+    && valor_escalar("SELECT tra_dt_alteracao FROM transacoes WHERE tra_id = " . (int)$tra_ed) !== null);
+
+verifica("lancamento nao editado tem o rastro NULO",
+    valor_escalar("SELECT tra_dt_alteracao FROM transacoes WHERE tra_id = " . (int)$tra_p) === null);
+
+verifica("tra_id invalido nao grava nada",
+    edita_descricao_transacao(0, 'x', 'y') === false
+    && edita_descricao_transacao('abc', 'x', 'y') === false);
+
+// cestante_da_transacao(): quem chama precisa dela para aplicar pode_ver_conta_de().
+verifica("cestante_da_transacao acha o dono da conta",
+    cestante_da_transacao($tra_ed) === (int)$usr_t,
+    var_export(cestante_da_transacao($tra_ed), true));
+
+verifica("transacao inexistente nao tem dono",
+    cestante_da_transacao(99999999) === null);
+
+if ($sessao_usr_antes === null) unset($_SESSION['usr.id']);
+else                            $_SESSION['usr.id'] = $sessao_usr_antes;
+
+// ---------------------------------------------------------------------------
 echo "\ndestinos repartidos em grupos\n";
 // ---------------------------------------------------------------------------
 
