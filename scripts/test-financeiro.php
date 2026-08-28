@@ -346,6 +346,170 @@ verifica("conta de produtor nasce com o vinculo",
         . " AND con_tipo = 'produtor' AND con_forn = 1") == 1,
     var_export($con_forn_t, true));
 
+echo "\ndebito derivado\n";
+
+// O débito é derivado da entrega, e o preço é o da ÉPOCA dela: produtos guarda
+// uma linha por versão do produto (prod_id NÃO é único) e é a janela de validade
+// que casa a versão certa com cha_dt_entrega.
+//
+// Os valores esperados não são literais aqui: o banco é cópia de produção e o
+// preço do produto 1 muda na próxima carga. Vêm de uma consulta DIFERENTE da que
+// a implementação faz — "a última versão que começou até a data" —, para o teste
+// não repetir a regra que deveria estar conferindo. Se a implementação perder a
+// janela de validade, ela soma TODAS as versões do produto e o valor não bate.
+$preco_hoje  = (float)valor_escalar("SELECT prod_valor_venda FROM produtos WHERE prod_id = 1
+    AND prod_ini_validade <= NOW() - INTERVAL 3 DAY ORDER BY prod_ini_validade DESC LIMIT 1");
+$margem_hoje = (float)valor_escalar("SELECT prod_valor_venda_margem FROM produtos WHERE prod_id = 1
+    AND prod_ini_validade <= NOW() - INTERVAL 3 DAY ORDER BY prod_ini_validade DESC LIMIT 1");
+$preco_2014  = (float)valor_escalar("SELECT prod_valor_venda FROM produtos WHERE prod_id = 1
+    AND prod_ini_validade <= '2014-06-01 00:00:00' ORDER BY prod_ini_validade DESC LIMIT 1");
+
+// Chamada com prazo contábil no futuro: ainda pode mudar, logo não é congelável.
+$cha_t = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 5 DAY, 0.10, NOW() + INTERVAL 5 DAY)");
+
+// Chamada velha, com o prazo contábil já vencido: congelável, e com preço de 2014.
+$cha_velha = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, '2014-06-01 10:00:00', '2014-05-20 10:00:00', '2014-05-28 10:00:00', 0.10, '2014-07-01 10:00:00')");
+
+// Chamada com pedido em aberto: entrega registrada, mas o pedido não foi fechado.
+$cha_aberta = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 5 DAY, 0.10, NOW() + INTERVAL 5 DAY)");
+
+// Chamada fechada em que nada foi entregue. É o caso mais comum da base: na
+// conferência contra o Quadro apareceram 576 dessas em 28 cestantes. O Quadro
+// imprime a linha com 0,00 porque a tela é uma grade; o débito derivado omite,
+// porque quem não recebeu nada não deve nada.
+$cha_zero = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 5 DAY, 0.10, NOW() + INTERVAL 5 DAY)");
+
+// O produto 2 entra na chamada marcado como INDISPONÍVEL e mesmo assim ganha
+// entrega registrada. É o estado que existe na base de produção e que o Quadro
+// de Cestantes ignora — se o débito derivado o contasse, divergiria da tela.
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_t, 1, 2)");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_t, 2, 0)");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_velha, 1, 2)");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_aberta, 1, 2)");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_zero, 1, 2)");
+insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($cha_zero, 2, 2)");
+
+// Associado: paga o preço de venda e a taxa por cima.
+$ped_t = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t, 1, 1, $cha_t, '1')");
+// Não associado, na MESMA chamada: paga o preço com margem e não paga taxa.
+$ped_t2 = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t2, 0, 1, $cha_t, '1')");
+$ped_velho = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t, 1, 1, $cha_velha, '1')");
+$ped_aberto = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t, 1, 1, $cha_aberta, '0')");
+$ped_zero = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+    VALUES ($usr_t, 1, 1, $cha_zero, '1')");
+
+// Pediu 5, recebeu 2: o débito é do que foi entregue.
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_t, 1, 5, 2)");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_t, 2, 3, 3)");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_t2, 1, 5, 2)");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_velho, 1, 5, 2)");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_aberto, 1, 5, 2)");
+// Pedido fechado sem entrega: as duas formas que a base guarda — NULL (a tela de
+// entrega nunca foi preenchida) e 0 (foi preenchida com zero).
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_zero, 1, 5, NULL)");
+insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES ($ped_zero, 2, 3, 0)");
+
+$deb = debitos_derivados($usr_t);
+$linha = null;
+$linha_velha = null;
+$linha_aberta = null;
+$linha_zero = null;
+foreach ($deb as $d)
+{
+    if ($d['cha_id'] == $cha_t)      $linha        = $d;
+    if ($d['cha_id'] == $cha_velha)  $linha_velha  = $d;
+    if ($d['cha_id'] == $cha_aberta) $linha_aberta = $d;
+    if ($d['cha_id'] == $cha_zero)   $linha_zero   = $d;
+}
+
+verifica("o debito derivado aparece para a chamada entregue",
+    $linha !== null, "nenhuma linha para cha_id=$cha_t");
+
+// Pediu 5, recebeu 2 — os dois números são diferentes de propósito: com
+// pedprod_quantidade no lugar de pedprod_entregue o valor seria 5 * o preço.
+verifica("o valor considera a quantidade entregue, nao a pedida",
+    $linha && round($linha['valor_entregue'], 2) == round(2 * $preco_hoje, 2),
+    $linha ? "valor_entregue={$linha['valor_entregue']} esperado=" . round(2 * $preco_hoje, 2)
+           : var_export($linha, true));
+
+verifica("associado paga taxa sobre o entregue, somada ao valor",
+    $linha && round($linha['taxa'], 2) == round(2 * $preco_hoje * 0.10, 2)
+    && round($linha['valor'], 2) == round($linha['valor_entregue'] + $linha['taxa'], 2),
+    $linha ? "taxa={$linha['taxa']} entregue={$linha['valor_entregue']} valor={$linha['valor']}" : '');
+
+verifica("com prazo contabil no futuro a chamada ainda nao e congelavel",
+    $linha && !$linha['congelavel']);
+
+verifica("com prazo contabil vencido a chamada e congelavel",
+    $linha_velha && $linha_velha['congelavel'],
+    var_export($linha_velha, true));
+
+// O preço tem de ser o da data da entrega, não o de hoje. A guarda de desigualdade
+// está na mesma asserção porque, se as duas versões do produto tivessem o mesmo
+// preço, o teste passaria sem exercitar nada.
+verifica("o preco e o vigente na data da entrega, nao o de hoje",
+    $preco_2014 > 0 && $preco_2014 != $preco_hoje
+    && $linha_velha && round($linha_velha['valor_entregue'], 2) == round(2 * $preco_2014, 2),
+    "preco_2014=$preco_2014 preco_hoje=$preco_hoje entregue="
+        . ($linha_velha ? $linha_velha['valor_entregue'] : 'sem linha'));
+
+// O Quadro de Cestantes descarta o produto marcado indisponível na chamada. A
+// primeira condição confere que o fixture criou mesmo esse estado — sem ela, o
+// teste ficaria verde por não haver o que descartar.
+$entregue_indisponivel = (float)valor_escalar("SELECT pedprod_entregue FROM pedidoprodutos
+    WHERE pedprod_ped = " . (int)$ped_t . " AND pedprod_prod = 2");
+
+verifica("produto indisponivel na chamada nao entra na conta",
+    $entregue_indisponivel > 0
+    && $linha && round($linha['valor_entregue'], 2) == round(2 * $preco_hoje, 2),
+    "entregue do indisponivel=$entregue_indisponivel · valor_entregue="
+        . ($linha ? $linha['valor_entregue'] : 'sem linha'));
+
+verifica("pedido nao fechado nao gera debito",
+    $linha_aberta === null, var_export($linha_aberta, true));
+
+// Sem entrega não há débito, e a chamada nem aparece na lista. O Quadro imprime
+// 0,00 porque é uma grade; aqui a lista é de dívida, e linha de valor zero só
+// atrapalharia quem for lançar. A guarda confere que o fixture criou mesmo o
+// pedido fechado sem entrega — senão o teste ficaria verde por não haver caso.
+$linhas_sem_entrega = (int)valor_escalar("SELECT COUNT(*) FROM pedidoprodutos
+    WHERE pedprod_ped = " . (int)$ped_zero . " AND COALESCE(pedprod_entregue, 0) = 0");
+
+verifica("chamada fechada sem entrega nenhuma nao vira linha de debito",
+    $linhas_sem_entrega === 2 && $linha_zero === null,
+    "linhas sem entrega=$linhas_sem_entrega · linha=" . var_export($linha_zero, true));
+
+// Não associado: o preço já vem com a margem embutida e não há taxa. Está na
+// MESMA chamada do associado, então este teste também segura o filtro por
+// cestante — sem ele, as duas chamadas somariam os dois pedidos e nenhum dos
+// dois valores bateria.
+$deb2 = debitos_derivados($usr_t2);
+$linha2 = null;
+foreach ($deb2 as $d) if ($d['cha_id'] == $cha_t) $linha2 = $d;
+
+verifica("nao associado paga o preco com margem e nao paga taxa",
+    $margem_hoje != $preco_hoje && $linha2
+    && round($linha2['valor_entregue'], 2) == round(2 * $margem_hoje, 2)
+    && round($linha2['taxa'], 2) == 0.0
+    && round($linha2['valor'], 2) == round(2 * $margem_hoje, 2),
+    $linha2 ? "entregue={$linha2['valor_entregue']} taxa={$linha2['taxa']} valor={$linha2['valor']}"
+            : "nenhuma linha para cha_id=$cha_t no cestante $usr_t2");
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
