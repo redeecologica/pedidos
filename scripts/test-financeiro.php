@@ -882,6 +882,45 @@ verifica("o nome do tipo de produto foi devolvido ao original",
     var_export(valor_escalar("SELECT prodt_nome FROM produtotipos WHERE prodt_id = 1"), true));
 
 
+// `cha` nos extras de lanca_transacao vale para QUALQUER tipo, não só para
+// debito_entrega: um pagamento pode muito bem ser registrado contra a chamada a
+// que se refere. Só o DÉBITO materializa a entrega, então só ele apaga a linha
+// derivada — e é por isso que o filtro por tra_tipo existe.
+//
+// Sem esse filtro, um pagamento com chamada faria a dívida daquela entrega SUMIR
+// do extrato: o cestante pagaria e o débito desapareceria junto, em vez de os dois
+// aparecerem. É a cobrança a MENOS, gêmea da cobrança a mais que a deduplicação
+// evita — e nenhum dos outros testes a pega, porque toda transação com chamada
+// criada até aqui é debito_entrega.
+//
+// A contagem ANTES é a guarda do fixture: prova que havia mesmo uma linha derivada
+// para se perder.
+$ext_antes_pag_cha = extrato_do_cestante($usr_t);
+$ext_antes_pag_cha = is_array($ext_antes_pag_cha) ? $ext_antes_pag_cha : array();
+
+$derivada_velha_antes = 0;
+foreach ($ext_antes_pag_cha as $l)
+    if ($l['situacao'] === 'derivado' && $l['cha'] == $cha_velha) $derivada_velha_antes++;
+
+$tra_pag_cha = lanca_transacao($agora_bd, 'pagamento', $con_rede, $con_t, 2.00,
+                               'pagamento com chamada', array('cha' => $cha_velha));
+$ext6 = extrato_do_cestante($usr_t);
+$ext6 = is_array($ext6) ? $ext6 : array();
+
+$derivada_velha_depois = 0;
+$gravada_com_cha_velha = 0;
+foreach ($ext6 as $l)
+{
+    if ($l['situacao'] === 'derivado' && $l['cha'] == $cha_velha) $derivada_velha_depois++;
+    if ($l['situacao'] === 'gravado'  && $l['cha'] == $cha_velha) $gravada_com_cha_velha++;
+}
+
+verifica("pagamento com chamada nao apaga o debito derivado dela",
+    $tra_pag_cha > 0 && $derivada_velha_antes === 1 && $derivada_velha_depois === 1
+    && $gravada_com_cha_velha === 1,
+    "derivada antes = $derivada_velha_antes · depois = $derivada_velha_depois"
+        . " · gravada com a mesma chamada = $gravada_com_cha_velha");
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
