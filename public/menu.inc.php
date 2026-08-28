@@ -169,6 +169,18 @@
                       <?php 
                             } 			  
                       ?> 
+
+					  <?php 
+                            // Cadastro de contas: quem cuida do dinheiro da Rede, não quem
+                            // lança pagamento no núcleo. Por isso a pergunta aqui é outra.
+                            if (pode_ver_financeiro()
+                                && (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM])))
+                            {
+                       ?>
+			                    <li><a href="contas.php"><i class="glyphicon glyphicon-briefcase"></i> Contas</a></li>
+                      <?php 
+                            } 			  
+                      ?> 
                       
                       
 					  <?php 

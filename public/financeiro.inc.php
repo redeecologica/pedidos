@@ -877,6 +877,69 @@ function cestante_da_transacao($tra_id)
 }
 
 
+// Cria a conta que falta para cada núcleo e cada produtor ATIVO. Devolve quantas
+// criou, ou null se a consulta não rodou.
+//
+// Existe porque conta de núcleo e de produtor não deve ser digitada uma a uma: o
+// vínculo já está no cadastro, e o nome sai dele. Só a conta da Rede é criada à mão,
+// porque é a única cujo rótulo é uma decisão ("Rede (conta Fulana)").
+//
+// É idempotente por construção: cria_conta() esbarra na UNIQUE de con_nuc/con_forn
+// quando a conta já existe, então rodar de novo não duplica nada. Arquivadas ficam de
+// fora — não são destino válido, e criar conta para elas seria criar lixo.
+function cria_contas_que_faltam()
+{
+	$criadas = 0;
+
+	$res = executa_sql("SELECT nuc_id, nuc_nome_curto FROM nucleos WHERE nuc_archive = 0 "
+	                 . "AND nuc_id NOT IN (SELECT COALESCE(con_nuc,0) FROM contas WHERE con_tipo = 'nucleo') "
+	                 . "ORDER BY nuc_nome_curto");
+	if (!$res) return null;
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		if (cria_conta('nucleo', array('con_nuc' => $row['nuc_id'],
+		                               'con_nome' => 'Caixa ' . $row['nuc_nome_curto']))) $criadas++;
+
+	$res = executa_sql("SELECT forn_id, forn_nome_curto FROM fornecedores WHERE forn_archive = 0 "
+	                 . "AND forn_id NOT IN (SELECT COALESCE(con_forn,0) FROM contas WHERE con_tipo = 'produtor') "
+	                 . "ORDER BY forn_nome_curto");
+	if (!$res) return null;
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		if (cria_conta('produtor', array('con_forn' => $row['forn_id'],
+		                                 'con_nome' => $row['forn_nome_curto']))) $criadas++;
+
+	return $criadas;
+}
+
+
+// Renomeia uma conta. Só o rótulo: tipo, vínculo e chave não se editam.
+//
+// O tipo e o vínculo dizem o que a conta É; trocá-los numa conta que já tem
+// lançamento mudaria, em silêncio, de quem é aquele dinheiro. A chave é identidade —
+// foi a lição da Task 3, e amarrar identidade a algo editável faz renomear criar uma
+// segunda conta sem ninguém perceber.
+function renomeia_conta($con_id, $nome)
+{
+	$nome = trim((string)$nome);
+	if (!is_numeric($con_id) || (int)$con_id <= 0) return false;
+	if ($nome === '') return false;                 // rótulo em branco vira <option> invisível
+
+	return executa_sql("UPDATE contas SET con_nome = " . prep_para_bd($nome)
+	                 . " WHERE con_id = " . prep_para_bd((int)$con_id)) === true;
+}
+
+
+// Arquiva ou desarquiva. Arquivar tira a conta de contas_de_destino() sem apagar
+// nada: conta com lançamento não pode ser apagada, e o histórico dela continua
+// valendo no extrato de quem movimentou.
+function arquiva_conta($con_id, $arquivada)
+{
+	if (!is_numeric($con_id) || (int)$con_id <= 0) return false;
+
+	return executa_sql("UPDATE contas SET con_archive = " . ($arquivada ? "1" : "0")
+	                 . " WHERE con_id = " . prep_para_bd((int)$con_id)) === true;
+}
+
+
 // A lista PLANA, que é o contrato que registra_pagamento() valida. Derivada da
 // agrupada de propósito: uma segunda consulta seria uma segunda cópia da regra, e as
 // duas poderiam discordar sobre o que é destino válido — a tela oferecendo o que a

@@ -1823,6 +1823,62 @@ if ($sessao_usr_antes === null) unset($_SESSION['usr.id']);
 else                            $_SESSION['usr.id'] = $sessao_usr_antes;
 
 // ---------------------------------------------------------------------------
+echo "\nadministracao de contas\n";
+// ---------------------------------------------------------------------------
+
+// cria_contas_que_faltam() e idempotente por construcao: cria_conta() esbarra na
+// UNIQUE de con_nuc/con_forn. A segunda passada tem de criar ZERO.
+$criadas_1 = cria_contas_que_faltam();
+$criadas_2 = cria_contas_que_faltam();
+
+verifica("cria_contas_que_faltam cria na primeira passada",
+    is_int($criadas_1) && $criadas_1 > 0, var_export($criadas_1, true));
+
+verifica("e cria ZERO na segunda — idempotente",
+    $criadas_2 === 0, var_export($criadas_2, true));
+
+// Nucleo arquivado nao ganha conta: nao e destino valido, e a conta seria lixo.
+verifica("nucleo arquivado nao ganha conta",
+    (int)valor_escalar("SELECT COUNT(*) FROM contas c JOIN nucleos n ON n.nuc_id = c.con_nuc
+                        WHERE c.con_tipo = 'nucleo' AND n.nuc_archive = 1") === 0);
+
+verifica("produtor arquivado nao ganha conta",
+    (int)valor_escalar("SELECT COUNT(*) FROM contas c JOIN fornecedores f ON f.forn_id = c.con_forn
+                        WHERE c.con_tipo = 'produtor' AND f.forn_archive = 1") === 0);
+
+// renomear muda o rotulo e SO o rotulo
+$con_ren = cria_conta('rede', array('con_nome' => 'Rede Teste Renomear', 'con_chave' => 'rede_teste_ren'));
+verifica("renomear devolve true e troca o rotulo",
+    renomeia_conta($con_ren, 'Rede (conta Fulana)') === true
+    && valor_escalar("SELECT con_nome FROM contas WHERE con_id = " . (int)$con_ren) === 'Rede (conta Fulana)');
+
+verifica("renomear NAO mexe no tipo nem na chave",
+    valor_escalar("SELECT con_tipo FROM contas WHERE con_id = " . (int)$con_ren) === 'rede'
+    && valor_escalar("SELECT con_chave FROM contas WHERE con_id = " . (int)$con_ren) === 'rede_teste_ren');
+
+// rotulo em branco vira <option> invisivel numa tela que move dinheiro
+verifica("nome vazio e recusado",
+    renomeia_conta($con_ren, '') === false && renomeia_conta($con_ren, '   ') === false);
+
+verifica("con_id invalido e recusado",
+    renomeia_conta(0, 'x') === false && arquiva_conta('abc', true) === false);
+
+// arquivar tira dos destinos sem apagar
+$antes_arq = count((array)contas_de_destino());
+verifica("arquivar devolve true", arquiva_conta($con_ren, true) === true);
+
+verifica("conta arquivada sai da lista de destinos",
+    count((array)contas_de_destino()) === $antes_arq - 1,
+    "antes=$antes_arq depois=" . count((array)contas_de_destino()));
+
+verifica("mas a conta continua existindo",
+    (int)valor_escalar("SELECT COUNT(*) FROM contas WHERE con_id = " . (int)$con_ren) === 1);
+
+verifica("desarquivar traz de volta",
+    arquiva_conta($con_ren, false) === true
+    && count((array)contas_de_destino()) === $antes_arq);
+
+// ---------------------------------------------------------------------------
 echo "\ndestinos repartidos em grupos\n";
 // ---------------------------------------------------------------------------
 
