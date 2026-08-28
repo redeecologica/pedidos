@@ -48,7 +48,7 @@
 			if(pode_ver_financeiro())
 			{
 		   ?>
-            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-piggy-bank"></i> Meu Extrato</a></li>
+            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-credit-card"></i> Meu Saldo</a></li>
 		  <?php
 			}
 		   ?>
@@ -165,7 +165,7 @@
                             if (pode_lancar_pagamento())
                             {
                        ?>
-			                    <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-list-alt"></i> Pagamentos</a></li>
+			                    <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-piggy-bank"></i> Pagamentos</a></li>
                       <?php 
                             } 			  
                       ?> 
