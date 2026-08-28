@@ -181,30 +181,6 @@
 	  </div>
 	</div>
 
-	<?php
-	  // O módulo entra em operação com o débito DERIVADO da entrega, que existe desde
-	  // 2013, e sem os pagamentos que a Rede recebeu nesses anos — eles vivem na planilha
-	  // e viram saldo de abertura no plano seguinte. Sem esta linha, o rótulo vermelho
-	  // acima é lido como dívida atual, e não é. Medido em 2026-08-28 com a aritmética
-	  // desta tela, núcleo 5 (Santa, 32 ativos): total em aberto R$ 1.237.019,51, maior
-	  // devedor R$ 144.285,55. No núcleo 7 (Urca, 35 ativos), R$ 1.566.447,61 e
-	  // R$ 120.071,96. Os números estão certos pelo contrato do módulo e errados como
-	  // frase sobre a vida de alguém.
-	  //
-	  // Fica FORA do ramo do saldo e antes da tabela, para valer também para quem está
-	  // "em dia" — um zero sem esta ressalva também mente.
-	  //
-	  // E NÃO leva hidden-print: o rótulo vermelho de :114 não tem, então esconder a
-	  // ressalva na impressão entregaria ao cestante justamente o papel com o número
-	  // grande e sem a frase que o explica.
-	?>
-	<div class="alert alert-warning" style="margin-top:10px;">
-	  <strong>Estes valores ainda não incluem pagamentos anteriores.</strong><br>
-	  O extrato mostra as entregas registradas no sistema desde o início e os pagamentos
-	  lançados aqui. O que foi pago antes de o módulo entrar em operação ainda está na
-	  planilha e será lançado como saldo de abertura. Até lá, o valor acima não é a
-	  dívida desta pessoa.
-	</div>
 
 	<br>
 
