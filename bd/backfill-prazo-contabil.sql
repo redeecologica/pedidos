@@ -34,6 +34,11 @@
 -- 1177). São erro de digitação, não ausência, e pedem decisão caso a caso — a
 -- 1177 é typo de ano (2025 onde devia ser 2026) e a 963 parece mês trocado.
 --
+-- NÃO É PARTE DE NENHUM CAMINHO AUTOMÁTICO
+-- Mora em bd/ ao lado do bd_estrutura.sql por conveniência, mas não é instalador
+-- e não é lido por script nenhum: scripts/db-import.sh só carrega dumps/*.sql.gz.
+-- Rodar isto é ato deliberado de quem tem acesso ao banco de produção.
+--
 -- COMO RODAR
 --   1. rode o bloco ANTES e confira os números
 --   2. rode o UPDATE

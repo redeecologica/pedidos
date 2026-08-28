@@ -126,6 +126,18 @@ verifica("Associação sem Secos pareado cai no padrão de 6 dias",
     prazo_contabil_padrao($PRODT_ASSOC, $ENTREGA_ORFA) === '2027-09-20 23:59:59',
     var_export(prazo_contabil_padrao($PRODT_ASSOC, $ENTREGA_ORFA), true));
 
+// O prazo do Secos é dado arbitrário da base, e a base TEM prazo inválido: cha
+// 1177 fechou um ano antes da entrega (typo de ano) e cha 963, 26 dias antes.
+// Copiar um desses daria à Associação um prazo anterior à própria entrega, ou
+// seja, uma chamada nascida trancada para registro de entrega.
+$ENTREGA_ASSOC_RUIM = '2027-07-14 23:59:59';
+insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_prazo_contabil)
+    VALUES ($PRODT_SECOS, '2027-07-15 23:59:59', '2026-07-20 10:00:00')");
+
+verifica("prazo de Secos anterior à entrega da Associação não é copiado",
+    prazo_contabil_padrao($PRODT_ASSOC, $ENTREGA_ASSOC_RUIM) === '2027-07-20 23:59:59',
+    var_export(prazo_contabil_padrao($PRODT_ASSOC, $ENTREGA_ASSOC_RUIM), true));
+
 // Chamada de Secos longe demais não é par: a regra é o dia seguinte, não
 // "o próximo Secos que aparecer".
 $ENTREGA_LONGE = '2027-12-01 23:59:59';

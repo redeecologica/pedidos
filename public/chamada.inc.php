@@ -71,10 +71,13 @@ function prazo_contabil_padrao($cha_prodt, $cha_dt_entrega)
 	{
 		$prazo_secos = prazo_contabil_do_secos_pareado($cha_dt_entrega);
 
-		// "Achei a chamada" e "achei prazo aproveitável" são coisas diferentes. Se
-		// o Secos pareado ainda não tem prazo, copiar devolveria nulo — justamente
-		// o que esta função existe para não fazer. Cai no padrão.
-		if ($prazo_secos !== null) return $prazo_secos;
+		// "Achei a chamada" e "achei prazo aproveitável" são coisas diferentes, por
+		// dois motivos. Se o Secos pareado ainda não tem prazo, copiar devolveria
+		// nulo — justamente o que esta função existe para não fazer. E o prazo do
+		// Secos é dado da base, que TEM prazo inválido: cha 1177 fechou um ano
+		// antes da entrega (typo de ano) e cha 963, 26 dias antes. Copiar um desses
+		// faria a Associação nascer já trancada para registro de entrega.
+		if ($prazo_secos !== null && prazo_contabil_valido($prazo_secos, $cha_dt_entrega)) return $prazo_secos;
 	}
 
 	$dias = prazo_contabil_dias_por_tipo($prodt_nome);
