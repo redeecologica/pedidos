@@ -121,6 +121,25 @@ function transacoes_desbalanceadas()
 // usa, e em silêncio.
 if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
 
+// Data em que o módulo entra em operação. Entrega anterior a ela NÃO vira débito
+// derivado: fica na planilha e entra depois como uma linha de reconciliação por
+// cestante, com o saldo que o núcleo informar.
+//
+// Sem esse piso o extrato mostra a dívida desde 2013 e a soma não quer dizer nada:
+// o cestante 101 aparece devendo R$ 120.071,96, e o painel de um núcleo, -1,2 milhão.
+// Números certos pelo contrato do módulo e falsos como frase sobre a vida de alguém.
+//
+// !!! PROVISÓRIA !!! 2026-05-01 é valor de TESTE LOCAL, escolhido por cair limpo
+// no calendário (o ciclo de abril fecha em 28/04 e o de maio só entrega em 07/05;
+// conferido em produção: zero chamadas entregues antes do dia 1º ainda abertas
+// depois dele). A data de produção é decisão da Rede e ainda não foi tomada —
+// NÃO SUBIR sem trocar isto.
+//
+// Trocar a data é livre enquanto a reconciliação não for lançada: o débito é
+// derivado, nada fica gravado, e o número se refaz sozinho. Depois de lançada, mover
+// o piso abre buraco ou sobreposição.
+if (!defined('DATA_CORTE_FINANCEIRO')) define('DATA_CORTE_FINANCEIRO', '2026-05-01 00:00:00');
+
 
 // Chaves estáveis reservadas: chave => único con_tipo que pode carregá-la.
 //
@@ -346,6 +365,7 @@ function debitos_derivados($usr_id)
 	$sql.= "WHERE p.ped_usr = $usr_bd AND p.ped_fechado = 1 ";
 	$sql.= "AND cp.chaprod_disponibilidade <> '0' ";
 	$sql.= "AND pp.pedprod_entregue > 0 ";
+	$sql.= "AND c.cha_dt_entrega >= " . prep_para_bd(DATA_CORTE_FINANCEIRO) . " ";
 	$sql.= "GROUP BY c.cha_id ";
 	// O desempate por cha_id não é enfeite. Sem ele o servidor devolve os empates de
 	// data na ordem que quiser, e ele exerce essa liberdade: na cópia de produção o

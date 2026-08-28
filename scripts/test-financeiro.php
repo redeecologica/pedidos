@@ -36,6 +36,16 @@ function valor_escalar($sql)
 }
 
 require "/var/www/html/common.inc.php";
+// O piso de DATA_CORTE_FINANCEIRO é definido AQUI, antes do require, porque o
+// financeiro.inc.php usa if(!defined).
+//
+// 2014-01-01 não é arbitrário: mantém o fixture de 2014-06-01 (que testa janela de
+// preço e congelavel) dentro do alcance, e fica DEPOIS de 2013-01-01, quando o
+// produto 1 passa a ter versão. Um piso mais antigo faria o teste da fronteira
+// passar pelo motivo errado — a entrega seria excluída pela janela de preço, não
+// pelo corte, e as duas causas ficariam indistinguíveis.
+define('DATA_CORTE_FINANCEIRO', '2014-01-01 00:00:00');
+
 require "/var/www/html/financeiro.inc.php";
 
 echo "\nrazao\n";
@@ -458,6 +468,42 @@ verifica("com prazo contabil no futuro a chamada ainda nao e congelavel",
 verifica("com prazo contabil vencido a chamada e congelavel",
     $linha_velha && $linha_velha['congelavel'],
     var_export($linha_velha, true));
+
+// ---------------------------------------------------------------------------
+// Piso da data de corte: entrega anterior à entrada em operação não vira débito.
+// A suíte roda com DATA_CORTE_FINANCEIRO = 2010-01-01 (definida no topo), então
+// o par abaixo cerca exatamente essa fronteira.
+// ---------------------------------------------------------------------------
+$cha_antes_corte = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, '2013-12-31 23:59:59', '2013-12-01 10:00:00', '2013-12-20 10:00:00', 0.10, '2014-01-20 10:00:00')");
+$cha_no_corte = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1, '2014-01-01 00:00:00', '2013-12-01 10:00:00', '2013-12-20 10:00:00', 0.10, '2014-01-20 10:00:00')");
+
+// Cestante PRÓPRIO para o corte. Pendurar estas duas entregas no $usr_t poluiria
+// os testes de extrato, que conferem contagem e posição exatas das linhas dele.
+$usr_corte = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Teste Corte', 'corte', 'testecorte@dev.local', 'x', '0', 1)");
+
+foreach (array($cha_antes_corte, $cha_no_corte) as $c_corte)
+{
+    insere("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade) VALUES ($c_corte, 1, 2)");
+    $ped_corte = insere("INSERT INTO pedidos (ped_usr, ped_usr_associado, ped_nuc, ped_cha, ped_fechado)
+        VALUES ($usr_corte, 1, 1, $c_corte, '1')");
+    insere("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+        VALUES ($ped_corte, 1, 2, 2)");
+}
+
+$deb_corte = debitos_derivados($usr_corte);
+$chas_corte = array();
+foreach ((array)$deb_corte as $d) $chas_corte[$d['cha_id']] = true;
+
+verifica("entrega ANTERIOR a data de corte nao vira debito",
+    !isset($chas_corte[$cha_antes_corte]),
+    "cha $cha_antes_corte (2013-12-31) apareceu, e o corte e 2014-01-01");
+
+verifica("entrega NA data de corte vira debito",
+    isset($chas_corte[$cha_no_corte]),
+    "cha $cha_no_corte (2014-01-01) nao apareceu");
 
 // O extrato TEM de repassar o congelavel: a tela marca "a confirmar" e esse aviso é
 // sobre o valor PODER MUDAR, não sobre estar lançado. Sem o campo, toda linha
