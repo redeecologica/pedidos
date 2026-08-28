@@ -3,7 +3,7 @@
 
 	<div class="container-fluid">
       <div class="navbar-header">        	   
-        <span class="navbar-brand"><small>Bem-vindo(a), <strong><?php echo($_SESSION["usr.nome"]); ?></strong></small></span>
+        <span class="navbar-brand"><small>Bem-vindo(a), <strong><?php echo(h($_SESSION["usr.nome"])); ?></strong></small></span>
        </div>
 
       <div class="collapse navbar-collapse">                
