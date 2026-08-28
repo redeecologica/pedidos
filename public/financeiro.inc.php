@@ -581,6 +581,32 @@ function pode_ver_conta_de($usr_id)
 }
 
 
+// Quem pode LANÇAR pagamento — pergunta diferente de quem pode VER extrato. O cestante
+// vê o próprio e não lança nada; quem lança é o responsável de núcleo, o de finanças ou
+// a administração. pode_ver_conta_de() continua sendo quem decide PARA QUEM se lança.
+//
+// A regra mora numa função por dois motivos. O primeiro é que a mesma pergunta é feita
+// em dois lugares — o item do menu e a tela de pagamentos — e duas cópias dela é uma a
+// mais do que dá para manter de acordo; é a mesma decisão que o menu.inc.php:44-46 já
+// registra para pode_ver_financeiro(). O segundo é que condição escrita solta dentro da
+// tela não tem alavanca automática nenhuma: esta tem, no bloco "pagamento" da suíte.
+//
+// PAP_ADM aqui dentro NÃO reabre a porta que a tarefa anterior fechou. O que ficou para
+// trás lá foi `verifica_seguranca(<condição>)`, que valida QUALQUER chamada vinda de
+// PAP_ADM sem sequer olhar o parâmetro (common.inc.php:103-110) — para o administrador
+// a condição inteira era decorativa. Aqui ela é lida de verdade, e pode_ver_financeiro()
+// vem antes, ligado por E: administrador sem Beta Tester continua sem alcançar o módulo.
+// É a primeira asserção do bloco, justamente porque é o caso que decide isso.
+function pode_lancar_pagamento()
+{
+	if (!pode_ver_financeiro()) return false;
+
+	return !empty($_SESSION[PAP_RESP_NUCLEO])
+	    || !empty($_SESSION[PAP_RESP_FINANCAS])
+	    || !empty($_SESSION[PAP_ADM]);
+}
+
+
 // Traduz o extrato no que a TELA pode afirmar. Devolve um ESTADO, e não um saldo que
 // possa vir nulo: em PHP `null < -0.005` e `null > 0.005` são os dois falsos, então um
 // saldo nulo descendo a cadeia de comparações sairia pelo ramo final e a tela
@@ -640,4 +666,205 @@ function cestante_da_conta($usr_id)
 	if (!$row) return array('estado' => 'inexistente', 'nome' => null);
 
 	return array('estado' => 'ok', 'nome' => (string)$row['usr_nome_curto']);
+}
+
+
+// Destinos possíveis de um pagamento: o caixa do núcleo, uma conta da Rede ou um
+// produtor — quando o cestante paga direto para ele.
+//
+// A lista não é só apresentação: ela é a REGRA, e registra_pagamento() confere contra
+// ela o destino que veio do POST. É por isso que conta de CESTANTE fica de fora. Aceita
+// como destino, um con_id forjado debitaria a conta de outro cestante, fazendo parecer
+// que ele deve mais — e as duas pernas continuariam somando zero. O razão ficaria
+// íntegro e errado, que é o único estado que transacoes_desbalanceadas() não pega.
+//
+// Pela mesma razão a função não cria conta nenhuma, nem a da Rede: validação que grava
+// não é validação. Quem cria é conta_do_cestante()/conta_da_rede(), no lançamento.
+//
+// CONTRATO — null e array() NÃO são a mesma coisa, como no resto do módulo:
+//   array()  a consulta rodou e não há destino cadastrado
+//   null     a consulta NÃO rodou
+// A distinção não é hipotética: hoje, na cópia de produção, `contas` está zerada, e o
+// certo é a tela dizer "nenhuma conta de destino cadastrada" — não "não deu para
+// carregar". As contas de caixa de núcleo e da Rede são do plano seguinte.
+//
+// RECORTE: é a única consulta do módulo que não é por cestante nem por núcleo, e é de
+// propósito — produtor e conta da Rede não pertencem a núcleo nenhum, e o destino é
+// conferido antes de se saber de quem é o pagamento. O que a mantém barata é o tamanho
+// da tabela, não o filtro: `contas` é dimensão, com teto de uma linha por cestante
+// (1210 hoje) mais 30 núcleos e 205 produtores, e o WHERE já entra pelo índice
+// conta_tipo. Medido nesta cópia, média de 30 corridas em quatro rodadas: com a tabela
+// como está hoje, zerada, 0,09 a 0,16 ms; com o TETO carregado — 1446 contas, sendo 1210
+// de cestante, 30 de núcleo, 205 de produtor e a da Rede —, 236 destinos em 0,90 a
+// 1,75 ms, o extremo de cima sendo a primeira corrida, ainda fria.
+function contas_de_destino()
+{
+	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto ";
+	$sql.= "FROM contas c ";
+	$sql.= "LEFT JOIN nucleos n ON n.nuc_id = c.con_nuc ";
+	$sql.= "LEFT JOIN fornecedores f ON f.forn_id = c.con_forn ";
+	$sql.= "WHERE c.con_archive = 0 AND c.con_tipo IN ('nucleo','rede','produtor') ";
+	$sql.= "ORDER BY c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;              // ver o CONTRATO acima
+
+	$prefixo  = array('nucleo' => 'Núcleo ', 'produtor' => 'Produtor ', 'rede' => '');
+	$destinos = array();
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$nome = trim((string)$row['con_nome']);
+		if ($row['con_tipo'] === 'nucleo')   $nome = trim((string)$row['nuc_nome_curto']);
+		if ($row['con_tipo'] === 'produtor') $nome = trim((string)$row['forn_nome_curto']);
+
+		// Rótulo em branco vira <option> invisível, e escolher para onde vai dinheiro
+		// não pode virar sorteio. con_nome é NULLABLE, e nuc_nome_curto/forn_nome_curto
+		// aceitam '' com o sql_mode vazio deste servidor. O con_id é feio e serve: a
+		// linha continua distinguível das outras.
+		if ($nome === '') $nome = '#' . (int)$row['con_id'];
+
+		$destinos[(int)$row['con_id']] = $prefixo[$row['con_tipo']] . $nome;
+	}
+
+	return $destinos;
+}
+
+
+// O pagamento credita o cestante e debita quem recebeu o dinheiro. Não se amarra a
+// chamada nenhuma: uma entrega pode reunir três chamadas, e o que importa é que o
+// crédito cubra o saldo.
+//
+// O DESTINO É CONFERIDO AQUI, e não só no <select> da tela. O <select> oferece apenas
+// os destinos legítimos, mas um POST carrega qualquer con_id — e o efeito de um destino
+// forjado está descrito em contas_de_destino(). A função é a fronteira; a tela é
+// conveniência.
+//
+// Lista indisponível recusa: não se confere destino contra uma lista que não veio. A
+// polaridade aqui é a de pode_ver_conta_de(), e não a de debitos_derivados() — diante
+// da dúvida, uma checagem fecha. O caminho tem teste, com a consulta quebrada de
+// propósito, e a alavanca é a versão que "conserta" a tela deixando passar.
+//
+// O que esta função NÃO faz é autorizar. Quem alcança a conta de quem é
+// pode_ver_conta_de(), chamada linha a linha pela tela. Fundir as duas trocaria uma
+// consulta de permissão recusada no meio do lote por um null indistinguível de destino
+// inválido, e amarraria a $_SESSION uma função que o script agendado do plano seguinte
+// vai querer chamar sem sessão nenhuma.
+//
+// A conferência do destino vem ANTES de conta_do_cestante($usr_id, true), e a ordem
+// importa: o `true` cria conta, e um POST forjado não pode fazer nascer conta vazia.
+//
+// Devolve o tra_id, ou null — e no null nenhuma perna é gravada.
+function registra_pagamento($usr_id, $dt, $valor, $con_destino, $comprovante, $obs)
+{
+	// pg_destino[0][] entrega ARRAY onde se espera escalar, e no PHP 8 `isset($a[$k])`
+	// com $k array é TypeError — a tela cairia inteira por causa de um nome de campo
+	// no POST. Só string e int passam, como em pode_ver_conta_de().
+	if (!is_string($con_destino) && !is_int($con_destino)) return null;
+
+	$destinos = contas_de_destino();
+	if ($destinos === null)              return null;   // sem lista não há o que conferir
+	if (!isset($destinos[$con_destino])) return null;   // destino que a lista não oferece
+
+	$con_cestante = conta_do_cestante($usr_id, true);
+	if (!$con_cestante) return null;
+
+	return lanca_transacao($dt, 'pagamento', $con_destino, $con_cestante, $valor,
+		'pagamento', array('comprovante' => $comprovante, 'obs' => $obs));
+}
+
+
+// Lê o formulário de lançamento em lote e devolve só as linhas que podem virar
+// lançamento, já normalizadas.
+//
+// Mora aqui, e não solta dentro da tela, porque tela não tem alavanca automática:
+// escrita no meio do conta_pagamentos.php nenhuma asserção desta suíte a alcançaria, e
+// é justamente esta leitura que transforma texto de POST em dinheiro.
+//
+// O POST não é fonte de verdade nem sobre a própria forma. sizeof() sobre string é
+// TypeError no PHP 8 — um POST com `pg_usr=1`, escalar em vez de array, derrubaria a
+// página —, os arrays paralelos podem chegar com tamanhos diferentes, e a data pode não
+// ser data: date_format(false, ...) é TypeError pelo mesmo caminho. Linha malformada se
+// PULA, não se adivinha.
+//
+// Devolve array('linhas' => array(...), 'ignoradas' => int). Separar "em branco" de
+// "ignorada" é o que deixa a tela dizer a verdade: no painel de 35 cestantes, 34 linhas
+// em branco são o caso normal e não são recusa nenhuma, enquanto uma linha PREENCHIDA
+// que não pôde ser lida é recusa, e quem lançou precisa saber. Um "3 pagamentos
+// registrados" que engole as outras duas é a mesma mentira que o módulo inteiro existe
+// para não contar.
+//
+// O que NÃO passa por aqui: autorização (é pode_ver_conta_de(), chamada linha a linha
+// pela tela) e a legitimidade do destino (é registra_pagamento). Os dois campos saem
+// daqui como vieram, de propósito — cada guarda confere o seu.
+function linhas_de_pagamento($campos)
+{
+	$vazio = array('linhas' => array(), 'ignoradas' => 0);
+
+	// POST que não tem a forma de lote não tem linha para ignorar: não é formulário
+	// meio preenchido, é outra coisa.
+	foreach (array('pg_usr', 'pg_dt', 'pg_valor', 'pg_destino') as $c)
+		if (!isset($campos[$c]) || !is_array($campos[$c])) return $vazio;
+
+	$linhas    = array();
+	$ignoradas = 0;
+
+	// As chaves saem de pg_usr, que é a coluna que identifica a linha; as outras são
+	// consultadas por essa chave em vez de por posição, porque um POST forjado não
+	// precisa numerar de 0 a n-1.
+	foreach (array_keys($campos['pg_usr']) as $i)
+	{
+		$bruto = array();
+		$falta = false;
+
+		foreach (array('pg_usr' => 'usr', 'pg_dt' => 'dt', 'pg_valor' => 'valor',
+		               'pg_destino' => 'destino') as $campo => $nome)
+		{
+			$v = isset($campos[$campo][$i]) ? $campos[$campo][$i] : null;
+			if (!is_string($v) && !is_int($v)) { $falta = true; break; }
+			$bruto[$nome] = $v;
+		}
+
+		if ($falta) { $ignoradas++; continue; }
+
+		// Linha em branco é o caso normal do painel, e não é recusa.
+		$txt = trim((string)$bruto['valor']);
+		if ($txt === '') continue;
+
+		// '1.234,56' é como a Rede escreve dinheiro. formata_numero_para_mysql() TROCA
+		// ponto e vírgula, então sozinho devolveria '1,234.56' — que não é número, e a
+		// linha seria recusada com o valor certo digitado. O separador de milhar sai
+		// antes, e só quando há vírgula decimal para desambiguar.
+		if (strpos($txt, ',') !== false) $txt = str_replace('.', '', $txt);
+
+		$valor = formata_numero_para_mysql($txt);
+		if (!is_numeric($valor) || (float)$valor <= 0) { $ignoradas++; continue; }
+
+		// '30/02/2026' PARSEIA e escorrega para 02/03 sem devolver false — por isso a
+		// conferência olha os avisos, e não só o retorno. Sem ela, quem digitasse uma
+		// data impossível veria o pagamento gravado em outro dia, calado.
+		// date_get_last_errors() devolve false quando não há nada a relatar (PHP 8.2+),
+		// daí o is_array().
+		$data = date_create_from_format('d/m/Y', trim((string)$bruto['dt']));
+		$erros = date_get_last_errors();
+		if (!$data || (is_array($erros) && ($erros['warning_count'] > 0 || $erros['error_count'] > 0)))
+		{
+			$ignoradas++;
+			continue;
+		}
+
+		$comprovante = '';
+		if (isset($campos['pg_comprovante'][$i]) && is_string($campos['pg_comprovante'][$i]))
+			$comprovante = trim($campos['pg_comprovante'][$i]);
+
+		$linhas[] = array(
+			'usr'         => $bruto['usr'],
+			'dt'          => date_format($data, 'Y-m-d'),
+			'valor'       => (float)$valor,
+			'destino'     => $bruto['destino'],
+			'comprovante' => $comprovante,
+		);
+	}
+
+	return array('linhas' => $linhas, 'ignoradas' => $ignoradas);
 }
