@@ -2016,6 +2016,195 @@ verifica("devolve o ultimo gravado, nao o primeiro nem o ultimo da lista",
     $u !== null && $u['dt'] === '2026-04-01 00:00:00' && $u['valor'] == 50.0,
     var_export($u, true));
 
+
+// ---------------------------------------------------------------------------
+echo "\nCaixa do nucleo: as quatro pernas (spec 4)\n";
+// ---------------------------------------------------------------------------
+
+// Le as pernas de uma transacao como con_id => valor. O invariante do modulo e que
+// somem zero; cada teste abaixo confere ALEM disso QUAL conta ficou com QUAL sinal,
+// porque somar zero e verdade tambem quando as duas pernas estao trocadas — e
+// trocadas elas dizem o contrario do que aconteceu.
+function pernas_de($tra_id)
+{
+    $res = executa_sql("SELECT lan_con, lan_valor FROM lancamentos WHERE lan_tra = " . (int)$tra_id);
+    $p = array();
+    if ($res) while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+        $p[(int)$row['lan_con']] = round((float)$row['lan_valor'], 2);
+    return $p;
+}
+
+// cria_contas_que_faltam(), exercitada acima, ja abriu conta para TODO nucleo ativo —
+// inclusive os de fixture. Entao aqui se procura primeiro: cria_conta devolveria null
+// pela UNIQUE de con_nuc, e $con_caixa vazio faria as pernas serem lidas pela chave "".
+$con_caixa = conta_do_nucleo($nuc_livre[3]);
+if (!$con_caixa)
+    $con_caixa = cria_conta('nucleo', array('con_nuc' => $nuc_livre[3], 'con_nome' => 'Caixa Teste'));
+
+verifica("o caixa de teste existe (guarda do fixture: sem ele nada abaixo pode falhar)",
+    $con_caixa > 0, var_export($con_caixa, true));
+
+verifica("conta_do_nucleo acha a conta do nucleo",
+    conta_do_nucleo($nuc_livre[3]) == $con_caixa,
+    "esperado $con_caixa, veio " . var_export(conta_do_nucleo($nuc_livre[3]), true));
+
+verifica("conta_do_nucleo devolve null para nucleo sem conta",
+    conta_do_nucleo(99999999) === null,
+    var_export(conta_do_nucleo(99999999), true));
+
+// DESPESA — nucleo +X, contraparte -X. O nucleo deixa de dever porque gastou o
+// dinheiro que segurava; a Rede assume o custo.
+$tra_desp = lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-01 10:00:00', 45.00,
+    $con_rede, array('categoria' => 'passagens', 'historico' => 'passagem do motorista'));
+$p = pernas_de($tra_desp);
+verifica("despesa: nucleo +45 e contraparte -45",
+    $tra_desp && isset($p[$con_caixa]) && $p[$con_caixa] == 45.00
+             && isset($p[$con_rede])  && $p[$con_rede]  == -45.00,
+    "tra=" . var_export($tra_desp, true) . " pernas=" . json_encode($p));
+
+verifica("despesa grava a categoria",
+    valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_desp) === 'passagens',
+    var_export(valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_desp), true));
+
+// REPASSE — as MESMAS pernas da despesa, de proposito. O que separa os dois e o
+// tra_tipo, e e por isso que a categoria existe: sem ela o relatorio nao conseguiria
+// dizer se o dinheiro foi gasto ou entregue.
+$tra_rep = lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-02 10:00:00', 300.00,
+    $con_rede, array('historico' => 'repasse da entrega de julho'));
+$p = pernas_de($tra_rep);
+verifica("repasse: nucleo +300 e rede -300, mesmas pernas da despesa",
+    $tra_rep && $p[$con_caixa] == 300.00 && $p[$con_rede] == -300.00,
+    "tra=" . var_export($tra_rep, true) . " pernas=" . json_encode($p));
+
+verifica("repasse NAO tem categoria",
+    valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_rep) === null,
+    var_export(valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_rep), true));
+
+// PAGAMENTO A PRODUTOR — o nucleo paga direto, encurtando a transferencia bancaria.
+$tra_pp = lanca_movimento_nucleo($nuc_livre[3], 'pagamento_produtor', '2026-08-03 10:00:00', 120.00,
+    $con_forn_t, array('historico' => 'pago direto na entrega'));
+$p = pernas_de($tra_pp);
+verifica("pagamento a produtor: nucleo +120 e produtor -120",
+    $tra_pp && $p[$con_caixa] == 120.00 && $p[$con_forn_t] == -120.00,
+    "tra=" . var_export($tra_pp, true) . " pernas=" . json_encode($p));
+
+// OUTRA RECEITA — unica das quatro que aumenta o que o nucleo deve.
+$tra_rec = lanca_movimento_nucleo($nuc_livre[3], 'receita', '2026-08-04 10:00:00', 60.00,
+    $con_rede, array('historico' => 'venda de sacola'));
+$p = pernas_de($tra_rec);
+verifica("outra receita: nucleo -60 e rede +60 (sentido invertido)",
+    $tra_rec && $p[$con_caixa] == -60.00 && $p[$con_rede] == 60.00,
+    "tra=" . var_export($tra_rec, true) . " pernas=" . json_encode($p));
+
+verifica("as quatro somam zero, como toda transacao do modulo",
+    count(transacoes_desbalanceadas()) === 0,
+    json_encode(transacoes_desbalanceadas()));
+
+// ---------------------------------------------------------------------------
+echo "\nCaixa do nucleo: o que NAO pode virar lancamento\n";
+// ---------------------------------------------------------------------------
+
+verifica("tipo que nao existe e recusado",
+    lanca_movimento_nucleo($nuc_livre[3], 'saque', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+
+verifica("despesa SEM categoria e recusada",
+    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+
+verifica("despesa com categoria inventada e recusada",
+    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_rede,
+        array('categoria' => 'churrasco')) === null);
+
+verifica("categoria em lancamento que nao e despesa e recusada",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_rede,
+        array('categoria' => 'passagens')) === null);
+
+// A contraparte e a fronteira: sem esta guarda um POST forjado lancaria despesa
+// contra a conta de um cestante, tirando dele dinheiro que ele nao gastou.
+verifica("contraparte que nao esta em contas_de_destino e recusada (conta de cestante)",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_t) === null);
+
+verifica("repasse contra conta de PRODUTOR e recusado",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_forn_t) === null);
+
+verifica("despesa contra conta de PRODUTOR e recusada",
+    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_forn_t,
+        array('categoria' => 'outros')) === null);
+
+verifica("pagamento a produtor contra conta da REDE e recusado",
+    lanca_movimento_nucleo($nuc_livre[3], 'pagamento_produtor', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+
+verifica("contraparte igual a propria conta do nucleo e recusada",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_caixa) === null);
+
+// pg_destino[] no POST entrega ARRAY onde se espera escalar; no PHP 8 isso e
+// TypeError dentro do isset(), e a tela cairia inteira por causa de um nome de campo.
+verifica("contraparte em ARRAY nao derruba a pagina, so recusa",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, array(1)) === null);
+
+verifica("valor zero e negativo sao recusados",
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 0, $con_rede) === null
+    && lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', -5, $con_rede) === null);
+
+verifica("nucleo SEM conta e recusado",
+    lanca_movimento_nucleo(99999999, 'repasse', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+
+// Nenhuma das recusas acima pode ter deixado meia transacao gravada.
+verifica("nenhuma recusa gravou transacao pela metade",
+    count(transacoes_desbalanceadas()) === 0
+    && valor_escalar("SELECT COUNT(DISTINCT lan_tra) FROM lancamentos WHERE lan_con = " . (int)$con_caixa) == 4,
+    "desbalanceadas=" . json_encode(transacoes_desbalanceadas())
+        . " no caixa=" . var_export(valor_escalar("SELECT COUNT(DISTINCT lan_tra) FROM lancamentos WHERE lan_con = " . (int)$con_caixa), true));
+
+// ---------------------------------------------------------------------------
+echo "\nCaixa do nucleo: categorias e extrato\n";
+// ---------------------------------------------------------------------------
+
+$cats = categorias_de_despesa();
+verifica("as seis categorias da planilha estao la",
+    is_array($cats) && count($cats) === 6
+    && isset($cats['passagens'], $cats['expediente'], $cats['motorista'],
+             $cats['entregas'], $cats['bancarias'], $cats['outros']),
+    json_encode(array_keys((array)$cats)));
+
+$ext = extrato_do_nucleo($nuc_livre[3]);
+verifica("o extrato do nucleo traz os quatro lancamentos",
+    is_array($ext) && count($ext) === 4,
+    "veio " . var_export(is_array($ext) ? count($ext) : $ext, true));
+
+// Saldo corrente somado linha a linha, como no extrato do cestante: 45 + 300 + 120 - 60.
+verifica("o saldo corrente fecha em 405,00",
+    is_array($ext) && count($ext) === 4 && round(end($ext)['saldo'], 2) == 405.00,
+    is_array($ext) && $ext ? "saldo final = " . var_export(end($ext)['saldo'], true) : 'sem extrato');
+
+verifica("o extrato vem em ordem cronologica",
+    is_array($ext) && count($ext) === 4
+    && $ext[0]['dt'] <= $ext[1]['dt'] && $ext[1]['dt'] <= $ext[2]['dt'] && $ext[2]['dt'] <= $ext[3]['dt'],
+    is_array($ext) ? json_encode(array_map(function ($l) { return $l['dt']; }, $ext)) : 'sem extrato');
+
+verifica("a linha de despesa carrega a categoria legivel",
+    is_array($ext) && $ext[0]['tipo'] === 'despesa' && $ext[0]['categoria'] === 'passagens',
+    is_array($ext) && isset($ext[0]) ? json_encode($ext[0]) : 'sem extrato');
+
+// CONTRATO: consulta que nao roda devolve null, nunca lista vazia — "nao deu para
+// perguntar" lido como "o caixa esta vazio" e a mentira que este modulo existe para
+// nao contar. Mesma sombra de TEMPORARY TABLE que o resto da suite usa.
+executa_sql("CREATE TEMPORARY TABLE lancamentos (
+    lan_id  int(10) unsigned NOT NULL,
+    lan_tra int(10) unsigned NOT NULL,
+    lan_con mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_de_pe   = (executa_sql("SELECT lan_valor FROM lancamentos") === false);
+$ext_sem_banco  = extrato_do_nucleo($nuc_livre[3]);
+executa_sql("DROP TEMPORARY TABLE lancamentos");
+
+verifica("a sombra sem lan_valor faz o servidor recusar o extrato do nucleo",
+    $sombra_de_pe, var_export($sombra_de_pe, true));
+
+verifica("extrato de consulta recusada e null, e nao caixa vazio",
+    $ext_sem_banco === null, var_export($ext_sem_banco, true));
+
+verifica("derrubada a sombra, o extrato volta com as quatro linhas",
+    is_array(extrato_do_nucleo($nuc_livre[3])) && count(extrato_do_nucleo($nuc_livre[3])) === 4);
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
@@ -2079,6 +2268,7 @@ verifica("o registro gravado de verdade nao carrega usuario de fixture",
     (int)$autor_prod === 0,
     "tra_usr_registro = " . var_export($autor_prod, true)
         . " · sessao = " . json_encode($_SESSION));
+
 
 echo "\n";
 if ($falhas === 0) { echo "TODOS OS $total TESTES PASSARAM\n"; exit(0); }

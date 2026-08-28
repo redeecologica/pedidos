@@ -20,6 +20,9 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 	$cha          = isset($extras['cha'])          ? prep_para_bd($extras['cha'])          : "NULL";
 	$comprovante  = isset($extras['comprovante'])  ? prep_para_bd($extras['comprovante'])  : "NULL";
 	$obs          = isset($extras['obs'])          ? prep_para_bd($extras['obs'])          : "NULL";
+	// só o caixa do núcleo usa categoria, e só em despesa; nas demais fica NULL, que é
+	// a verdade — pagamento e repasse não têm o que classificar
+	$categoria    = isset($extras['categoria'])    ? prep_para_bd($extras['categoria'])    : "NULL";
 	$usr          = isset($_SESSION['usr.id'])     ? prep_para_bd($_SESSION['usr.id'])     : "0";
 
 	// MySQL não aninha transação: um BEGIN dentro de outra faz COMMIT implícito
@@ -30,9 +33,9 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 	$nossa = empty($financeiro_em_transacao);
 	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
 
-	$sql = "INSERT INTO transacoes (tra_dt, tra_tipo, tra_cha, tra_historico, tra_comprovante, tra_obs, tra_usr_registro) ";
+	$sql = "INSERT INTO transacoes (tra_dt, tra_tipo, tra_cha, tra_historico, tra_comprovante, tra_obs, tra_categoria, tra_usr_registro) ";
 	$sql.= "VALUES (" . prep_para_bd($dt) . ", " . prep_para_bd($tipo) . ", $cha, ";
-	$sql.= prep_para_bd($historico) . ", $comprovante, $obs, $usr)";
+	$sql.= prep_para_bd($historico) . ", $comprovante, $obs, $categoria, $usr)";
 
 	if (!executa_sql($sql)) { if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; } return null; }
 	$tra_id = id_inserido();
@@ -1204,4 +1207,252 @@ function linhas_de_pagamento($campos)
 	}
 
 	return array('linhas' => $linhas, 'ignoradas' => $ignoradas);
+}
+
+
+// ============================================================================
+// CAIXA DO NÚCLEO (spec §4)
+//
+// O núcleo recebe dinheiro de cestante e gasta parte dele antes de repassar. Sem
+// registrar o que sai, o saldo do caixa afirma que o núcleo deve tudo que recebeu —
+// e quem prestou contas de verdade fica devendo no papel.
+//
+// A REGRA DE SINAL, que vale para o módulo inteiro: negativo = deve, positivo = tem
+// a receber. Quando um cestante paga no caixa, o caixa fica NEGATIVO: segura dinheiro
+// que não é dele. Os lançamentos daqui empurram esse saldo de volta para zero.
+// ============================================================================
+
+
+// As seis da planilha da Rede. Chave curta para o banco, rótulo para a tela: o
+// rótulo pode mudar de redação sem invalidar o que já foi classificado, e é por isso
+// que não se grava o texto.
+function categorias_de_despesa()
+{
+	return array(
+		'passagens'  => 'passagens',
+		'expediente' => 'material de expediente e despesas administrativas',
+		'motorista'  => 'motorista',
+		'entregas'   => 'resp. entregas',
+		'bancarias'  => 'despesas bancárias',
+		'outros'     => 'outros',
+	);
+}
+
+
+// A conta-caixa do núcleo. NÃO cria: contas de núcleo nascem em
+// cria_contas_que_faltam(), pelo botão da tela de contas. Criar aqui faria um POST
+// inventar caixa para um núcleo que a administração ainda não abriu.
+//
+// Mesmo contrato de conta_do_cestante(): null tanto para "a consulta não rodou"
+// quanto para "não existe". Quem chama trata os dois igual — sem conta não há
+// lançamento — e um contrato a mais aqui seria distinção sem consumidor.
+function conta_do_nucleo($nuc_id)
+{
+	if (!is_string($nuc_id) && !is_int($nuc_id)) return null;
+
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_tipo = 'nucleo' AND con_nuc = " . prep_para_bd($nuc_id));
+	if (!$res) return null;
+
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	return $row ? (int)$row['con_id'] : null;
+}
+
+
+// O tipo de uma conta, para conferir se ela cabe no lançamento pedido.
+//
+// CONTRATO: null = a consulta não rodou · '' = não existe conta com esse id ·
+// senão o tipo. Aqui a distinção MORDE, ao contrário de conta_do_nucleo(): quem
+// compara `tipo_de_conta($x) !== 'rede'` trataria null como "tipo errado" e recusaria
+// um lançamento legítimo por causa de um servidor fora do ar — recusa, que é o lado
+// seguro, mas dita por outra razão que a mensagem de erro esconderia.
+function tipo_de_conta($con_id)
+{
+	if (!is_string($con_id) && !is_int($con_id)) return '';
+
+	$res = executa_sql("SELECT con_tipo FROM contas WHERE con_id = " . prep_para_bd($con_id));
+	if (!$res) return null;
+
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	return $row ? (string)$row['con_tipo'] : '';
+}
+
+
+// Um lançamento do caixa do núcleo. Devolve tra_id, ou null quando não pôde virar
+// lançamento — e recusar em silêncio é de propósito: quem chama é a tela, que sabe
+// dizer o que faltou; a função não tem como saber se a recusa é engano de quem digitou
+// ou POST forjado, e as duas se tratam igual.
+//
+// AS QUATRO FORMAS, e por que três delas têm as mesmas pernas:
+//
+//   despesa             núcleo +X · rede     −X   gastou o dinheiro que segurava
+//   repasse             núcleo +X · rede     −X   entregou o dinheiro que segurava
+//   pagamento_produtor  núcleo +X · produtor −X   pagou direto, encurtando a transferência
+//   receita             núcleo −X · rede     +X   entrou dinheiro que pertence à Rede
+//
+// Despesa e repasse são o MESMO movimento de dinheiro: em ambos o núcleo se livra do
+// que devia. A diferença é para onde o valor foi — consumo ou caixa da Rede — e essa
+// diferença não está nas pernas, está no tra_tipo e na categoria. É por isso que
+// tra_categoria é coluna: é por ela que o fluxo de caixa mensal (spec §5) agrupa.
+//
+// A CONTRAPARTE É A FRONTEIRA. contas_de_destino() é a lista do que existe como
+// destino legítimo, e o tipo confere se aquela conta cabe NESTE lançamento. Sem a
+// segunda guarda, um POST trocando o id lançaria "despesa" contra a conta de um
+// cestante, tirando dele dinheiro que ele não gastou — a conta de cestante nem está na
+// lista, e é a primeira guarda que a barra; a segunda barra o produtor recebendo
+// repasse, que está na lista e mesmo assim não é aquele movimento.
+function lanca_movimento_nucleo($nuc_id, $tipo, $dt, $valor, $con_contraparte, $extras = array())
+{
+	// que tipo de conta cada lançamento aceita do outro lado
+	$contraparte_de = array(
+		'despesa'            => 'rede',
+		'repasse'            => 'rede',
+		'pagamento_produtor' => 'produtor',
+		'receita'            => 'rede',
+	);
+	if (!isset($contraparte_de[$tipo])) return null;
+
+	// Categoria só existe em despesa. Gravá-la num repasse afirmaria uma classificação
+	// que ninguém fez, e o relatório somaria como gasto dinheiro que só mudou de mãos.
+	$categorias = categorias_de_despesa();
+	$categoria  = isset($extras['categoria']) && (is_string($extras['categoria']) || is_int($extras['categoria']))
+	            ? trim((string)$extras['categoria']) : '';
+
+	if ($tipo === 'despesa') { if (!isset($categorias[$categoria])) return null; }
+	else if ($categoria !== '')                                     return null;
+
+	// Array onde se espera escalar é TypeError dentro do isset() no PHP 8: a tela
+	// inteira cairia por causa de um `con_contraparte[]` no POST. Mesma guarda de
+	// registra_pagamento().
+	if (!is_string($con_contraparte) && !is_int($con_contraparte)) return null;
+
+	$destinos = contas_de_destino();
+	if ($destinos === null)                 return null;   // sem lista não há o que conferir
+	if (!isset($destinos[$con_contraparte])) return null;   // conta que a lista não oferece
+
+	if (tipo_de_conta($con_contraparte) !== $contraparte_de[$tipo]) return null;
+
+	$con_caixa = conta_do_nucleo($nuc_id);
+	if (!$con_caixa) return null;
+	if ((int)$con_caixa === (int)$con_contraparte) return null;   // caixa contra si mesmo
+
+	$rotulo_padrao = array(
+		'despesa'            => $categorias[$categoria !== '' ? $categoria : 'outros'],
+		'repasse'            => 'repasse à Rede',
+		'pagamento_produtor' => 'pagamento a produtor',
+		'receita'            => 'outra receita',
+	);
+	$historico = isset($extras['historico']) && (is_string($extras['historico']) || is_int($extras['historico']))
+	           ? trim((string)$extras['historico']) : '';
+	if ($historico === '') $historico = $rotulo_padrao[$tipo];
+
+	$campos = array(
+		'comprovante' => isset($extras['comprovante']) ? $extras['comprovante'] : null,
+		'obs'         => isset($extras['obs'])         ? $extras['obs']         : null,
+	);
+	if ($tipo === 'despesa') $campos['categoria'] = $categoria;
+
+	// Só 'receita' inverte: é o único dos quatro em que dinheiro ENTRA no caixa, e
+	// portanto o único que aumenta o que o núcleo deve.
+	if ($tipo === 'receita')
+		return lanca_transacao($dt, $tipo, $con_caixa, $con_contraparte, $valor, $historico, $campos);
+
+	return lanca_transacao($dt, $tipo, $con_contraparte, $con_caixa, $valor, $historico, $campos);
+}
+
+
+// O extrato do caixa, no mesmo formato do extrato do cestante: uma linha por
+// lançamento, em ordem cronológica, com o saldo somado linha a linha na exibição —
+// nunca gravado, pelo motivo que a spec detalha (lançamento retroativo obrigaria a
+// reescrever todas as linhas seguintes).
+//
+// CONTRATO — null e array() NÃO são a mesma coisa, como no resto do módulo:
+//   array  a consulta rodou; array() quer dizer caixa sem movimento
+//   null   a consulta NÃO rodou, ou o núcleo não tem conta
+// Numa tela de caixa, "não deu para perguntar" mostrado como "não há movimento" é a
+// mesma mentira que o módulo existe para não contar.
+function extrato_do_nucleo($nuc_id)
+{
+	$con = conta_do_nucleo($nuc_id);
+	if (!$con) return null;
+
+	// A contraparte sai do JOIN com a OUTRA perna da mesma transação. Sem ela a linha
+	// diria "despesa 45,00" sem dizer contra quem, e duas contas da Rede tornam isso
+	// ambíguo justamente onde a prestação de contas precisa ser específica.
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_categoria, t.tra_historico, ";
+	$sql.= "t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor, ";
+	$sql.= "co.con_nome, n.nuc_nome_curto, f.forn_nome_curto, u.usr_nome_curto ";
+	$sql.= "FROM lancamentos l ";
+	$sql.= "JOIN transacoes t   ON t.tra_id = l.lan_tra ";
+	$sql.= "LEFT JOIN lancamentos l2 ON l2.lan_tra = t.tra_id AND l2.lan_con <> l.lan_con ";
+	$sql.= "LEFT JOIN contas co  ON co.con_id  = l2.lan_con ";
+	$sql.= "LEFT JOIN nucleos n      ON n.nuc_id  = co.con_nuc ";
+	$sql.= "LEFT JOIN fornecedores f ON f.forn_id = co.con_forn ";
+	$sql.= "LEFT JOIN usuarios u     ON u.usr_id  = co.con_usr ";
+	$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " ";
+	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;              // ver o CONTRATO acima
+
+	$categorias = categorias_de_despesa();
+	$linhas = array();
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$cat = trim((string)$row['tra_categoria']);
+
+		$contraparte = trim((string)$row['nuc_nome_curto'])
+		             . trim((string)$row['forn_nome_curto'])
+		             . trim((string)$row['usr_nome_curto']);
+		if ($contraparte === '') $contraparte = trim((string)$row['con_nome']);
+
+		$linhas[] = array(
+			'tra_id'      => (int)$row['tra_id'],
+			'dt'          => $row['tra_dt'],
+			'tipo'        => (string)$row['tra_tipo'],
+			'categoria'   => $cat,
+			// rótulo legível da categoria; '' quando o lançamento não tem categoria,
+			// para a tela não precisar consultar o mapa a cada linha
+			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : '',
+			'historico'   => (string)$row['tra_historico'],
+			'contraparte' => $contraparte,
+			'valor'       => round((float)$row['lan_valor'], 2),
+			'comprovante' => (string)$row['tra_comprovante'],
+			'editado_em'  => $row['tra_dt_alteracao'],
+		);
+	}
+
+	// Mesma política do extrato do cestante: arredonda a cada passo, para todo saldo
+	// exibido cair na grade de centavos.
+	$saldo = 0.0;
+	foreach ($linhas as $i => $linha)
+	{
+		$saldo = round($saldo + $linha['valor'], 2);
+		$linhas[$i]['saldo'] = $saldo;
+	}
+
+	return $linhas;
+}
+
+
+// Quem pode lançar NO CAIXA de um núcleo — pergunta diferente de quem pode lançar
+// pagamento. Responsável de núcleo lança no PRÓPRIO núcleo e em nenhum outro; finanças
+// e administração, em qualquer um.
+//
+// A restrição ao próprio núcleo é o que separa esta função de pode_lancar_pagamento(),
+// que não tem por onde ser específica — lá quem discrimina por núcleo é
+// pode_ver_conta_de(), cestante a cestante. Aqui o alvo É o núcleo, então a regra mora
+// junto dele.
+function pode_lancar_no_caixa($nuc_id)
+{
+	if (!pode_ver_financeiro()) return false;
+
+	if (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM])) return true;
+
+	if (empty($_SESSION[PAP_RESP_NUCLEO]))       return false;
+	if (!isset($_SESSION['usr.nuc']))            return false;
+	if (!is_string($nuc_id) && !is_int($nuc_id)) return false;
+	if (!ctype_digit((string)$nuc_id) || (int)$nuc_id <= 0) return false;
+
+	return (int)$_SESSION['usr.nuc'] === (int)$nuc_id;
 }
