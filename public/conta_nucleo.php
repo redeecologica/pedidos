@@ -214,11 +214,11 @@
     if ($nao_deu) { ?>
     <span class="label label-danger" style="font-size:larger;">não foi possível calcular o saldo</span>
   <?php } else if ($saldo < -0.005) { ?>
-    <span class="label label-danger" style="font-size:larger;">deve à Rede: R$ <?php echo(formata_moeda(-$saldo)); ?></span>
-    <span class="text-muted">&nbsp;dinheiro que entrou no caixa e ainda não saiu</span>
+    <span class="label label-danger" style="font-size:larger;">em caixa: R$ <?php echo(formata_moeda(-$saldo)); ?></span>
+    <span class="text-muted">&nbsp;dinheiro da Rede que ainda não saiu — vai virar repasse ou despesa</span>
   <?php } else if ($saldo > 0.005) { ?>
     <span class="label label-info" style="font-size:larger;">a receber da Rede: R$ <?php echo(formata_moeda($saldo)); ?></span>
-    <span class="text-muted">&nbsp;o núcleo adiantou mais do que arrecadou</span>
+    <span class="text-muted">&nbsp;o núcleo gastou mais do que arrecadou</span>
   <?php } else { ?>
     <span class="label label-success" style="font-size:larger;">em dia</span>
   <?php } ?>
@@ -261,10 +261,10 @@
             <?php } ?>
           </select>
           <span class="help-block small">
-            Despesa e repasse mexem o saldo do mesmo jeito — o que muda é para onde o
-            dinheiro foi, e é isso que o relatório separa.
-            <strong>Outra receita aumenta o que o núcleo deve</strong>, como o pagamento de
-            um cestante: o dinheiro entrou no caixa e pertence à Rede.
+            Despesa, repasse e pagamento a produtor <strong>tiram</strong> dinheiro do caixa.
+            Outra receita — doação, rendimento — <strong>põe</strong>, como o pagamento de um
+            cestante. Despesa e repasse mexem o saldo do mesmo jeito; o que muda é para onde
+            o dinheiro foi, e é isso que o relatório separa.
           </span>
         </div>
         <div class="col-sm-3">
@@ -430,10 +430,12 @@
 </table>
 
 <p class="small text-muted">
-  Negativo é o que o núcleo <strong>deve</strong> à Rede; positivo é o que tem a receber.
-  Entram negativo o pagamento de cestante e a <strong>outra receita</strong> — nos dois o
-  dinheiro chega ao caixa pertencendo à Rede, e o núcleo passa a dever esse tanto. Despesa,
-  repasse e pagamento a produtor empurram o saldo de volta para zero.
+  O caixa mostra quanto do dinheiro <strong>da Rede</strong> ainda está com o núcleo — não
+  quanto o núcleo tem de seu.
+  Pagamento de cestante e outra receita <strong>põem</strong> dinheiro no caixa, e por isso
+  aparecem com valor negativo: é o que ainda falta sair. Despesa, repasse e pagamento a
+  produtor <strong>tiram</strong>, e aparecem positivos.
+  Quando tudo que entrou já saiu, o saldo fica zero.
 </p>
 
 <?php } ?>
