@@ -595,6 +595,293 @@ verifica("derrubada a sombra, a busca volta a enxergar a conta real do cestante"
     conta_do_cestante($usr_t) == $con_t,
     "esperado $con_t · veio " . var_export(conta_do_cestante($usr_t), true));
 
+echo "\nextrato\n";
+
+// O extrato é a junção das duas metades: o débito que ainda é DERIVADO da entrega
+// e o lançamento que já está GRAVADO no razão. Tudo aqui roda ACIMA do rollback,
+// em cima do fixture do débito derivado — é ele que cria $usr_t, $con_t, as
+// chamadas e as entregas de que o extrato depende.
+//
+// $con_rede já foi obtido lá em cima e é o mesmo con_id que conta_da_rede()
+// devolveria de novo.
+
+// Datas vindas do BANCO, não do relógio do PHP: cha_dt_entrega foi gravada com
+// NOW() do MySQL, e comparar com date() daqui misturaria dois relógios.
+$agora_bd          = valor_escalar("SELECT NOW()");
+$dt_entrega_t      = valor_escalar("SELECT cha_dt_entrega FROM chamadas WHERE cha_id = " . (int)$cha_t);
+$dt_entrega_velha  = valor_escalar("SELECT cha_dt_entrega FROM chamadas WHERE cha_id = " . (int)$cha_velha);
+$prodt_nome_1      = valor_escalar("SELECT prodt_nome FROM produtotipos WHERE prodt_id = 1");
+
+// Paga uma parte do que deve, com data posterior às duas entregas.
+$tra_pag = lanca_transacao($agora_bd, 'pagamento', $con_rede, $con_t, 10.00, 'pagamento teste');
+
+$ext = extrato_do_cestante($usr_t);
+$ext = is_array($ext) ? $ext : array();
+
+$derivadas = array();
+$gravadas  = array();
+foreach ($ext as $l)
+{
+    if ($l['situacao'] === 'derivado') $derivadas[] = $l;
+    if ($l['situacao'] === 'gravado')  $gravadas[]  = $l;
+}
+
+// $usr_t tem exatamente DUAS entregas que viram débito ($cha_t e $cha_velha) — a
+// aberta e a sem entrega não contam — mais o pagamento recém-lançado. A contagem
+// exata é o que segura as duas fontes: some qualquer uma delas e o número muda.
+verifica("o extrato junta as duas entregas derivadas e o pagamento gravado",
+    count($ext) === 3 && count($derivadas) === 2 && count($gravadas) === 1
+    && $gravadas[0]['historico'] === 'pagamento teste'
+    && $gravadas[0]['tra_id'] == $tra_pag && $derivadas[0]['tra_id'] === null,
+    "linhas = " . count($ext) . " · derivadas = " . count($derivadas)
+        . " · gravadas = " . count($gravadas));
+
+// Regra de sinal do módulo: negativo deve, positivo tem a receber. A entrega
+// recebida é dívida do cestante, e debitos_derivados() devolve o valor POSITIVO —
+// quem inverte o sinal é o extrato. Sem essa inversão, entrega e pagamento
+// somariam no mesmo sentido e o saldo cresceria a cada entrega.
+verifica("entrega entra negativa e pagamento entra positivo",
+    count($derivadas) === 2 && $derivadas[0]['valor'] < 0 && $derivadas[1]['valor'] < 0
+    && count($gravadas) === 1 && round($gravadas[0]['valor'], 2) == 10.00,
+    "derivadas = " . json_encode(array_map(function($l){ return $l['valor']; }, $derivadas))
+        . " · gravadas = " . json_encode(array_map(function($l){ return $l['valor']; }, $gravadas)));
+
+// O histórico da linha derivada nomeia o tipo de produto da chamada. O caso do
+// nome em branco está no fim deste bloco.
+verifica("a linha derivada e rotulada com o tipo de produto da chamada",
+    count($derivadas) === 2 && $derivadas[0]['historico'] === 'entrega ' . $prodt_nome_1,
+    count($derivadas) ? var_export($derivadas[0]['historico'], true) : 'sem linha derivada');
+
+// O saldo é acumulado NA ORDEM EM QUE AS LINHAS SAEM, e conferido linha a linha —
+// não só no fim. Somar antes de ordenar dá o mesmo total e saldos errados no meio,
+// e é justamente o erro que uma checagem só do último valor deixaria passar.
+$acumulado  = 0.0;
+$saldo_bate = (count($ext) > 0);
+foreach ($ext as $l)
+{
+    $acumulado = round($acumulado + $l['valor'], 2);
+    if (abs($l['saldo'] - $acumulado) > 0.005) $saldo_bate = false;
+}
+
+verifica("o saldo de cada linha e a soma de tudo que veio ate ela",
+    $saldo_bate, json_encode(array_map(function($l){
+        return array('dt' => $l['dt'], 'valor' => $l['valor'], 'saldo' => $l['saldo']); }, $ext)));
+
+
+// Lançamento com data ANTERIOR ao que já existe. É o caso que motivou não gravar
+// saldo: o núcleo lança na segunda um pagamento feito na sexta. A data escolhida
+// cai ENTRE a entrega de 2014 e a de três dias atrás, então a linha tem de se
+// enfiar no meio — sem o usort ela ficaria no fim, que é a ordem em que a consulta
+// a devolve.
+$tra_retro = lanca_transacao('2020-01-01 08:00:00', 'ajuste', $con_rede, $con_t, 5.00, 'retroativo teste');
+$ext2 = extrato_do_cestante($usr_t);
+$ext2 = is_array($ext2) ? $ext2 : array();
+
+$datas2 = array();
+foreach ($ext2 as $l) $datas2[] = $l['dt'];
+$ordenado2 = $datas2;
+sort($ordenado2);
+
+verifica("o extrato sai em ordem de data mesmo com lancamento retroativo",
+    count($ext2) === 4 && $datas2 === $ordenado2, implode(" | ", $datas2));
+
+$pos_retro = null;
+foreach ($ext2 as $i => $l) if ($l['historico'] === 'retroativo teste') $pos_retro = $i;
+
+verifica("o lancamento retroativo entra na posicao da data dele, nao no fim",
+    $pos_retro === 1, "posicao = " . var_export($pos_retro, true) . " · " . implode(" | ", $datas2));
+
+// O saldo de todas as linhas seguintes se reordenou sozinho, porque não estava
+// gravado em lugar nenhum.
+$acumulado2  = 0.0;
+$saldo_bate2 = (count($ext2) > 0);
+foreach ($ext2 as $l)
+{
+    $acumulado2 = round($acumulado2 + $l['valor'], 2);
+    if (abs($l['saldo'] - $acumulado2) > 0.005) $saldo_bate2 = false;
+}
+
+verifica("depois do retroativo o saldo de cada linha continua batendo",
+    $saldo_bate2, json_encode(array_map(function($l){
+        return array('dt' => $l['dt'], 'valor' => $l['valor'], 'saldo' => $l['saldo']); }, $ext2)));
+
+
+// A entrega que JÁ virou lançamento sai da lista de derivados. Sem isso o cestante
+// veria a mesma entrega cobrada duas vezes — uma como débito derivado, outra como
+// o lançamento que acabou de ser gravado — e o saldo dobraria a dívida.
+//
+// A segunda metade da asserção é tão necessária quanto a primeira: um descarte
+// grosso demais, que jogasse fora TODA linha derivada, também deixaria a primeira
+// verde. A entrega de 2014 não foi lançada e tem de continuar aparecendo.
+$valor_deb_t = $linha ? $linha['valor'] : 1.00;
+$tra_deb = lanca_transacao($dt_entrega_t, 'debito_entrega', $con_t, $con_rede, $valor_deb_t,
+                           'entrega lancada', array('cha' => $cha_t));
+$ext3 = extrato_do_cestante($usr_t);
+$ext3 = is_array($ext3) ? $ext3 : array();
+
+$derivada_de_cha_t = 0;
+$gravada_de_cha_t  = 0;
+$derivada_da_velha = 0;
+foreach ($ext3 as $l)
+{
+    if ($l['situacao'] === 'derivado' && $l['cha'] == $cha_t)     $derivada_de_cha_t++;
+    if ($l['situacao'] === 'gravado'  && $l['cha'] == $cha_t)     $gravada_de_cha_t++;
+    if ($l['situacao'] === 'derivado' && $l['cha'] == $cha_velha) $derivada_da_velha++;
+}
+
+verifica("entrega ja lancada aparece uma vez so, e as outras derivadas ficam",
+    $tra_deb > 0 && $derivada_de_cha_t === 0 && $gravada_de_cha_t === 1
+    && $derivada_da_velha === 1 && count($ext3) === 4,
+    "derivada de cha_t = $derivada_de_cha_t · gravada de cha_t = $gravada_de_cha_t"
+        . " · derivada da velha = $derivada_da_velha · linhas = " . count($ext3));
+
+
+// Duas transações no MESMO instante: a ordem entre elas tem de continuar sendo a
+// do tra_id, que é a que o ORDER BY da consulta estabelece. Um comparador que
+// devolve 1 para os DOIS lados do empate — cada uma se dizendo maior que a outra —
+// não é antissimétrico, e o PHP não confere: ele só entrega a ordem em que o
+// algoritmo tropeçar, que aqui é a INVERTIDA (medido no PHP 8.4 do container).
+// Empate devolvendo 0 preserva a ordem de inserção, porque usort é estável desde
+// o PHP 8.0.
+$dt_gemeo = '2019-03-05 09:00:00';
+$tra_g1 = lanca_transacao($dt_gemeo, 'ajuste', $con_rede, $con_t, 1.00, 'gemeo 1');
+$tra_g2 = lanca_transacao($dt_gemeo, 'ajuste', $con_rede, $con_t, 2.00, 'gemeo 2');
+$ext4 = extrato_do_cestante($usr_t);
+$ext4 = is_array($ext4) ? $ext4 : array();
+
+$ordem_gemeos = array();
+foreach ($ext4 as $l) if ($l['dt'] === $dt_gemeo) $ordem_gemeos[] = (int)$l['tra_id'];
+
+verifica("duas gravadas no mesmo instante saem sempre na ordem do tra_id",
+    $ordem_gemeos === array((int)$tra_g1, (int)$tra_g2),
+    "ordem = " . json_encode($ordem_gemeos) . " · esperado = "
+        . json_encode(array((int)$tra_g1, (int)$tra_g2)));
+
+
+// Empate de data entre uma DERIVADA e uma GRAVADA. cha_dt_entrega e tra_dt são os
+// dois datetime, então o empate exato acontece de verdade — e a data vem do banco
+// justamente para a colisão ser real, e não um quase-empate de relógios diferentes.
+//
+// count($seq) === 2 é a guarda do fixture: prova que as duas linhas caíram MESMO
+// no mesmo instante. Sem ela, um empate que não acontecesse deixaria a asserção
+// verde sem haver nada para desempatar.
+$tra_mesmo_dt = lanca_transacao($dt_entrega_velha, 'pagamento', $con_rede, $con_t, 3.00,
+                                'pagamento no instante da entrega');
+$ext5 = extrato_do_cestante($usr_t);
+$ext5 = is_array($ext5) ? $ext5 : array();
+
+$seq = array();
+foreach ($ext5 as $l) if ($l['dt'] === $dt_entrega_velha) $seq[] = $l['situacao'];
+
+verifica("no empate de data a derivada vem antes da gravada",
+    count($seq) === 2 && $seq === array('derivado', 'gravado'),
+    "sequencia em $dt_entrega_velha = " . json_encode($seq));
+
+
+// Consulta que NÃO RODA não pode virar extrato vazio: vazio diria ao cestante que
+// ele está quite. São DUAS consultas, e cada uma tem a sua alavanca.
+//
+// Primeira: a do débito derivado. ONLY_FULL_GROUP_BY recusa exatamente ela — o
+// GROUP BY é por cha_id e a lista traz colunas não agregadas — e não toca na
+// consulta de lançamentos, que não agrupa nada. O sql_mode é restaurado ANTES da
+// asserção: uma falha no meio deixaria a sessão adulterada para tudo que vem
+// depois.
+$sql_mode_antes_ext = valor_escalar("SELECT @@SESSION.sql_mode");
+executa_sql("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY'");
+$ext_sem_derivado = extrato_do_cestante($usr_t);
+executa_sql("SET SESSION sql_mode = " . prep_para_bd((string)$sql_mode_antes_ext));
+
+// O === é obrigatório: em PHP array() == null é VERDADEIRO, e com == a asserção
+// passaria também contra a versão que devolve lista vazia.
+verifica("debito derivado recusado pelo servidor devolve null, nao extrato vazio",
+    $ext_sem_derivado === null, var_export($ext_sem_derivado, true));
+
+// Segunda: a de lançamentos gravados. A alavanca é a mesma TEMPORARY TABLE
+// `contas` sem con_id usada no bloco de cima — ela recusa o JOIN em contas desta
+// consulta (ERROR 1054) e NÃO toca em debitos_derivados, que não olha para contas.
+// Por isso este bloco prova a guarda da segunda consulta sozinha: a primeira
+// responde normalmente e mesmo assim o extrato tem de sair null, em vez de sair
+// com os derivados e sem os pagamentos — que é o extrato que cobra a mais.
+//
+// CREATE e DROP TEMPORARY TABLE não fazem COMMIT implícito, então a transação que
+// envolve o fixture sobrevive. A sombra é derrubada ANTES das asserções.
+executa_sql("CREATE TEMPORARY TABLE contas (
+    con_tipo  varchar(10) NOT NULL,
+    con_usr   mediumint(6) unsigned DEFAULT NULL,
+    con_nuc   mediumint(6) unsigned DEFAULT NULL,
+    con_forn  mediumint(6) unsigned DEFAULT NULL,
+    con_nome  varchar(120) DEFAULT NULL,
+    con_chave varchar(30)  DEFAULT NULL) ENGINE=InnoDB");
+
+$sombra_ext_de_pe  = (executa_sql("SELECT con_tipo FROM contas") !== false);
+$derivado_na_sombra = debitos_derivados($usr_t);
+$ext_sem_gravado    = extrato_do_cestante($usr_t);
+
+executa_sql("DROP TEMPORARY TABLE contas");
+
+// Guarda do fixture, e ao mesmo tempo a prova de que as duas alavancas atingem
+// consultas DIFERENTES: com a sombra de pé o débito derivado continua respondendo.
+verifica("com a sombra de pe o debito derivado ainda responde",
+    $sombra_ext_de_pe && is_array($derivado_na_sombra) && count($derivado_na_sombra) > 0,
+    "sombra = " . var_export($sombra_ext_de_pe, true)
+        . " · derivados = " . var_export($derivado_na_sombra, true));
+
+verifica("consulta de lancamentos recusada devolve null, nao extrato so com derivados",
+    $ext_sem_gravado === null, var_export($ext_sem_gravado, true));
+
+$ext_restaurado = extrato_do_cestante($usr_t);
+verifica("derrubada a sombra, o extrato volta a sair inteiro",
+    is_array($ext_restaurado) && count($ext_restaurado) === count($ext5),
+    "linhas = " . (is_array($ext_restaurado) ? count($ext_restaurado) : var_export($ext_restaurado, true))
+        . " · esperado = " . count($ext5));
+
+
+// Cestante SEM conta não é cestante sem extrato: ele tem entrega e ainda não pagou
+// nada. "Não tem conta" é uma resposta; "a consulta não rodou" é a ausência de
+// uma. É por isso que o recorte do extrato é o con_usr do JOIN, e não um con_id
+// vindo de conta_do_cestante(), cujo null junta os dois casos num só.
+//
+// $usr_t2 tem pedido entregue na mesma chamada de $usr_t e nunca ganhou conta —
+// as tentativas de criar uma para ele, lá em cima, foram todas recusadas. A
+// contagem exata em 1 também segura o recorte por cestante: sem ele, os
+// lançamentos de $usr_t apareceriam aqui.
+$conta_do_t2 = conta_do_cestante($usr_t2);
+$ext_t2 = extrato_do_cestante($usr_t2);
+
+verifica("cestante sem conta tem extrato com os derivados, e nao null",
+    $conta_do_t2 === null && is_array($ext_t2) && count($ext_t2) === 1
+    && $ext_t2[0]['situacao'] === 'derivado' && $ext_t2[0]['tra_id'] === null,
+    "conta = " . var_export($conta_do_t2, true) . " · extrato = " . json_encode($ext_t2));
+
+
+// O nome do tipo de produto entra no histórico por concatenação, e prodt_nome vem
+// de um LEFT JOIN. NULL não chega aqui — cha_prodt é NOT NULL com FK para
+// produtotipos, então o par sempre casa. O que chega é nome EM BRANCO: prodt_nome
+// é NOT NULL, mas com sql_mode vazio um '' entra sem reclamação. Concatenado seco
+// viraria 'entrega ' com espaço solto e sem dizer de quê.
+//
+// O nome volta ao original ANTES das asserções: entre a adulteração e a restauração
+// não pode haver nada que possa falhar. produtotipos não está na contagem de
+// tabelas do runner — e não adiantaria estar, porque o runner conta linhas e isto
+// é mudança de valor. Quem desfaz é a restauração aqui e o rollback do fim.
+$prodt_nome_antes = valor_escalar("SELECT prodt_nome FROM produtotipos WHERE prodt_id = 1");
+executa_sql("UPDATE produtotipos SET prodt_nome = '' WHERE prodt_id = 1");
+$ext_sem_nome = extrato_do_cestante($usr_t);
+executa_sql("UPDATE produtotipos SET prodt_nome = " . prep_para_bd((string)$prodt_nome_antes)
+            . " WHERE prodt_id = 1");
+
+$hist_sem_nome = null;
+foreach ((is_array($ext_sem_nome) ? $ext_sem_nome : array()) as $l)
+    if ($l['situacao'] === 'derivado') { $hist_sem_nome = $l['historico']; break; }
+
+verifica("tipo de produto sem nome nao vira 'entrega ' com espaco solto",
+    $hist_sem_nome === 'entrega', var_export($hist_sem_nome, true));
+
+verifica("o nome do tipo de produto foi devolvido ao original",
+    valor_escalar("SELECT prodt_nome FROM produtotipos WHERE prodt_id = 1") === $prodt_nome_antes,
+    var_export(valor_escalar("SELECT prodt_nome FROM produtotipos WHERE prodt_id = 1"), true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
