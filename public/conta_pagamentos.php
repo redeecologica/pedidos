@@ -432,9 +432,9 @@
             // de trinta e seis, o botão sobrava lá embaixo, fora da tela.
           ?>
           <div class="row" style="margin-top:12px;">
-            <div class="col-sm-12">
-              <button class="btn btn-success" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamento</button>
-              &nbsp;<a class="btn btn-link" href="conta_pagamentos.php?<?php echo(h($ctx)); ?>">cancelar</a>
+            <div class="col-sm-12 text-right">
+              <a class="btn btn-link" href="conta_pagamentos.php?<?php echo(h($ctx)); ?>">cancelar</a>
+              &nbsp;<button class="btn btn-success" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamento</button>
             </div>
           </div>
         </td>
