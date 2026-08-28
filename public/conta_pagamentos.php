@@ -315,6 +315,16 @@
           <?php } else { ?>
             <?php echo(h(date('d/m/Y', strtotime($ultimo['dt'])))); ?>
             &nbsp;<span class="<?php echo($ultimo['valor'] < 0 ? 'text-danger' : 'text-success'); ?>"><?php echo(h(formata_moeda($ultimo['valor']))); ?></span>
+            <?php
+              // O histórico do lançamento. Hoje registra_pagamento() grava sempre
+              // "pagamento", então a linha se repete — mas ajuste e reconciliação trazem
+              // texto próprio, e é aí que esta coluna passa a dizer algo que a data e o
+              // valor não dizem. extrato_do_cestante() normaliza para string, então não
+              // há nulo a tratar aqui.
+              $hist_ultimo = trim((string)$ultimo['historico']);
+              if ($hist_ultimo !== '') { ?>
+            <br><small class="text-muted"><?php echo(h($hist_ultimo)); ?></small>
+            <?php } ?>
           <?php } ?>
         </td>
         <td class="text-right">
