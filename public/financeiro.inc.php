@@ -525,19 +525,19 @@ function extrato_do_cestante($usr_id)
 // por TELA, não só no menu: item escondido é conveniência, não impedimento — quem
 // digita o endereço chega igual.
 //
-// O que a condição faz, sem prometer mais do que isso: exige o papel Beta Tester e
-// uma sessão de usuário. A lista de papéis de negócio não estreita nada hoje, porque
-// login.php:40 preenche usr.id antes de atribuir papel nenhum, então toda sessão
-// passa pelo último termo. Ela está escrita para dizer a quem o módulo se destina
-// quando a trava do beta sair; enquanto ela estiver aqui, quem segura é o Beta Tester.
+// A condição diz o que a função IMPÕE, e nada além: papel Beta Tester mais sessão
+// logada. Uma lista de papéis de negócio (ADM, finanças, núcleo) esteve escrita aqui e
+// saiu, porque era morta de um jeito perigoso. Morta porque login.php:40 preenche
+// usr.id antes de atribuir papel nenhum, então qualquer sessão já alcançava o último
+// termo do `||`. Perigosa porque sobreviveria à saída da trava: no dia em que alguém
+// apagar a linha do PAP_BETA_TESTER, a função passa a devolver true para toda sessão
+// logada CONTINUANDO A PARECER uma checagem de papel. O leitor que este comentário
+// protege é justamente quem vai apagar aquela linha.
+//
+// Quem discrimina por papel é pode_ver_conta_de(), logo abaixo, onde a distinção morde.
 function pode_ver_financeiro()
 {
-	if (empty($_SESSION[PAP_BETA_TESTER])) return false;
-
-	return !empty($_SESSION[PAP_ADM])
-	    || !empty($_SESSION[PAP_RESP_FINANCAS])
-	    || !empty($_SESSION[PAP_RESP_NUCLEO])
-	    || !empty($_SESSION['usr.id']);   // cestante, para o próprio extrato
+	return !empty($_SESSION[PAP_BETA_TESTER]) && !empty($_SESSION['usr.id']);
 }
 
 
@@ -610,4 +610,34 @@ function resumo_do_extrato($extrato)
 	if ($saldo >  0.005) return array('estado' => 'credor',  'saldo' => $saldo);
 
 	return array('estado' => 'em_dia', 'saldo' => $saldo);
+}
+
+
+// Confirma que o cestante existe e devolve o rótulo que a tela mostra. Três estados, e
+// nenhum par deles pode se confundir:
+//
+//   ok            a linha existe; 'nome' é o rótulo, sempre string. A coluna é NULLABLE
+//                 (SHOW COLUMNS: Null=YES) e aceita '', então o cast existe para o nome
+//                 chegar à tela com um tipo só — hoje nenhuma das 1210 linhas da cópia
+//                 de produção está nula ou vazia, o que torna o caso raro, não impossível
+//   inexistente   a consulta rodou e não há linha com esse usr_id
+//   indisponivel  a consulta não rodou
+//
+// Existe porque a tela precisa das três, e o `?:` que ela tinha antes fundia as três num
+// nome vazio: com ?usr_id=9999999 a página respondia HTTP 200 e o rótulo "em dia" —
+// saldo zero porque não há lançamento de um id que não existe, o que não é a mesma coisa
+// que alguém estar quite. É a família do contrato de null de debitos_derivados(), por
+// outra porta: lá "a pergunta foi recusada", aqui "a pergunta foi feita e não achou nada".
+//
+// A busca é só por usr_id — sem usr_archive e sem papel. Quem responde "existe" aqui não
+// é quem decide quem pode ver: isso já passou pelo pode_ver_conta_de().
+function cestante_da_conta($usr_id)
+{
+	$res = executa_sql("SELECT usr_nome_curto FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id));
+	if (!$res) return array('estado' => 'indisponivel', 'nome' => null);
+
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$row) return array('estado' => 'inexistente', 'nome' => null);
+
+	return array('estado' => 'ok', 'nome' => (string)$row['usr_nome_curto']);
 }

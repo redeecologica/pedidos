@@ -1,4 +1,26 @@
-
+<?php
+  // O módulo financeiro precisa estar carregado AQUI, e não só na tela dele. Este
+  // arquivo é incluído pelo header.inc.php, que top() carrega em TODA página, e
+  // conta_cestante.php era o único lugar de public/ a carregar o financeiro — então o
+  // item do menu só aparecia na página para a qual ele aponta. Medido com Administrador
+  // + Beta Tester antes deste require: "Meu Extrato" saía 0 vezes em inicio.php,
+  // meuspedidos.php e contatos.php, e 1 vez em conta_cestante.php. Menu que só se mostra
+  // a quem já chegou não é menu.
+  //
+  // O arquivo é só definição de função mais um define guardado (financeiro.inc.php:102):
+  // sem require, sem session_start, sem saída.
+  //
+  // __DIR__ porque include relativo depende do diretório de trabalho, e em CLI ele não é
+  // este — mesmo padrão do common.inc.php:3 e do cron_lembrete.php:29.
+  //
+  // Custo medido, porque agora as 76 páginas da varredura carregam o arquivo (641 linhas,
+  // 32 KB). Pior caso, com opcache DESLIGADO (CLI do container, 300 processos por
+  // rodada, duas rodadas): +62 ms e +124 ms no total, ou seja 0,2 a 0,4 ms por processo.
+  // Com o opcache LIGADO, que é como o container web roda: inicio.php por HTTP saiu 10,0
+  // ms ± 1,4 sem o require e 10,5 ms ± 4,2 com ele (hyperfine, 120+ execuções cada) — a
+  // diferença não se separa do ruído. Medido aqui, não no servidor da Locaweb.
+  require_once(__DIR__ . "/financeiro.inc.php");
+?>
  <nav class="navbar navbar-default hidden-print" role="navigation">
 
 	<div class="container-fluid">
@@ -13,15 +35,12 @@
             <li><a href="meuspedidos.php"><i class="icon-pedidos-shopping-bag"></i> Meus Pedidos</a></li>
 
 		  <?php
-		   // Módulo financeiro, ainda atrás do papel Beta Tester. O function_exists não
-		   // é zelo: este arquivo é incluído pelo header.inc.php, que top() carrega em
-		   // TODA página, e a maioria delas não requer o financeiro.inc.php. Conferido
-		   // tirando o teste e abrindo o inicio.php: "Fatal error: Uncaught Error: Call
-		   // to undefined function pode_ver_financeiro() in menu.inc.php".
+		   // Módulo financeiro, ainda atrás do papel Beta Tester.
 		   //
-		   // Esconder o item não tranca nada; quem tranca é a mesma pergunta feita
-		   // dentro do conta_cestante.php.
-			if(function_exists('pode_ver_financeiro') && pode_ver_financeiro())
+		   // Esconder o item não tranca nada: quem tranca é a MESMA pergunta refeita
+		   // dentro do conta_cestante.php, antes de qualquer saída. Aqui não há segunda
+		   // cópia da regra — só a chamada.
+			if(pode_ver_financeiro())
 			{
 		   ?>
             <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-usd"></i> Meu Extrato</a></li>
