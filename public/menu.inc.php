@@ -13,8 +13,8 @@
   // __DIR__ porque include relativo depende do diretório de trabalho, e em CLI ele não é
   // este — mesmo padrão do common.inc.php:3 e do cron_lembrete.php:29.
   //
-  // Custo medido, porque agora as 77 páginas da varredura carregam o arquivo — 870 linhas
-  // e 43.681 bytes na hora desta medição. (Antes eram 643 linhas e 32.327 bytes; o
+  // Custo medido em 2026-08-28, porque agora as 77 páginas da varredura carregam o arquivo
+  // — 870 linhas e 43.681 bytes naquela data. (Antes eram 643 linhas e 32.327 bytes; o
   // registro de pagamentos cresceu o arquivo em um terço, então a medição foi refeita.
   // Antes disso, um "641" escrito aqui ficou velho no mesmo commit em que foi medido.
   // Número medido também envelhece, e este envelhece a cada tarefa.)
