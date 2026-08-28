@@ -542,8 +542,9 @@ verifica("com o sql_mode restaurado a mesma chamada volta a listar",
 // (ERROR 1054 Unknown column 'con_id') e deixa de pé o INSERT do cria_conta, que
 // não menciona con_id. Uma sombra só cobre as duas funções.
 //
-// DDL de tabela TEMPORÁRIA é a exceção documentada que NÃO faz COMMIT implícito,
-// e é o que torna esta alavanca usável aqui dentro: a transação que envolve todo
+// CREATE e DROP TEMPORARY TABLE são a exceção documentada que NÃO faz COMMIT
+// implícito — ALTER numa temporária faz, então o bloco se limita a criar e
+// derrubar. É o que torna esta alavanca usável aqui dentro: a transação que envolve todo
 // o fixture sobrevive. Se não sobrevivesse, o rollback do fim não desfaria nada e
 // a contagem de tabelas do runner reprovaria a corrida — a prova é automática.
 //

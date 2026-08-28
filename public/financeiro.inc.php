@@ -224,7 +224,8 @@ function cria_conta($tipo, $campos = array())
 // A guarda tem teste, e ele quebra o SELECT de propósito: a suíte sombreia
 // `contas` com uma TEMPORARY TABLE sem a coluna con_id, o que faz o servidor
 // recusar esta busca (ERROR 1054) e deixa de pé o INSERT do cria_conta, que não
-// menciona con_id. DDL de tabela TEMPORÁRIA não faz COMMIT implícito, então a
+// menciona con_id. CREATE e DROP TEMPORARY TABLE não fazem COMMIT implícito
+// (ALTER numa temporária faz — só estes dois é que são exceção), então a
 // transação da suíte sobrevive. A mesma sombra cobre conta_da_rede().
 //
 // Sem esta guarda o INSERT entra e a função devolve 0, não null — id_inserido()
