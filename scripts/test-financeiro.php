@@ -1056,7 +1056,7 @@ verifica("sem beta tester o modulo nao abre, mesmo para financas",
 
 // O administrador é o caso que decide se o módulo fica mesmo invisível:
 // verifica_seguranca() valida qualquer chamada vinda de PAP_ADM sem sequer olhar o
-// parâmetro (common.inc.php:105-108), então a trava do beta não pode depender dela.
+// parâmetro (common.inc.php:103-110), então a trava do beta não pode depender dela.
 $_SESSION[PAP_ADM] = true;
 verifica("sem beta tester o modulo nao abre nem para o administrador",
     pode_ver_financeiro() === false);
@@ -1199,6 +1199,50 @@ verifica("saldo negativo e devedor, positivo e credor, zero e em dia",
     && resumo_do_extrato(array(array('saldo' =>   0.0)))['estado'] === 'em_dia'
     && resumo_do_extrato(array(array('saldo' => -0.004)))['estado'] === 'em_dia'
     && resumo_do_extrato(array(array('saldo' => -0.01)))['estado'] === 'devedor');
+
+// A tela não afirma nada sobre dinheiro numa conta que ela não confirmou existir. É a
+// mesma família do contrato de null, por outra porta: lá era "a consulta foi recusada",
+// aqui é "a consulta rodou e não achou linha nenhuma". Antes desta rodada,
+// ?usr_id=9999999 respondia HTTP 200 com o rótulo "em dia" e nome em branco — saldo
+// zero porque não há lançamento de um id que não existe, o que é bem diferente de
+// alguém estar quite.
+//
+// São TRÊS estados, e nenhum par deles pode se confundir: existe · não existe · não deu
+// para perguntar. A busca é a mesma de conta_do_cestante(): só usr_id, sem usr_archive
+// e sem papel, porque quem responde "existe" aqui não é quem decide quem pode ver — isso
+// já passou pelo pode_ver_conta_de().
+$cst_ok = cestante_da_conta($usr_t);
+verifica("cestante que existe volta com estado ok e o nome que a tela mostra",
+    $cst_ok['estado'] === 'ok' && $cst_ok['nome'] === 'tconta',
+    json_encode($cst_ok));
+
+// Um id que não existe. O + 99999 sai do alcance dos fixtures desta corrida sem depender
+// de um literal que um dia pode virar linha de verdade na cópia de produção.
+$cst_nao = cestante_da_conta($usr_t + 99999);
+verifica("cestante que nao existe e 'inexistente', e nao um nome vazio",
+    $cst_nao['estado'] === 'inexistente' && $cst_nao['nome'] === null,
+    json_encode($cst_nao));
+
+// A mesma sombra de TEMPORARY TABLE do bloco de permissão: sem a coluna usr_nome_curto o
+// SELECT é recusado (ERROR 1054) e o estado tem de ser 'indisponivel'. Se ele virasse
+// 'inexistente', a tela recusaria a conta dizendo que ela não existe justamente quando o
+// banco não deu resposta — trocando "não sei" por "não tem".
+executa_sql("CREATE TEMPORARY TABLE usuarios (
+    usr_id mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+
+$sombra_nome_de_pe = (executa_sql("SELECT usr_nome_curto FROM usuarios") === false);
+$cst_sem_banco     = cestante_da_conta($usr_t);
+
+executa_sql("DROP TEMPORARY TABLE usuarios");
+
+verifica("consulta recusada e 'indisponivel', nunca 'inexistente'",
+    $sombra_nome_de_pe && $cst_sem_banco['estado'] === 'indisponivel'
+    && $cst_sem_banco['nome'] === null,
+    "sombra de pe = " . var_export($sombra_nome_de_pe, true)
+        . " · resultado = " . json_encode($cst_sem_banco));
+
+verifica("derrubada a sombra, o cestante volta a ser encontrado",
+    cestante_da_conta($usr_t)['estado'] === 'ok');
 
 mysqli_rollback($conn_link);
 

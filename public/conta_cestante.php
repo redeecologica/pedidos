@@ -10,7 +10,7 @@
 
   // A trava do módulo NÃO passa por verifica_seguranca(). Aquela função valida
   // qualquer chamada vinda de PAP_ADM sem sequer olhar o parâmetro
-  // (common.inc.php:105-108), então `verifica_seguranca(pode_ver_conta_de($usr_id))`
+  // (common.inc.php:103-110), então `verifica_seguranca(pode_ver_conta_de($usr_id))`
   // — a forma que o brief propõe — deixaria a tela aberta para todo administrador,
   // com ou sem o papel Beta Tester, que é justo o contrário de "o módulo fica
   // invisível até estar pronto".
@@ -30,20 +30,42 @@
   // baixo o cast é exato, e nada de texto da URL chega às consultas.
   $usr_id = (int)$usr_id;
 
-  top();
+  // Conta que a tela não confirmou existir não recebe afirmação nenhuma sobre dinheiro.
+  // Um id que não existe não tem lançamento, o saldo sai zero e a tela afirmava "em dia".
+  // Medido tirando esta recusa e pedindo ?usr_id=9999999: HTTP 200,
+  // `<legend>Conta de </legend>` sem nome nenhum e o rótulo verde `em dia`. "Está quite"
+  // e "não há esse alguém" não são a mesma frase.
+  //
+  // A recusa é a mesma dos outros alvos inválidos (-1, 0, texto): id que não designa
+  // cestante não abre tela. Também não conta a ninguém quais ids existem: quem não é ADM
+  // nem Responsável Finanças já foi barrado antes daqui — o ramo do próprio exige
+  // igualdade e o de núcleo exige a linha do cestante no banco, então um id inexistente
+  // não chega a este ponto por nenhum dos dois.
+  //
+  // O ramo 'indisponivel' NÃO cai aqui: a consulta que não roda é tratada com o extrato,
+  // lá embaixo, porque "não sei se existe" não pode virar "não existe".
+  $cestante = cestante_da_conta($usr_id);
 
-  $sql = "SELECT usr_nome_curto FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id);
-  $res = executa_sql($sql);
-  $usr_nome_curto = ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) ? $row['usr_nome_curto'] : "";
+  if ($cestante['estado'] === 'inexistente')
+  {
+    adiciona_mensagem_status(MSG_TIPO_ERRO, "Conta não encontrada.");
+    redireciona(PAGINAPRINCIPAL);
+  }
+
+  top();
 
   // A tela não decide nada sobre o saldo por conta própria: resumo_do_extrato()
   // traduz o extrato — inclusive o null de "a consulta não rodou" — num estado, e
   // aqui só se escolhe o que desenhar para cada estado.
   $extrato = extrato_do_cestante($usr_id);
   $resumo  = resumo_do_extrato($extrato);
+
+  // Uma consulta recusada basta para a tela calar sobre dinheiro, seja a do nome, seja a
+  // do extrato: as duas são "não deu para perguntar".
+  $indisponivel = ($cestante['estado'] === 'indisponivel') || ($resumo['estado'] === 'indisponivel');
 ?>
 
-	<legend>Conta de <?php echo(h($usr_nome_curto)); ?></legend>
+	<legend>Conta de <?php echo(h($cestante['nome'])); ?></legend>
 
 <?php
   // Consulta que não rodou não vira número. A tela para aqui: sem situação, sem tabela
@@ -55,7 +77,7 @@
   // primeiro rascunho desta tela explicava o ramo num <!-- --> que citava a expressão
   // "em dia", e ela saía no corpo da página justamente no caso em que a tela não pode
   // dizer isso. Raciocínio fica no arquivo.
-  if ($resumo['estado'] === 'indisponivel') { ?>
+  if ($indisponivel) { ?>
 
 	<div class="alert alert-danger">
 	  <strong>Não foi possível carregar o extrato desta conta.</strong><br>
