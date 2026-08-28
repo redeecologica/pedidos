@@ -78,6 +78,37 @@ mysqli_set_charset($conn_link,'utf8');
 
 
 
+// Destino seguro para voltar depois do login, lido da requisição atual.
+// Devolve "" quando não há destino aproveitável — e aí o login manda para a
+// página inicial, como sempre fez.
+//
+// A validação é a mesma expressão que redireciona() aplica no consumo. É de
+// propósito que apareça duas vezes: defesa que só existe na outra ponta é
+// defesa só, e esta função não pode nem PRODUZIR um destino que leve para fora
+// da aplicação.
+function destino_para_voltar()
+{
+	// POST não se reconstrói pela URL: o corpo se perde, e devolver a tela vazia
+	// daria a impressão de que o envio funcionou
+	if (!isset($_SERVER['REQUEST_METHOD']) || strtoupper($_SERVER['REQUEST_METHOD']) !== 'GET') return "";
+
+	$uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : "";
+	if ($uri === "") return "";
+
+	$caminho = parse_url($uri, PHP_URL_PATH);
+	$alvo    = (is_string($caminho) && $caminho !== "") ? basename($caminho) : "";
+	$query   = parse_url($uri, PHP_URL_QUERY);
+	if (is_string($query) && $query !== "") $alvo .= '?' . $query;
+
+	// voltar para o próprio login é laço: entra, volta para o login, entra de novo
+	if ($alvo === "" || strncmp($alvo, 'login.php', 9) === 0) return "";
+
+	if (!preg_match('#^[A-Za-z0-9_-]+\.php(\?[^\s\'"<>]*)?$#', $alvo)) return "";
+
+	return $alvo;
+}
+
+
 function verifica_seguranca($parametro_validacao = true)
 {
 	$validado = false;
@@ -123,8 +154,19 @@ function verifica_seguranca($parametro_validacao = true)
 	
 	if(!$validado )
 	{
-		header("Location:$pagina");
-		redireciona("$pagina");		
+		// Só o caminho "não está logado" carrega o destino de volta. O de falta de
+		// permissão manda para a página inicial e não pode voltar: viraria laço,
+		// porque a página que recusou vai recusar de novo.
+		if ($pagina === "login.php")
+		{
+			$volta = destino_para_voltar();
+			if ($volta !== "") $pagina .= "?volta=" . urlencode($volta);
+		}
+
+		// o header solto que existia aqui saiu: ele definia Location com o valor
+		// ANTES da validação do redireciona(), e passou a ser perigoso agora que
+		// $pagina pode conter algo vindo da requisição
+		redireciona($pagina);
 		exit();
 	}
 }
