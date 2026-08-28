@@ -1043,8 +1043,8 @@ echo "\npermissao\n";
 $sessao_antes = $_SESSION;
 
 // pode_ver_financeiro() impõe DUAS coisas, ligadas por E: o papel Beta Tester e uma
-// sessão logada. Papel de negócio não entra na conta — os dois primeiros casos abaixo
-// deixam PAP_RESP_FINANCAS ligado justamente para provar que ele não fura a trava.
+// sessão logada. Papel de negócio não entra na conta — os primeiros casos abaixo deixam
+// PAP_RESP_FINANCAS ligado justamente para provar que ele não fura a trava.
 $_SESSION[PAP_BETA_TESTER]   = false;
 $_SESSION[PAP_RESP_FINANCAS] = true;
 $_SESSION[PAP_RESP_NUCLEO]   = false;
@@ -1061,7 +1061,30 @@ verifica("sem beta tester o modulo nao abre, mesmo para financas",
 $_SESSION[PAP_ADM] = true;
 verifica("sem beta tester o modulo nao abre nem para o administrador",
     pode_ver_financeiro() === false);
+
+// E a MESMA pergunta feita à função que as telas realmente chamam. Não é repetição da
+// asserção acima: pode_ver_conta_de() tem o portão do beta numa linha PRÓPRIA, e essa
+// linha não tinha teste nenhum. Medido na revisão da branch: apagá-la sobrevivia às 126
+// asserções, e movê-la para depois do atalho de PAP_ADM/PAP_RESP_FINANCAS também —
+// porque TODAS as asserções daquela função rodavam com PAP_BETA_TESTER ligado, e nenhuma
+// dizia "sem beta, nega".
+//
+// Com a linha apagada, um administrador SEM Beta Tester passa a alcançar a conta de
+// qualquer cestante, e conta_cestante.php:27 é o ÚNICO portão daquela tela — o
+// verifica_seguranca() de :13 não recebe parâmetro, de propósito. Seria o defeito que a
+// trava do beta existe para fechar, reaberto com a suíte verde.
+//
+// O caso do ADM é o que pega a linha MOVIDA (o atalho responderia antes dela).
+verifica("sem beta tester ninguem alcanca conta nenhuma, nem o administrador",
+    pode_ver_conta_de($usr_t) === false);
+
 $_SESSION[PAP_ADM] = false;
+$_SESSION[PAP_RESP_FINANCAS] = false;
+
+// E este é o que pega a linha APAGADA: sem papel nenhum, a sessão é do próprio $usr_t,
+// então o ramo "o próprio" responderia true se o portão do beta não viesse antes.
+verifica("sem beta tester nem o proprio cestante alcanca a propria conta",
+    pode_ver_conta_de($usr_t) === false);
 
 // Agora com o papel do beta, e com TODO papel de negócio DESLIGADO. O desligamento não é
 // arrumação: enquanto o PAP_RESP_FINANCAS ficava ligado aqui, este teste passava também
@@ -1272,6 +1295,39 @@ echo "\npagamento\n";
 // $con_forn_t é produtor, $con_a e $con_b são da Rede. $con_t é a conta do
 // cestante $usr_t — e é justamente ela que NÃO pode ser destino.
 
+// saldo_da_conta() era a última da família a devolver 0.0 quando a consulta não roda —
+// indistinguível de conta zerada. A alavanca é a sombra de TEMPORARY TABLE que o resto da
+// suíte já usa, agora sobre `lancamentos` e sem a coluna lan_valor: o SUM é recusado
+// (ERROR 1054) sem que mais nada mude.
+//
+// A asserção é `=== null` de propósito. Escrita como `!$saldo`, ela passaria também
+// contra a versão defeituosa, porque 0.0 é falsy — é o mesmo cuidado que o teste de
+// conta_do_cestante() já documenta.
+$saldo_real = saldo_da_conta($con_t);
+
+executa_sql("CREATE TEMPORARY TABLE lancamentos (
+    lan_id  int(10) unsigned NOT NULL,
+    lan_tra int(10) unsigned NOT NULL,
+    lan_con mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+
+$sombra_lan_de_pe = (executa_sql("SELECT lan_valor FROM lancamentos") === false);
+$saldo_sem_banco  = saldo_da_conta($con_t);
+
+executa_sql("DROP TEMPORARY TABLE lancamentos");
+
+// Guarda do fixture: sem ela o teste ficaria verde por não haver o que quebrar.
+verifica("a sombra sem lan_valor faz o servidor recusar a soma do saldo",
+    $sombra_lan_de_pe, var_export($sombra_lan_de_pe, true));
+
+verifica("saldo de consulta recusada e null, e nao conta zerada",
+    $saldo_sem_banco === null, var_export($saldo_sem_banco, true));
+
+verifica("derrubada a sombra, o saldo volta a ser o mesmo float de antes",
+    is_float($saldo_real) && saldo_da_conta($con_t) === $saldo_real,
+    "antes = " . var_export($saldo_real, true)
+        . " · depois = " . var_export(saldo_da_conta($con_t), true));
+
+
 $destinos = contas_de_destino();
 
 verifica("nucleo, produtor e rede entram na lista de destinos, com rotulo",
@@ -1288,6 +1344,41 @@ verifica("nucleo, produtor e rede entram na lista de destinos, com rotulo",
 verifica("conta de cestante nao aparece entre os destinos",
     is_array($destinos) && !isset($destinos[$con_t]),
     "con_t = " . var_export($con_t, true));
+
+// Duas contas com o MESMO rótulo, que é o caso que a revisão da branch mediu: a conta
+// principal da Rede já existe ($con_rede, criada por conta_da_rede() com con_chave), e
+// cria_conta() aceita uma segunda 'Rede Ecológica' — con_nome não tem UNIQUE, e não deve
+// ter, porque é rótulo e não identidade. Sem desempate, as duas viram <option> idênticos
+// na tela que move dinheiro, e quem escolhe a errada credita uma conta que NÃO é a
+// contraparte dos débitos de entrega.
+//
+// A asserção olha para os dois lados da regra: as repetidas ficam diferentes entre si e
+// cada uma carrega o próprio con_id, e a NÃO repetida continua limpa. Sem a segunda
+// metade, uma versão que carimbasse #con_id em toda linha passaria verde.
+// O nome sai do banco, e não de um literal: um teste do bloco de identidade renomeia a
+// conta da Rede à mão, de propósito, para provar que a busca é por con_chave. Literal
+// aqui daria dois nomes DIFERENTES e o teste ficaria verde sem duplicata nenhuma.
+$nome_da_rede = valor_escalar("SELECT con_nome FROM contas WHERE con_id = " . (int)$con_rede);
+$con_rede_dup = cria_conta('rede', array('con_nome' => $nome_da_rede));
+$dest_dup     = contas_de_destino();
+
+verifica("rotulo repetido ganha desempate visivel nas DUAS contas, e o unico fica limpo",
+    is_numeric($con_rede_dup) && $con_rede_dup != $con_rede && is_array($dest_dup)
+    && $dest_dup[$con_rede] !== $dest_dup[$con_rede_dup]
+    && strpos($dest_dup[$con_rede], '#' . $con_rede) !== false
+    && strpos($dest_dup[$con_rede_dup], '#' . $con_rede_dup) !== false
+    && strpos($dest_dup[$con_nuc_t], '#') === false,
+    "nome no banco=" . json_encode($nome_da_rede)
+        . " rede=" . json_encode(isset($dest_dup[$con_rede]) ? $dest_dup[$con_rede] : null)
+        . " dup=" . json_encode(isset($dest_dup[$con_rede_dup]) ? $dest_dup[$con_rede_dup] : null)
+        . " nucleo=" . json_encode(isset($dest_dup[$con_nuc_t]) ? $dest_dup[$con_nuc_t] : null));
+
+// Some com a duplicata: o resto do bloco conta destinos e lançamentos, e uma conta a mais
+// deixada para trás mudaria número alheio.
+executa_sql("DELETE FROM contas WHERE con_id = " . (int)$con_rede_dup);
+
+verifica("desfeita a duplicata, o rotulo da conta da Rede volta a ficar limpo",
+    strpos(contas_de_destino()[$con_rede], '#') === false);
 
 $saldo_antes_cest = saldo_da_conta($con_t);
 $saldo_antes_nuc  = saldo_da_conta($con_nuc_t);
