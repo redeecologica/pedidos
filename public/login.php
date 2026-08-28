@@ -66,8 +66,12 @@
         $sucesso_login =  1;
 
         session_write_close();
-        header("Location:" . PAGINAPRINCIPAL);
-        redireciona(PAGINAPRINCIPAL);
+
+        // Volta para a página que a pessoa tentou abrir antes de ser mandada para
+        // cá. redireciona() valida o alvo: qualquer coisa que não seja página da
+        // própria aplicação vira a página inicial.
+        $volta = request_get("volta", "");
+        redireciona($volta !== "" ? $volta : PAGINAPRINCIPAL);
         exit();
       }
       else
