@@ -1,5 +1,6 @@
 <?php  
   require  "common.inc.php"; 
+  require  "chamada.inc.php";
   verifica_seguranca($_SESSION[PAP_RESP_PEDIDO]);
   top();
 ?>
@@ -78,11 +79,23 @@
 			
 			
 			// atualiza informações da tabela chamadas
+			$dt_entrega_bd = formata_data_para_mysql($_REQUEST["cha_dt_entrega"]) . " 23:59:59";
+
+			// Prazo contábil: preenche um padrão quando ainda não há nenhum.
+			//
+			// O COALESCE é o ponto todo — só preenche o que está nulo, então o que o
+			// time de finanças definiu em financas_prazo.php nunca é sobrescrito, nem
+			// por uma edição posterior desta tela. Sem prazo, a chamada fica aberta
+			// para registro de entrega PARA SEMPRE (entrega_cestante.php:20), que é
+			// como 148 chamadas com entrega real chegaram até hoje editáveis.
+			$prazo_padrao = prazo_contabil_padrao($_REQUEST["cha_prodt"], $dt_entrega_bd);
+
 			$sql = "UPDATE chamadas SET ";
 			$sql.= "cha_dt_min  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_min"] . " " .  $_REQUEST["cha_hh_min"])) . ", ";
 			$sql.= "cha_dt_max  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_max"] . " " .  $_REQUEST["cha_hh_max"])) .  ", ";	
 			$sql.= "cha_taxa_percentual  = " . prep_para_bd(formata_numero_para_mysql($_REQUEST["cha_taxa_percentual"])) .  ", ";				
-			$sql.= "cha_dt_entrega  = " . prep_para_bd(formata_data_para_mysql($_REQUEST["cha_dt_entrega"]) . " 23:59:59" ) .  "  ";	
+			$sql.= "cha_dt_prazo_contabil = COALESCE(cha_dt_prazo_contabil, " . ($prazo_padrao === null ? "NULL" : prep_para_bd($prazo_padrao)) . "), ";
+			$sql.= "cha_dt_entrega  = " . prep_para_bd($dt_entrega_bd) .  "  ";	
 			$sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";	
 			$res = executa_sql($sql);
 

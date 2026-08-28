@@ -1,5 +1,6 @@
 <?php  
   require  "common.inc.php"; 
+  require  "chamada.inc.php";
   verifica_seguranca($_SESSION[PAP_RESP_FINANCAS]);
   top();
   
@@ -14,7 +15,7 @@
 	
 	if ($action<>-1) // por enquanto, vai precisar para todos os casos
 	{
-	  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_prodt, prodt_nome, DATE_FORMAT(cha_dt_prazo_contabil,'%d/%m/%Y') cha_dt_prazo_contabil,";
+	  $sql = " SELECT DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_dt_entrega cha_dt_entrega_bd, cha_prodt, prodt_nome, DATE_FORMAT(cha_dt_prazo_contabil,'%d/%m/%Y') cha_dt_prazo_contabil,";
 	  $sql.= " DATE_FORMAT(cha_dt_prazo_contabil,'%H:%i') cha_dt_prazo_contabil_hh  FROM chamadas ";
 	  $sql.= " LEFT JOIN produtotipos ON cha_prodt = prodt_id ";
 	  $sql.= " WHERE cha_id=". prep_para_bd($cha_id) . " ";
@@ -23,6 +24,7 @@
 	  if ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
 	  {				  
 		$cha_dt_entrega = $row["cha_dt_entrega"];
+		$cha_dt_entrega_bd = $row["cha_dt_entrega_bd"];
 		$cha_prodt = $row["cha_prodt"];
 		$prodt_nome = $row["prodt_nome"];
 		$cha_dt_prazo_contabil = $row["cha_dt_prazo_contabil"];
@@ -34,8 +36,23 @@
 	if ($action == ACAO_SALVAR) // salvar formulário preenchido
 	{
 
+	  $prazo_informado = formata_data_hora_para_mysql($_REQUEST["cha_dt_prazo_contabil"] . " " .  $_REQUEST["cha_dt_prazo_contabil_hh"]);
+
+	  // O prazo tem de cair num dia posterior ao da entrega. Sem esta guarda a
+	  // base já acumulou o inverso: cha 963 fechou 26 dias ANTES da entrega e
+	  // cha 1177 um ano antes (typo de ano), e as duas nunca puderam ser
+	  // corrigidas depois — prazo vencido tranca o registro de entrega.
+	  if (!prazo_contabil_valido($prazo_informado, isset($cha_dt_entrega_bd) ? $cha_dt_entrega_bd : ""))
+	  {
+		adiciona_mensagem_status(MSG_TIPO_ERRO,"O prazo contábil precisa ser em um dia posterior ao da entrega (" . $cha_dt_entrega . ").");
+		escreve_mensagem_status();
+		$action = ACAO_EXIBIR_EDICAO;
+	  }
+	  else
+	  {
+
 		$sql = "UPDATE chamadas SET ";
-		$sql.= " cha_dt_prazo_contabil  = " . prep_para_bd(formata_data_hora_para_mysql($_REQUEST["cha_dt_prazo_contabil"] . " " .  $_REQUEST["cha_dt_prazo_contabil_hh"])) . " ";
+		$sql.= " cha_dt_prazo_contabil  = " . prep_para_bd($prazo_informado) . " ";
 		$sql.= "WHERE cha_id=". prep_para_bd($cha_id) . " ";	
 		$res = executa_sql($sql);
 
@@ -55,7 +72,7 @@
 			adiciona_mensagem_status(MSG_TIPO_ERRO,"Erro ao tentar salvar informações de prazo contábil relacionadas à chamada de " . $cha_dt_entrega . ".");								
 		}
 		escreve_mensagem_status();
-	
+	  }
 	}
 	
 	if ($action == ACAO_EXIBIR_LEITURA || $action == ACAO_EXIBIR_EDICAO )  // exibir para visualização, ou exibir para edição
