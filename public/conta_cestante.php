@@ -62,13 +62,31 @@
   // Sem essa conferência, quem pode ver a própria conta editaria a descrição de um
   // lançamento de outra pessoa só passando o tra_id na URL — pode_ver_conta_de()
   // autorizou a CONTA, não a transação.
+  // Quem pode editar. A pergunta é feita AQUI, no servidor, e não só na hora de
+  // desenhar o lápis: esconder o botão não tranca nada. Um cestante com Beta Tester
+  // vendo a própria conta chegava a gravar por POST direto, com o lápis escondido na
+  // tela — conferido antes do conserto, o histórico mudava.
+  //
+  // É a mesma lição que esta branch aplicou ao pg_usr e à posse do tra_id, e que eu
+  // não apliquei ao PAPEL: o formulário não é fonte de verdade sobre nada, nem sobre
+  // quem é quem, nem sobre o que a pessoa pode fazer.
+  $pode_editar = pode_lancar_pagamento();
+
   $editar_tra = request_get("editar_tra", "");
   if (!is_string($editar_tra) && !is_int($editar_tra)) $editar_tra = "";
   if (!ctype_digit((string)$editar_tra) || (int)$editar_tra <= 0) $editar_tra = "";
+  if (!$pode_editar) $editar_tra = "";
   if ($editar_tra !== "" && cestante_da_transacao($editar_tra) !== (int)$usr_id) $editar_tra = "";
 
   if (request_get("action", "") == ACAO_SALVAR)
   {
+      if (!$pode_editar)
+      {
+          adiciona_mensagem_status(MSG_TIPO_ERRO, "Sem permissão para editar lançamentos.");
+          redireciona("conta_cestante.php?usr_id=" . urlencode($usr_id));
+          exit();
+      }
+
       $tra_salvar = request_get("tra_id", "");
       if (ctype_digit((string)$tra_salvar) && (int)$tra_salvar > 0
           && cestante_da_transacao($tra_salvar) === (int)$usr_id)
@@ -99,9 +117,6 @@
   $extrato = extrato_do_cestante($usr_id);
   $resumo  = resumo_do_extrato($extrato);
 
-  // Editar descrição é ato de quem administra, não do cestante olhando a própria
-  // conta: é a mesma regra de quem lança pagamento.
-  $pode_editar = pode_lancar_pagamento();
 
   // Uma consulta recusada basta para a tela calar sobre dinheiro, seja a do nome, seja a
   // do extrato: as duas são "não deu para perguntar".
