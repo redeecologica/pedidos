@@ -113,3 +113,8 @@
    folga a linha encosta na borda de cima da janela e o nome da pessoa fica rente ao
    topo; com ela, a linha e o formulário logo abaixo aparecem inteiros. */
 tr[id^="cestante-"] { scroll-margin-top: 16px; }
+
+/* Extrato do caixa: o cabeçalho gruda no topo ao rolar. Numa lista longa a regra de
+   sinal — que vive no parágrafo acima da tabela e nos popovers do cabeçalho — sairia
+   da tela junto com ele, e é justamente enquanto se lê linha a linha que ela faz falta. */
+.extrato-caixa thead th { position: sticky; top: 0; background-color: #fff; z-index: 2; }
