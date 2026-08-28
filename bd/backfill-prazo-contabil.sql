@@ -1,4 +1,4 @@
--- Preenche cha_dt_prazo_contabil das chamadas antigas que ficaram sem prazo.
+-- Preenche cha_dt_prazo_contabil das chamadas ANTIGAS que ficaram sem prazo.
 -- Passada ÚNICA, para rodar à mão em produção. Não é migração automática.
 --
 -- POR QUE ISTO EXISTE
@@ -10,10 +10,16 @@
 -- entregue de uma chamada de 2019 hoje.
 --
 -- A REGRA
--- Decisão da Rede: prazo = data da entrega + 10 dias, para toda chamada sem
--- prazo. Precisão não importa aqui — para uma chamada que todo mundo considera
--- encerrada, qualquer data passada faz as duas coisas que o campo precisa fazer:
--- parar a edição e permitir o congelamento contábil.
+-- Decisão da Rede: prazo = data da entrega + 10 dias, SÓ para chamada entregue
+-- antes de julho de 2026. Precisão não importa nesse intervalo — para uma
+-- chamada que todo mundo considera encerrada, qualquer data passada faz as duas
+-- coisas que o campo precisa fazer: parar a edição e permitir o congelamento
+-- contábil.
+--
+-- POR QUE O CORTE EM 2026-07-01
+-- Chamada recente pode estar genuinamente aberta, e aí o prazo é decisão do time
+-- de finanças, não de um UPDATE em massa. O que ficar de fora vira lista de
+-- trabalho: o último bloco deste arquivo mostra quais são.
 --
 -- Onde os 10 dias caem, contra o medido nos últimos 12 meses:
 --   Frescos   mediana 4  p80  6  -> folgado
@@ -42,21 +48,19 @@
 -- COMO RODAR
 --   1. rode o bloco ANTES e confira os números
 --   2. rode o UPDATE
---   3. rode o bloco DEPOIS: "sem prazo" tem de ser 0
+--   3. rode o bloco DEPOIS: "ainda_sem_prazo_antigas" tem de ser 0
+--   4. rode o bloco LISTA e passe o resultado para o time de finanças
 -- Faça backup antes; é UPDATE em massa numa tabela de produção.
 
 
 -- ---------------------------------------------------------------- ANTES ------
-SELECT COUNT(*)                AS chamadas_sem_prazo,
-       MIN(cha_dt_entrega)     AS entrega_mais_antiga,
-       MAX(cha_dt_entrega)     AS entrega_mais_nova,
-       SUM(cha_dt_entrega + INTERVAL 10 DAY > NOW()) AS ficariam_com_prazo_futuro
+SELECT COUNT(*)            AS serao_alteradas,
+       MIN(cha_dt_entrega) AS entrega_mais_antiga,
+       MAX(cha_dt_entrega) AS entrega_mais_nova
 FROM chamadas
 WHERE cha_dt_prazo_contabil IS NULL
-  AND cha_dt_entrega IS NOT NULL;
-
--- "ficariam_com_prazo_futuro" é esperado para chamada entregue nos últimos 10
--- dias: significa "ainda aberta, fecha em breve", não erro.
+  AND cha_dt_entrega IS NOT NULL
+  AND cha_dt_entrega < '2026-07-01';
 
 -- as 10 mais recentes que serão alteradas, para conferir a cara do resultado
 SELECT cha_id,
@@ -65,6 +69,7 @@ SELECT cha_id,
 FROM chamadas
 WHERE cha_dt_prazo_contabil IS NULL
   AND cha_dt_entrega IS NOT NULL
+  AND cha_dt_entrega < '2026-07-01'
 ORDER BY cha_dt_entrega DESC
 LIMIT 10;
 
@@ -73,19 +78,38 @@ LIMIT 10;
 UPDATE chamadas
    SET cha_dt_prazo_contabil = cha_dt_entrega + INTERVAL 10 DAY
  WHERE cha_dt_prazo_contabil IS NULL
-   AND cha_dt_entrega IS NOT NULL;
+   AND cha_dt_entrega IS NOT NULL
+   AND cha_dt_entrega < '2026-07-01';
 
 
 -- ---------------------------------------------------------------- DEPOIS -----
 -- tem de voltar 0; se não voltar, sobrou chamada com cha_dt_entrega nula, que é
 -- outro problema e não se resolve por aqui
-SELECT COUNT(*) AS ainda_sem_prazo
+SELECT COUNT(*) AS ainda_sem_prazo_antigas
 FROM chamadas
 WHERE cha_dt_prazo_contabil IS NULL
-  AND cha_dt_entrega IS NOT NULL;
+  AND cha_dt_entrega IS NOT NULL
+  AND cha_dt_entrega < '2026-07-01';
 
 -- chamadas sem data de entrega nenhuma: ficam de fora por não haver de onde
 -- contar. Se este número não for 0, vale olhar uma a uma.
 SELECT COUNT(*) AS sem_data_de_entrega
 FROM chamadas
 WHERE cha_dt_entrega IS NULL;
+
+
+-- ---------------------------------------------------------------- LISTA ------
+-- O que o corte deixou de fora, DE PROPÓSITO: entrega em julho de 2026 ou depois
+-- e ainda sem prazo. Não é sobra do UPDATE, é a fila do time de finanças — cada
+-- uma precisa de uma data decidida em financas_prazo.php.
+--
+-- Enquanto estiverem aqui, seguem abertas para registro de entrega.
+SELECT c.cha_id,
+       pt.prodt_nome AS tipo,
+       c.cha_dt_entrega,
+       DATEDIFF(NOW(), c.cha_dt_entrega) AS dias_desde_a_entrega
+FROM chamadas c
+LEFT JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt
+WHERE c.cha_dt_prazo_contabil IS NULL
+  AND c.cha_dt_entrega >= '2026-07-01'
+ORDER BY c.cha_dt_entrega;
