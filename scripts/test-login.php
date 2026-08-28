@@ -96,6 +96,25 @@ foreach ($ataques as $uri => $porque)
 }
 
 // ---------------------------------------------------------------------------
+echo "\ndestino_interno_valido: a regra usada nas duas pontas\n";
+// ---------------------------------------------------------------------------
+
+verifica("aceita pagina da aplicacao com query",
+    destino_interno_valido('pedido.php?action=0&ped_id=100701') === 'pedido.php?action=0&ped_id=100701');
+
+verifica("recusa login.php (laco)",
+    destino_interno_valido('login.php?volta=x.php') === '');
+
+verifica("recusa URL absoluta",
+    destino_interno_valido('http://malicioso.example/x.php') === '');
+
+verifica("recusa marcacao (seria XSS no campo escondido)",
+    destino_interno_valido('"><script>alert(1)</script>') === '');
+
+verifica("recusa valor vazio e nao-string",
+    destino_interno_valido('') === '' && destino_interno_valido(null) === '');
+
+// ---------------------------------------------------------------------------
 echo "\no redireciona() continua sendo a última palavra\n";
 // ---------------------------------------------------------------------------
 

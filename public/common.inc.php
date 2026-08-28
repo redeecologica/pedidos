@@ -103,6 +103,18 @@ function destino_para_voltar()
 	// voltar para o próprio login é laço: entra, volta para o login, entra de novo
 	if ($alvo === "" || strncmp($alvo, 'login.php', 9) === 0) return "";
 
+	return destino_interno_valido($alvo);
+}
+
+
+// Devolve o alvo se ele for uma página da própria aplicação (nome.php?query), ou
+// "" se não for. É a mesma regra que redireciona() aplica no consumo — aqui ela
+// existe como função porque o login precisa aplicá-la também ao devolver o valor
+// para dentro do formulário.
+function destino_interno_valido($alvo)
+{
+	if (!is_string($alvo) || $alvo === "") return "";
+	if (strncmp($alvo, 'login.php', 9) === 0) return "";
 	if (!preg_match('#^[A-Za-z0-9_-]+\.php(\?[^\s\'"<>]*)?$#', $alvo)) return "";
 
 	return $alvo;
