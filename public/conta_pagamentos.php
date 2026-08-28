@@ -381,6 +381,24 @@
                   // Linha sem destino é recusada por registra_pagamento() e entra na conta
                   // das não gravadas, que a mensagem mostra.
                 ?>
+                <?php
+                  // Destino padrão: a primeira conta da Rede, que é para onde vai a maior
+                  // parte dos pagamentos.
+                  //
+                  // A opção vazia continua existindo e continua sendo a primeira da lista.
+                  // O que muda é qual vem marcada. O risco de um padrão real é conhecido —
+                  // quem não olhar lança para ele sem perceber — e o que o segura aqui é a
+                  // tela abrir UMA linha por vez, com os campos na frente de quem digita,
+                  // e não trinta e cinco ao mesmo tempo como antes.
+                  $destino_padrao = "";
+                  foreach ((is_array($destinos) ? $destinos : array()) as $grupo)
+                      if ($grupo['titulo'] === 'Contas da Rede' && count($grupo['contas']))
+                      {
+                          $ids_rede = array_keys($grupo['contas']);
+                          $destino_padrao = (string)$ids_rede[0];
+                          break;
+                      }
+                ?>
                 <option value="">-- escolha o destino --</option>
                 <?php
                   // $destinos pode ser NULL — a consulta dos destinos falhando não impede a
@@ -395,7 +413,7 @@
                   foreach ((is_array($destinos) ? $destinos : array()) as $grupo) { ?>
                 <optgroup label="<?php echo(h($grupo['titulo'])); ?>">
                   <?php foreach ($grupo['contas'] as $con_id => $rotulo) { ?>
-                  <option value="<?php echo(h($con_id)); ?>"><?php echo(h($rotulo)); ?></option>
+                  <option value="<?php echo(h($con_id)); ?>"<?php echo(((string)$con_id === $destino_padrao) ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
                   <?php } ?>
                 </optgroup>
                 <?php } ?>
@@ -406,6 +424,17 @@
             <div class="col-sm-12">
               <label for="pg_comprovante">Comprovante</label>
               <input type="text" id="pg_comprovante" class="form-control" name="pg_comprovante[]" value="" maxlength="300" placeholder="link do comprovante, ou como identificá-lo" />
+            </div>
+          </div>
+          <?php
+            // Gravar e cancelar ficam AQUI, dentro da linha aberta. No fim do formulário
+            // eles vinham depois de todas as outras linhas do painel — abrindo a quarta
+            // de trinta e seis, o botão sobrava lá embaixo, fora da tela.
+          ?>
+          <div class="row" style="margin-top:12px;">
+            <div class="col-sm-12">
+              <button class="btn btn-success" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamento</button>
+              &nbsp;<a class="btn btn-link" href="conta_pagamentos.php?<?php echo(h($ctx)); ?>">cancelar</a>
             </div>
           </div>
         </td>
@@ -450,15 +479,7 @@
     dizem quem deve o quê, e não servem para cobrar ninguém.
   </div>
 
-  <?php
-    // O botão só aparece com uma linha aberta: sem isso ele convidaria a gravar uma tela
-    // que é só leitura, e o clique não faria nada.
-    if (!$sem_destinos && $cestantes && $editar !== "") { ?>
-  <div align="right">
-    <a class="btn btn-default btn-lg" href="conta_pagamentos.php?<?php echo(h($ctx_form)); ?>">cancelar</a>
-    <button class="btn btn-success btn-lg" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamento</button>
-  </div>
-  <?php } ?>
+
 </form>
 
 <script type="text/javascript">
