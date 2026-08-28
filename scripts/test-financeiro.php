@@ -2159,6 +2159,31 @@ verifica("nenhuma recusa gravou transacao pela metade",
 echo "\nCaixa do nucleo: categorias e extrato\n";
 // ---------------------------------------------------------------------------
 
+$so_rede = contas_de_destino_do_tipo('rede');
+$so_forn = contas_de_destino_do_tipo('produtor');
+$todas_d = contas_de_destino();
+
+verifica("contas_de_destino_do_tipo('rede') traz a conta da Rede e nenhum produtor",
+    is_array($so_rede) && isset($so_rede[$con_rede]) && !isset($so_rede[$con_forn_t]),
+    "rede=$con_rede forn=$con_forn_t · " . json_encode(array_keys((array)$so_rede)));
+
+verifica("contas_de_destino_do_tipo('produtor') traz o produtor e nenhuma conta da Rede",
+    is_array($so_forn) && isset($so_forn[$con_forn_t]) && !isset($so_forn[$con_rede]));
+
+// Herda o recorte de contas_de_destino(), e nao um SELECT proprio: e essa heranca que
+// mantem as regras de arquivamento e o desempate de rotulo valendo nas duas.
+verifica("o filtro por tipo e SUBCONJUNTO da lista de destinos, nunca acrescenta",
+    is_array($so_rede) && is_array($so_forn) && is_array($todas_d)
+    && count(array_diff_key($so_rede, $todas_d)) === 0
+    && count(array_diff_key($so_forn, $todas_d)) === 0);
+
+verifica("os rotulos sao os MESMOS da lista completa",
+    is_array($so_rede) && isset($so_rede[$con_rede]) && $so_rede[$con_rede] === $todas_d[$con_rede],
+    var_export(isset($so_rede[$con_rede]) ? $so_rede[$con_rede] : null, true));
+
+verifica("tipo que nao existe devolve lista vazia, e nao null",
+    contas_de_destino_do_tipo('marciano') === array());
+
 $cats = categorias_de_despesa();
 verifica("as seis categorias da planilha estao la",
     is_array($cats) && count($cats) === 6
