@@ -109,3 +109,7 @@
 .btn-mostrar-senha:hover {
 	background-color: #ddd;
 }
+/* A tela de pagamentos abre a linha em edição por âncora (#cestante-<id>). Sem esta
+   folga a linha encosta na borda de cima da janela e o nome da pessoa fica rente ao
+   topo; com ela, a linha e o formulário logo abaixo aparecem inteiros. */
+tr[id^="cestante-"] { scroll-margin-top: 16px; }

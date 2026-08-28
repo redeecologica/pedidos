@@ -120,6 +120,19 @@
       $volta_para = "conta_pagamentos.php";
       if ($um_so)             $volta_para .= "?usr_id=" . urlencode($usr_id);
       else if ($nuc_id !== "") $volta_para .= "?nuc_id=" . urlencode($nuc_id);
+
+      // Volta ancorado na linha de quem acabou de receber lançamento, senão gravar
+      // joga quem lançou de volta para o topo de uma lista de dezenas — o mesmo
+      // desconforto que o link de abrir a edição resolve.
+      //
+      // A âncora só entra quando JÁ existe query, e isso não é acaso: redireciona()
+      // exige `nome.php` ou `nome.php?...` (common.inc.php:205), e `nome.php#x` cairia
+      // fora da expressão e mandaria a pessoa para a página inicial depois de gravar.
+      // Sem núcleo nem cestante escolhido a tela não lista ninguém, então não há linha
+      // a que voltar — o caso não existe.
+      if (count($lote['linhas']) === 1 && strpos($volta_para, '?') !== false)
+          $volta_para .= "#cestante-" . urlencode($lote['linhas'][0]['usr']);
+
       redireciona($volta_para);
       exit();
 
@@ -298,7 +311,7 @@
         $ctx = $um_so ? ("usr_id=" . urlencode($usr_id))
                       : ($nuc_id !== "" ? ("nuc_id=" . urlencode($nuc_id)) : "");
       ?>
-      <tr<?php echo($em_edicao ? ' class="info"' : ''); ?>>
+      <tr id="cestante-<?php echo(h($row['usr_id'])); ?>"<?php echo($em_edicao ? ' class="info"' : ''); ?>>
         <td>
           <a href="conta_cestante.php?usr_id=<?php echo(h($row['usr_id'])); ?>"><?php echo(h($row['usr_nome_curto'])); ?></a>
           <?php if ($em_edicao) { ?>
@@ -347,7 +360,7 @@
         </td>
         <td class="text-right">
           <?php if (!$em_edicao) { ?>
-          <a class="btn btn-default btn-xs" href="conta_pagamentos.php?<?php echo(h($ctx)); ?><?php echo($ctx === "" ? "" : "&amp;"); ?>editar=<?php echo(h($row['usr_id'])); ?>">
+          <a class="btn btn-default btn-xs" href="conta_pagamentos.php?<?php echo(h($ctx)); ?><?php echo($ctx === "" ? "" : "&amp;"); ?>editar=<?php echo(h($row['usr_id'])); ?>#cestante-<?php echo(h($row['usr_id'])); ?>">
             <i class="glyphicon glyphicon-pencil"></i> registrar pagamento
           </a>
           <?php } ?>
