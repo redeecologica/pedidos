@@ -2467,6 +2467,37 @@ verifica("o acumulado de janeiro ja inclui a abertura",
     is_array($fx) && round($fx['saldo_acumulado'][1], 2) == 1100.00,
     is_array($fx) ? var_export($fx['saldo_acumulado'][1], true) : '?');
 
+// CATEGORIA APOSENTADA. lanca_movimento_nucleo() recusa categoria fora da lista, mas a
+// lista e do CODIGO e a categoria fica gravada no banco: no dia em que alguem renomear
+// ou remover uma das seis, as despesas antigas passam a ter categoria que o codigo nao
+// conhece. Elas nao podem sair do bloco de despesas, porque o valor delas ja esta no
+// total de despesas — e detalhe que nao soma o proprio total e o defeito que faz um
+// relatorio financeiro perder a confianca de quem o le.
+$con_rede_fx = conta_da_rede();
+lanca_transacao('2026-03-05', 'despesa', $con_rede_fx, $con_fx, 77.00, 'categoria aposentada',
+    array('categoria' => 'combustivel'));
+
+$fx2 = fluxo_de_caixa_mensal($nuc_fx, 2026);
+
+$linha_velha = linha_do_fluxo($fx2, 'despesa:combustivel');
+verifica("despesa de categoria aposentada vira linha propria",
+    $linha_velha !== null && round($linha_velha['meses'][3], 2) == 77.00,
+    var_export($linha_velha, true));
+
+verifica("e fica no bloco de DESPESAS, nao em 'outros'",
+    $linha_velha !== null && $linha_velha['bloco'] === 'despesas',
+    $linha_velha ? var_export($linha_velha['bloco'], true) : '?');
+
+// A verificacao que amarra tudo: o que a tela mostra no total tem de ser a soma do que
+// ela mostra nas linhas. Sem isto o bloco fecha errado sem nada reclamar.
+$soma_detalhe = 0.0;
+foreach ((array)$fx2['linhas'] as $l)
+    if ($l['bloco'] === 'despesas') $soma_detalhe = round($soma_detalhe + $l['meses'][3], 2);
+
+verifica("as linhas de despesa somam exatamente o total de despesas do mes",
+    round($soma_detalhe, 2) == round($fx2['total_despesas'][3], 2),
+    "detalhe=$soma_detalhe total=" . $fx2['total_despesas'][3]);
+
 // Ano sem movimento nao e erro: e um ano sem movimento.
 $fx_vazio = fluxo_de_caixa_mensal($nuc_fx, 2019);
 verifica("ano sem lancamento devolve doze meses zerados, e nao null",
