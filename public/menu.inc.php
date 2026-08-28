@@ -48,7 +48,7 @@
 			if(pode_ver_financeiro())
 			{
 		   ?>
-            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-credit-card"></i> Meu Saldo</a></li>
+            <li><a href="conta_cestante.php"><i class="glyphicon glyphicon-th-list"></i> Meu Saldo</a></li>
 		  <?php
 			}
 		   ?>
