@@ -1742,6 +1742,53 @@ verifica("o bloco de pagamento devolveu a sessao ao que era",
     "sessao = " . json_encode($_SESSION));
 
 // ---------------------------------------------------------------------------
+echo "\ndestinos repartidos em grupos\n";
+// ---------------------------------------------------------------------------
+
+// GUARDA ESTRUTURAL, e nao teste discriminante: hoje contas_de_destino() ACHATA o
+// que contas_de_destino_por_grupo() devolve, entao as duas sao iguais por construcao
+// e esta assercao nao tem como falhar — conferido por mutacao, injetar conta fantasma
+// no grupo faz a plana herda-la junto.
+//
+// Fica porque o dia em que alguem separar as duas em consultas independentes, ela
+// passa a valer: e a plana que registra_pagamento() usa para validar o destino do
+// POST, e divergencia entre elas seria a tela oferecendo o que a fronteira recusa.
+$g_sem  = contas_de_destino_por_grupo();
+$p_sem  = contas_de_destino();
+$ids_g  = array();
+foreach ((array)$g_sem as $grupo) foreach ($grupo['contas'] as $cid => $r) $ids_g[] = $cid;
+$ids_p = array_keys((array)$p_sem);
+sort($ids_g); sort($ids_p);
+
+verifica("agrupada e plana tem exatamente as mesmas contas",
+    $ids_g === $ids_p,
+    "agrupada=" . count($ids_g) . " plana=" . count($ids_p));
+
+verifica("nenhum grupo vem vazio",
+    count(array_filter((array)$g_sem, function ($x) { return !count($x['contas']); })) === 0);
+
+// Com nucleo em foco, o caixa DELE sai num grupo proprio, antes dos outros nucleos.
+$g_foco = contas_de_destino_por_grupo(21);
+$titulos = array();
+foreach ((array)$g_foco as $grupo) $titulos[] = $grupo['titulo'];
+
+verifica("com nucleo em foco aparece o grupo 'Nucleo deste painel'",
+    in_array('Núcleo deste painel', $titulos, true),
+    implode(' | ', $titulos));
+
+verifica("sem nucleo em foco NAO aparece esse grupo",
+    !in_array('Núcleo deste painel', array_map(function ($x) { return $x['titulo']; }, (array)$g_sem), true));
+
+// A ordem dos grupos e a ordem em que a pessoa procura.
+$pos_rede = array_search('Contas da Rede', $titulos, true);
+$pos_foco = array_search('Núcleo deste painel', $titulos, true);
+$pos_prod = array_search('Produtores', $titulos, true);
+verifica("ordem: Rede, nucleo em foco, ... , produtores por ultimo",
+    $pos_rede !== false && $pos_foco !== false && $pos_prod !== false
+    && $pos_rede < $pos_foco && $pos_foco < $pos_prod,
+    implode(' | ', $titulos));
+
+// ---------------------------------------------------------------------------
 echo "\ncomprovante como link\n";
 // ---------------------------------------------------------------------------
 

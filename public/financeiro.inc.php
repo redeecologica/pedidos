@@ -815,7 +815,27 @@ function cestante_da_conta($usr_id)
 // e uma tela que oferecesse destino que a fronteira recusa seria pior que destino de
 // menos. Por isso caixa de núcleo arquivado sai para todo mundo — quem está num
 // núcleo assim paga para a Rede ou direto ao produtor.
+// A lista PLANA, que é o contrato que registra_pagamento() valida. Derivada da
+// agrupada de propósito: uma segunda consulta seria uma segunda cópia da regra, e as
+// duas poderiam discordar sobre o que é destino válido — a tela oferecendo o que a
+// fronteira recusa, ou o contrário.
 function contas_de_destino($nuc_prioritario = null)
+{
+	$grupos = contas_de_destino_por_grupo($nuc_prioritario);
+	if ($grupos === null) return null;
+
+	$plana = array();
+	foreach ($grupos as $grupo)
+		foreach ($grupo['contas'] as $con_id => $rotulo) $plana[$con_id] = $rotulo;
+
+	return $plana;
+}
+
+
+// A mesma lista, repartida para a tela: array de grupos, cada um com 'titulo' e
+// 'contas'. Grupo vazio não entra. Mesmos contrato de erro e mesmas regras de
+// filtragem da versão plana, porque é ela quem chama esta.
+function contas_de_destino_por_grupo($nuc_prioritario = null)
 {
 	$nuc_bd = (is_numeric($nuc_prioritario) && (int)$nuc_prioritario > 0)
 	        ? (int)$nuc_prioritario : 0;
@@ -837,8 +857,9 @@ function contas_de_destino($nuc_prioritario = null)
 	$res = executa_sql($sql);
 	if (!$res) return null;              // ver o CONTRATO acima
 
-	$prefixo = array('nucleo' => 'Núcleo ', 'produtor' => 'Produtor ', 'rede' => '');
-	$rotulos = array();
+	$prefixo  = array('nucleo' => 'Núcleo ', 'produtor' => 'Produtor ', 'rede' => '');
+	$rotulos  = array();
+	$grupo_de = array();
 
 	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
 	{
@@ -853,6 +874,7 @@ function contas_de_destino($nuc_prioritario = null)
 		if ($nome === '') $nome = '#' . (int)$row['con_id'];
 
 		$rotulos[(int)$row['con_id']] = $prefixo[$row['con_tipo']] . $nome;
+		$grupo_de[(int)$row['con_id']] = (int)$row['grupo'];
 	}
 
 	// Rótulo REPETIDO é tão ruim quanto rótulo em branco, e ganha o mesmo desempate.
@@ -885,7 +907,26 @@ function contas_de_destino($nuc_prioritario = null)
 	foreach ($rotulos as $con_id => $rotulo)
 		$destinos[$con_id] = ($quantos[$rotulo] > 1) ? $rotulo . ' #' . $con_id : $rotulo;
 
-	return $destinos;
+	// Reparte na ordem em que já vieram do SQL. Sem núcleo em foco os grupos 1 e 2 são
+	// a mesma coisa — "o núcleo desta tela" não existe — e viram um bloco só.
+	$em_foco = (is_numeric($nuc_prioritario) && (int)$nuc_prioritario > 0);
+	$titulos = array(
+		0 => 'Contas da Rede',
+		1 => 'Núcleo deste painel',
+		2 => $em_foco ? 'Outros núcleos' : 'Núcleos',
+		3 => 'Produtores',
+	);
+
+	$grupos = array();
+	foreach ($destinos as $con_id => $rotulo)
+	{
+		$g = isset($grupo_de[$con_id]) ? $grupo_de[$con_id] : 3;
+		if (!isset($grupos[$g])) $grupos[$g] = array('titulo' => $titulos[$g], 'contas' => array());
+		$grupos[$g]['contas'][$con_id] = $rotulo;
+	}
+
+	// Grupo vazio não entra: um <optgroup> sem opção vira um rótulo solto na lista.
+	return array_values($grupos);
 }
 
 
