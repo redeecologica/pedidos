@@ -135,9 +135,32 @@
   // executa_sql() não aborta: devolve false quando o servidor recusa e 0 sem conexão.
   // Lista que não veio não pode virar tabela vazia, que se leria como "não há cestante".
   $lista_falhou = ($sql !== "" && !$res);
+
+  // O núcleo do cabeçalho. Sempre um só, mesmo listando muita gente: ou é o núcleo
+  // filtrado, ou é o do cestante no caminho avulso.
+  //
+  // Quem não escolhe núcleo (responsável de núcleo) não tem o seletor abaixo, então
+  // sem isto a tela não diz de qual núcleo é a lista que está mostrando.
+  $nucleo_titulo = null;
+  $sql_nuc = $um_so
+      ? "SELECT n.nuc_nome_curto FROM usuarios u JOIN nucleos n ON n.nuc_id = u.usr_nuc "
+        . "WHERE u.usr_id = " . prep_para_bd($usr_id)
+      : ($nuc_id !== "" ? "SELECT nuc_nome_curto FROM nucleos WHERE nuc_id = " . prep_para_bd($nuc_id) : "");
+
+  if ($sql_nuc !== "")
+  {
+      $res_nuc_titulo = executa_sql($sql_nuc);
+      if ($res_nuc_titulo && $row_nuc_titulo = mysqli_fetch_array($res_nuc_titulo, MYSQLI_ASSOC))
+      {
+          $nome_nuc = trim((string)$row_nuc_titulo['nuc_nome_curto']);
+          if ($nome_nuc !== '') $nucleo_titulo = $nome_nuc;
+      }
+  }
 ?>
 
-  <legend>Registro de pagamentos</legend>
+  <legend>
+    Registro de pagamentos<?php if ($nucleo_titulo !== null) { ?><small class="text-muted"> · núcleo <?php echo(h($nucleo_titulo)); ?></small><?php } ?>
+  </legend>
 
 <?php if ($escolhe_nucleo && !$um_so) { ?>
   <form class="form-inline hidden-print" method="get" action="conta_pagamentos.php" name="frm_nucleo">

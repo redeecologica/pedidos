@@ -225,11 +225,16 @@
 
           <ul class="nav navbar-nav navbar-right">
             <li class="divider-vertical"></li>
-            <li><a href="ajuda.php"><i class="glyphicon glyphicon-question-sign"></i> Ajuda</a></li>
-            <li class="divider-vertical"></li>
             <li class="dropdown">
               <a href="" class="dropdown-toggle" data-toggle="dropdown"><i class="glyphicon glyphicon-user"></i> Minha Conta <b class="caret"></b></a>
               <ul class="dropdown-menu">
+                <?php
+                  // Ajuda desceu do primeiro nível para cá. Dentro dos 940px do
+                  // .container (complemento.css:5, o tamanho do logo) a faixa não
+                  // comportava a saudação mais sete itens, e Ajuda é o de menor uso.
+                ?>
+                <li><a href="ajuda.php"><i class="glyphicon glyphicon-question-sign"></i> Ajuda</a></li>
+                <li class="divider"></li>
                 <li><a href="meusdados.php"><i class="glyphicon glyphicon-star"></i> Meus Dados</a></li>
 			   <li><a href="senha_altera.php"><i class="glyphicon glyphicon-lock"></i> Alterar Senha</a></li>                
                 <li class="divider"></li>
