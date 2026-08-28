@@ -102,7 +102,13 @@
                  . trim((string)$row['forn_nome_curto'])
                  . trim((string)$row['usr_nome_curto']);
 
-        $saldo = saldo_da_conta($row['con_id']);
+        // Saldo de PRODUTOR não se exibe nesta entrega, e a spec é explícita quanto
+        // a isso. A conta dele só recebe o lado do débito — o que já foi pago —
+        // porque o crédito ("tem a receber pelo que entregou") é a fatia seguinte.
+        // Lido isolado, o saldo diz "o produtor deve", que é o inverso da verdade.
+        // Esta é justamente a tela onde alguém iria perguntar quanto se deve a ele.
+        $mostra_saldo = ($row['con_tipo'] !== 'produtor');
+        $saldo = $mostra_saldo ? saldo_da_conta($row['con_id']) : null;
   ?>
     <tr<?php echo($row['con_archive'] ? ' class="text-muted"' : ''); ?>>
       <td><?php echo(h(isset($rotulo_tipo[$row['con_tipo']]) ? $rotulo_tipo[$row['con_tipo']] : $row['con_tipo'])); ?></td>
@@ -115,14 +121,16 @@
       <td><?php echo(h($vinculo !== '' ? $vinculo : '—')); ?></td>
       <td><small class="text-muted"><?php echo(h(trim((string)$row['con_chave']) !== '' ? $row['con_chave'] : '—')); ?></small></td>
       <td class="text-right">
-        <?php
+        <?php if (!$mostra_saldo) { ?>
+          <span class="text-muted" title="A conta do produtor registra só o que já foi pago a ele; o que ele tem a receber ainda não é lançado. Use Previsão de Pagamento.">&mdash;</span>
+        <?php } else {
           // saldo_da_conta() devolve null quando a consulta falha, e null não pode
           // virar 0,00 numa coluna de dinheiro.
           if ($saldo === null) { ?>
           <span class="label label-danger" title="A consulta deste saldo não rodou">não foi possível calcular</span>
         <?php } else { ?>
           <?php echo(h(formata_moeda($saldo))); ?>
-        <?php } ?>
+        <?php } } ?>
       </td>
       <td class="text-right">
         <a class="btn btn-default btn-xs" href="conta.php?action=<?php echo(ACAO_EXIBIR_EDICAO); ?>&amp;con_id=<?php echo(h($row['con_id'])); ?>">
@@ -141,6 +149,12 @@
   Conta de cestante, de núcleo e de produtor nasce sozinha — a de cestante no primeiro
   pagamento, as outras duas pelo botão acima. O que se edita aqui é o nome e o arquivamento;
   tipo, vínculo e chave são o que a conta é, e não mudam depois de criada.
+</p>
+
+<p class="small text-muted">
+  O saldo do produtor aparece como &mdash; de propósito: por ora só se lança o que já foi
+  <em>pago</em> a ele. Enquanto o que ele tem a receber não for lançado, um saldo aqui diria
+  o contrário do que é verdade. Para saber quanto pagar, use a Previsão de Pagamento.
 </p>
 
 <?php } ?>
