@@ -685,13 +685,29 @@ function resumo_do_extrato($extrato)
 // é quem decide quem pode ver: isso já passou pelo pode_ver_conta_de().
 function cestante_da_conta($usr_id)
 {
-	$res = executa_sql("SELECT usr_nome_curto FROM usuarios WHERE usr_id = " . prep_para_bd($usr_id));
-	if (!$res) return array('estado' => 'indisponivel', 'nome' => null);
+	// LEFT JOIN no núcleo por precaução, não por necessidade: usr_nuc é NOT NULL com
+	// FK para nucleos, então hoje ele sempre casa. O LEFT mantém a identificação do
+	// cestante de pé se essa garantia mudar — mas ninguém deve contar com o ramo
+	// 'nucleo' => null, porque não há como alcançá-lo (o UPDATE que tentaria criá-lo
+	// é recusado pela FK).
+	$sql = "SELECT u.usr_nome_curto, n.nuc_nome_curto FROM usuarios u ";
+	$sql.= "LEFT JOIN nucleos n ON n.nuc_id = u.usr_nuc ";
+	$sql.= "WHERE u.usr_id = " . prep_para_bd($usr_id);
+
+	$res = executa_sql($sql);
+	if (!$res) return array('estado' => 'indisponivel', 'nome' => null, 'nucleo' => null);
 
 	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
-	if (!$row) return array('estado' => 'inexistente', 'nome' => null);
+	if (!$row) return array('estado' => 'inexistente', 'nome' => null, 'nucleo' => null);
 
-	return array('estado' => 'ok', 'nome' => (string)$row['usr_nome_curto']);
+	$nucleo = trim((string)$row['nuc_nome_curto']);
+
+	return array(
+		'estado' => 'ok',
+		'nome'   => (string)$row['usr_nome_curto'],
+		// null, e não "", para a tela distinguir "sem núcleo" de núcleo com nome vazio
+		'nucleo' => ($nucleo === '') ? null : $nucleo,
+	);
 }
 
 
