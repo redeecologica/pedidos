@@ -409,6 +409,33 @@ function debitos_derivados($usr_id)
 	return $linhas;
 }
 
+// Rótulo da conta que está do OUTRO lado de um lançamento, a partir de uma linha que já
+// trouxe con_tipo, con_nome e os nomes de núcleo e fornecedor.
+//
+// Mora numa função porque o extrato do cestante e o do núcleo montam o mesmo rótulo, e
+// duas cópias divergiriam no primeiro dia em que uma mudasse. O prefixo é o mesmo de
+// contas_de_destino_por_grupo(), para "Núcleo Urca" não se ler como uma conta da Rede
+// chamada "Urca".
+function rotulo_de_contraparte($row)
+{
+	// Cada consulta traz só as colunas de que precisa — o extrato do cestante nunca tem
+	// outro cestante do outro lado, e não seleciona usr_nome_curto. Ler chave ausente é
+	// warning na tela, então cada leitura passa por isset.
+	$campo = function ($nome) use ($row) {
+		return isset($row[$nome]) ? trim((string)$row[$nome]) : '';
+	};
+
+	switch ($campo('contra_tipo'))
+	{
+		case 'nucleo':   return 'Núcleo '   . $campo('nuc_nome_curto');
+		case 'produtor': return 'Produtor ' . $campo('forn_nome_curto');
+		case 'cestante': return $campo('usr_nome_curto');
+	}
+
+	return $campo('contra_nome');   // conta da Rede, e o que não se reconhecer
+}
+
+
 
 // Extrato do cestante: uma lista só, com o débito que ainda é DERIVADO da entrega
 // e o lançamento que já está GRAVADO no razão, em ordem de data e com o saldo
@@ -460,10 +487,20 @@ function extrato_do_cestante($usr_id)
 	// O recorte por cestante é o que mantém a consulta barata: conta_usuario resolve
 	// contas numa linha, lancamento_conta traz só os lançamentos dela e a PK de
 	// transacoes fecha o par.
-	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor ";
+	// A CONTRAPARTE sai da OUTRA perna da mesma transação. Sem ela o extrato diz que
+	// houve um pagamento de 1.500 e não diz para onde o dinheiro foi — e é justamente
+	// isso que a tela de edição precisa mostrar, já que a conta não se edita: quem
+	// corrige a descrição tem de poder conferir se o destino está certo antes de
+	// decidir se o caso é de ajuste.
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_cha, t.tra_historico, t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor, ";
+	$sql.= "co.con_tipo contra_tipo, co.con_nome contra_nome, n.nuc_nome_curto, f.forn_nome_curto ";
 	$sql.= "FROM contas c ";
 	$sql.= "JOIN lancamentos l ON l.lan_con = c.con_id ";
 	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "LEFT JOIN lancamentos l2 ON l2.lan_tra = t.tra_id AND l2.lan_con <> l.lan_con ";
+	$sql.= "LEFT JOIN contas co       ON co.con_id  = l2.lan_con ";
+	$sql.= "LEFT JOIN nucleos n       ON n.nuc_id   = co.con_nuc ";
+	$sql.= "LEFT JOIN fornecedores f  ON f.forn_id  = co.con_forn ";
 	$sql.= "WHERE c.con_usr = " . prep_para_bd($usr_id) . " ";
 	$sql.= "ORDER BY t.tra_dt, t.tra_id";
 
@@ -498,6 +535,12 @@ function extrato_do_cestante($usr_id)
 			'editado_em' => $row['tra_dt_alteracao'],
 			'tra_id'    => (int)$row['tra_id'],
 			'cha'       => ($row['tra_cha'] === null) ? null : (int)$row['tra_cha'],
+			// Rótulo da conta do outro lado, com o mesmo prefixo da lista de destinos,
+			// para "Núcleo Urca" não se confundir com uma conta da Rede chamada "Urca".
+			// '' quando a transação não tem outra perna legível — a tela mostra "—" em
+			// vez de afirmar um destino que não conferiu.
+			'contraparte' => rotulo_de_contraparte($row),
+			'tipo'        => (string)$row['tra_tipo'],
 		);
 	}
 
@@ -529,6 +572,10 @@ function extrato_do_cestante($usr_id)
 			// entrega não é lançamento e não tem comprovante — a chave existe para quem
 			// consome não precisar testar a situação antes de ler
 			'comprovante' => '',
+			// idem: entrega derivada ainda não tem contraparte, porque ainda não é
+			// lançamento. Quando a materialização chegar, ela passa a ter.
+			'contraparte' => '',
+			'tipo'        => '',
 			'cha'       => (int)$d['cha_id'],
 			// Derivado quer dizer "ainda não virou lançamento", NÃO "ainda pode mudar".
 			// Quem responde a segunda pergunta é o prazo contábil, e a tela precisa dos
@@ -1418,7 +1465,8 @@ function extrato_do_nucleo($nuc_id)
 	// ambíguo justamente onde a prestação de contas precisa ser específica.
 	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_categoria, t.tra_historico, ";
 	$sql.= "t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor, ";
-	$sql.= "co.con_nome, n.nuc_nome_curto, f.forn_nome_curto, u.usr_nome_curto ";
+	$sql.= "co.con_tipo contra_tipo, co.con_nome contra_nome, ";
+	$sql.= "n.nuc_nome_curto, f.forn_nome_curto, u.usr_nome_curto ";
 	$sql.= "FROM lancamentos l ";
 	$sql.= "JOIN transacoes t   ON t.tra_id = l.lan_tra ";
 	$sql.= "LEFT JOIN lancamentos l2 ON l2.lan_tra = t.tra_id AND l2.lan_con <> l.lan_con ";
@@ -1439,10 +1487,7 @@ function extrato_do_nucleo($nuc_id)
 	{
 		$cat = trim((string)$row['tra_categoria']);
 
-		$contraparte = trim((string)$row['nuc_nome_curto'])
-		             . trim((string)$row['forn_nome_curto'])
-		             . trim((string)$row['usr_nome_curto']);
-		if ($contraparte === '') $contraparte = trim((string)$row['con_nome']);
+		$contraparte = rotulo_de_contraparte($row);
 
 		$linhas[] = array(
 			'tra_id'      => (int)$row['tra_id'],

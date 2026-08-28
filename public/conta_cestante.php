@@ -257,7 +257,31 @@
 		      <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
 		      <input type="hidden" name="usr_id" value="<?php echo(h($usr_id)); ?>" />
 		      <input type="hidden" name="tra_id" value="<?php echo(h($linha['tra_id'])); ?>" />
+		      <?php
+		        // A conta do outro lado, só para LER. Ela não se edita — trocar a conta de
+		        // um lançamento gravado mudaria em silêncio de quem é aquele dinheiro —,
+		        // mas quem vem corrigir a descrição precisa poder conferir para onde o
+		        // pagamento foi. Sem isto o rodapé dizia "contas não se editam" a respeito
+		        // de uma conta que a tela nunca mostrou.
+		        //
+		        // "Destino" só vale para pagamento: no débito de entrega a contraparte é a
+		        // conta da Rede, que não é destino de dinheiro nenhum.
+		        $rotulo_contra = ($linha['tipo'] === 'pagamento') ? 'Destino' : 'Conta do outro lado';
+		      ?>
 		      <div class="row">
+		        <div class="col-sm-12">
+		          <label><?php echo(h($rotulo_contra)); ?></label>
+		          <p class="form-control-static" style="margin-top:0;">
+		            <?php if (trim((string)$linha['contraparte']) !== '') { ?>
+		              <strong><?php echo(h($linha['contraparte'])); ?></strong>
+		            <?php } else { ?>
+		              <span class="text-muted">&mdash;</span>
+		            <?php } ?>
+		            <small class="text-muted">&nbsp;não se edita aqui</small>
+		          </p>
+		        </div>
+		      </div>
+		      <div class="row" style="margin-top:8px;">
 		        <div class="col-sm-12">
 		          <label for="tra_historico">Descrição</label>
 		          <input type="text" id="tra_historico" class="form-control" name="tra_historico" maxlength="200" value="<?php echo(h($linha['historico'])); ?>" autofocus />
