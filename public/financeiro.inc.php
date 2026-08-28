@@ -1344,12 +1344,19 @@ function lanca_movimento_nucleo($nuc_id, $tipo, $dt, $valor, $con_contraparte, $
 
 	// Categoria só existe em despesa. Gravá-la num repasse afirmaria uma classificação
 	// que ninguém fez, e o relatório somaria como gasto dinheiro que só mudou de mãos.
+	//
+	// Fora de despesa a categoria é IGNORADA, não recusada — e a diferença importa. O
+	// formulário mostra o campo só quando é despesa, mas esconder com display:none NÃO
+	// impede o envio: o navegador manda mv_categoria em todo lançamento. Recusando, um
+	// repasse feito pela tela era rejeitado sempre, e a mensagem ainda mandava conferir
+	// campos que estavam certos. O que a guarda precisa garantir é que categoria não seja
+	// GRAVADA fora de despesa, e zerá-la aqui garante isso melhor do que recusar.
 	$categorias = categorias_de_despesa();
 	$categoria  = isset($extras['categoria']) && (is_string($extras['categoria']) || is_int($extras['categoria']))
 	            ? trim((string)$extras['categoria']) : '';
 
 	if ($tipo === 'despesa') { if (!isset($categorias[$categoria])) return null; }
-	else if ($categoria !== '')                                     return null;
+	else $categoria = '';
 
 	// Array onde se espera escalar é TypeError dentro do isset() no PHP 8: a tela
 	// inteira cairia por causa de um `con_contraparte[]` no POST. Mesma guarda de
