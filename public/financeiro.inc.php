@@ -214,10 +214,23 @@ function cria_conta($tipo, $campos = array())
 // cestante ficaria SEM CONTA para sempre, com lanca_transacao recebendo null e
 // deixando de gravar calado. Achar a linha, qualquer que seja o estado dela, é o
 // comportamento certo.
+//
+// Consulta que FALHA sai por null e NÃO passa pelo cria_conta: não saber se a
+// conta existe é diferente de saber que ela não existe, e criar por cima de uma
+// pergunta sem resposta é pedir uma segunda conta para quem já tem uma. Hoje a
+// UNIQUE KEY conta_usuario recusaria esse INSERT, mas contar com uma rede que o
+// código não sabe que tem é o defeito, não a proteção.
+//
+// Esta guarda é DEFENSIVA e NÃO TEM TESTE. Quebrar só este SELECT deixando o
+// INSERT irmão de pé exigiria DDL (que faz COMMIT implícito e derrubaria o
+// rollback da suíte); prep_para_bd cita e escapa, então pelo argumento também
+// não dá. A suíte cobre achou / não achou / criou — o ramo do erro fica sem
+// prova, e quem mexer aqui não tem rede.
 function conta_do_cestante($usr_id, $criar = false)
 {
 	$res = executa_sql("SELECT con_id FROM contas WHERE con_usr = " . prep_para_bd($usr_id));
-	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+	if (!$res) return null;              // a consulta não rodou: não dá para concluir nada
+	if ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
 
 	if (!$criar) return null;
 
@@ -238,13 +251,18 @@ function conta_do_cestante($usr_id, $criar = false)
 // Pelo mesmo motivo a busca não filtra con_tipo: o tipo também é editável, e
 // amarrar a identidade a ele traria de volta o defeito por outra porta. A chave
 // é única na tabela inteira e basta sozinha.
+//
+// A consulta que falha sai por null sem passar pelo cria_conta, pelo mesmo motivo
+// detalhado em conta_do_cestante — aqui quem seguraria o estrago seria a UNIQUE
+// KEY conta_chave, e o ponto é justamente não depender dela.
 function conta_da_rede()
 {
 	$chave = CONTA_CHAVE_REDE;
 	$nome  = 'Rede Ecológica';
 
 	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
-	if ($res && $row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+	if (!$res) return null;              // idem conta_do_cestante: guarda defensiva, sem teste
+	if ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
 
 	return cria_conta('rede', array('con_nome' => $nome, 'con_chave' => $chave));
 }
@@ -275,6 +293,16 @@ function conta_da_rede()
 // 'congelavel' diz se o prazo contábil já passou. Quando passa, os insumos estão
 // travados (entrega_cestante.php:22 e :44 recusam gravação fora do prazo) e o
 // número pode virar lançamento sem risco de divergir depois.
+//
+// CONTRATO — null e array() NÃO são a mesma coisa aqui:
+//   array()  a consulta rodou e o cestante não deve nada
+//   null     a consulta NÃO rodou (servidor recusou, ou não há conexão)
+// Quem chama tem de tratar os dois diferente. Vazio é uma afirmação sobre a
+// dívida; null é a ausência de resposta. Num módulo de dinheiro, responder "não
+// deve nada" a uma pergunta que não chegou a ser feita é a resposta mais perigosa
+// que existe — a tela diria ao cestante que ele está quite. Diante de null a tela
+// mostra erro, nunca zero. (Prova em test-financeiro.php: com ONLY_FULL_GROUP_BY
+// esta consulta é recusada e a função devolve null.)
 function debitos_derivados($usr_id)
 {
 	$usr_bd = prep_para_bd($usr_id);
@@ -295,9 +323,10 @@ function debitos_derivados($usr_id)
 	$sql.= "GROUP BY c.cha_id ";
 	$sql.= "ORDER BY c.cha_dt_entrega";
 
-	$linhas = array();
 	$res = executa_sql($sql);
-	if (!$res) return $linhas;
+	if (!$res) return null;              // consulta não rodou — ver o CONTRATO acima
+
+	$linhas = array();
 
 	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
 	{
