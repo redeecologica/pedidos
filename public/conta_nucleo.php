@@ -261,10 +261,10 @@
             <?php } ?>
           </select>
           <span class="help-block small">
-            Despesa, repasse e pagamento a produtor <strong>tiram</strong> dinheiro do caixa.
-            Outra receita — doação, rendimento — <strong>põe</strong>, como o pagamento de um
-            cestante. Despesa e repasse mexem o saldo do mesmo jeito; o que muda é para onde
-            o dinheiro foi, e é isso que o relatório separa.
+            Despesa, repasse e pagamento a produtor <strong>tiram</strong> dinheiro do caixa;
+            outra receita — doação, rendimento — <strong>põe</strong>. Despesa e repasse mexem
+            o saldo do mesmo jeito; o que muda é para onde o dinheiro foi, e é isso que o
+            relatório separa.
           </span>
         </div>
         <div class="col-sm-3">
@@ -432,9 +432,11 @@
 <p class="small text-muted">
   O caixa mostra quanto do dinheiro <strong>da Rede</strong> ainda está com o núcleo — não
   quanto o núcleo tem de seu.
-  Pagamento de cestante e outra receita <strong>põem</strong> dinheiro no caixa, e por isso
-  aparecem com valor negativo: é o que ainda falta sair. Despesa, repasse e pagamento a
-  produtor <strong>tiram</strong>, e aparecem positivos.
+  Os pagamentos que os cestantes fizeram no caixa aparecem aqui sozinhos: eles se lançam em
+  <strong>Pagamentos</strong>, não nesta tela. Junto com a outra receita, eles
+  <strong>põem</strong> dinheiro no caixa, e por isso aparecem com valor negativo — é o que
+  ainda falta sair. Despesa, repasse e pagamento a produtor <strong>tiram</strong>, e
+  aparecem positivos.
   Quando tudo que entrou já saiu, o saldo fica zero.
 </p>
 
