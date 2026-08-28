@@ -57,11 +57,31 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 
 // Saldo é sempre somado, nunca guardado: o núcleo lança na segunda um pagamento
 // feito na sexta, e saldo gravado obrigaria a reescrever tudo que veio depois.
+//
+// CONTRATO — null e 0.0 NÃO são a mesma coisa, como no resto do módulo:
+//   float  a consulta rodou; este é o saldo, e 0.0 quer dizer conta zerada
+//   null   a consulta NÃO rodou (servidor recusou, ou não há conexão)
+// Esta função era a última da família ainda devolvendo 0.0 no erro — o mesmo
+// anti-padrão que debitos_derivados(), extrato_do_cestante() e contas_de_destino() já
+// tinham perdido. Num módulo de dinheiro, "não deu para perguntar" respondido como
+// "está zerado" é a mentira mais cara que existe: numa tela de caixa ela vira
+// "não deve nada".
+//
+// Trocado agora porque agora é barato: conferido em 2026-08-28, a função NÃO tem
+// chamador vivo fora da suíte — a única menção em public/ é o comentário do
+// conta_pagamentos.php explicando por que ela não é usada lá (o saldo daquela tela
+// precisa do débito derivado, que não está em `lancamentos`). As telas de caixa do
+// plano seguinte serão as primeiras chamadoras, e elas já nascem tendo de tratar o
+// null. Depois delas, mudar o contrato custaria reescrever consumidor.
+//
+// Quem chamar precisa distinguir os dois: `if (!$saldo)` trata null e 0.0 igual e
+// devolve o defeito por outra porta. A guarda tem teste, com a consulta quebrada de
+// propósito pela mesma sombra de TEMPORARY TABLE que o resto da suíte usa.
 function saldo_da_conta($con_id)
 {
 	$sql = "SELECT COALESCE(SUM(lan_valor),0) saldo FROM lancamentos WHERE lan_con = " . prep_para_bd($con_id);
 	$res = executa_sql($sql);
-	if (!$res) return 0.0;
+	if (!$res) return null;              // ver o CONTRATO acima
 	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
 
 	return (float)$row['saldo'];
@@ -693,10 +713,12 @@ function cestante_da_conta($usr_id)
 // conferido antes de se saber de quem é o pagamento. O que a mantém barata é o tamanho
 // da tabela, não o filtro: `contas` é dimensão, com teto de uma linha por cestante
 // (1210 hoje) mais 30 núcleos e 205 produtores, e o WHERE já entra pelo índice
-// conta_tipo. Medido nesta cópia em 2026-08-28, média de 30 corridas em quatro rodadas: com a tabela
-// como está hoje, zerada, 0,09 a 0,16 ms; com o TETO carregado — 1446 contas, sendo 1210
-// de cestante, 30 de núcleo, 205 de produtor e a da Rede —, 236 destinos em 0,90 a
-// 1,75 ms, o extremo de cima sendo a primeira corrida, ainda fria.
+// conta_tipo. Medido nesta cópia em 2026-08-28, média de 30 corridas por rodada, cinco
+// rodadas: com a tabela como está hoje, zerada, 0,12 a 0,15 ms; com o TETO carregado —
+// 1446 contas, sendo 1210 de cestante, 30 de núcleo, 205 de produtor e a da Rede —, 236
+// destinos em 0,92 a 1,09 ms, mediana 0,94. Com o buffer pool FRIO, logo depois de o
+// container subir, o mesmo teto sai em 1,70 a 1,97 ms: mesmo código, e a diferença é
+// disco, não CPU.
 function contas_de_destino()
 {
 	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto ";
@@ -709,8 +731,8 @@ function contas_de_destino()
 	$res = executa_sql($sql);
 	if (!$res) return null;              // ver o CONTRATO acima
 
-	$prefixo  = array('nucleo' => 'Núcleo ', 'produtor' => 'Produtor ', 'rede' => '');
-	$destinos = array();
+	$prefixo = array('nucleo' => 'Núcleo ', 'produtor' => 'Produtor ', 'rede' => '');
+	$rotulos = array();
 
 	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
 	{
@@ -724,8 +746,38 @@ function contas_de_destino()
 		// linha continua distinguível das outras.
 		if ($nome === '') $nome = '#' . (int)$row['con_id'];
 
-		$destinos[(int)$row['con_id']] = $prefixo[$row['con_tipo']] . $nome;
+		$rotulos[(int)$row['con_id']] = $prefixo[$row['con_tipo']] . $nome;
 	}
+
+	// Rótulo REPETIDO é tão ruim quanto rótulo em branco, e ganha o mesmo desempate.
+	// Duas contas com o mesmo texto viram dois <option> idênticos numa tela que move
+	// dinheiro: quem escolhe não tem como saber qual é qual, e escolher a errada credita
+	// uma conta que não é a contraparte dos débitos de entrega.
+	//
+	// Não é hipótese. Medido em 2026-08-28, em transação, nesta cópia de produção:
+	// conta_da_rede() cria a conta principal com con_chave, e
+	// cria_conta('rede', array('con_nome' => 'Rede Ecológica')) logo depois é ACEITA —
+	// as duas convivem e saíam daqui com texto idêntico e con_id diferentes. É o minor
+	// que a Task 1 adiou dizendo "vira regra em PHP"; a Task 3 fechou a IDENTIDADE
+	// (con_chave, utf8_bin) e ninguém tinha fechado o RÓTULO.
+	//
+	// O desempate é aqui, e não em cria_conta(): con_nome é editável, então proibir nome
+	// repetido na criação só empurraria o mesmo estado para o UPDATE seguinte. Aqui a
+	// regra vale para toda lista montada, venha a duplicata de onde vier.
+	//
+	// TODAS as repetidas recebem o sufixo, não só da segunda em diante: marcar uma só
+	// deixaria a outra com o texto limpo, e o leitor continuaria sem saber qual das duas
+	// é "a" conta.
+	//
+	// Custo da passada extra, medido em 2026-08-28 alternando as duas versões na mesma
+	// máquina quente, com o teto carregado (1446 contas, 236 destinos), 30 corridas por
+	// medição e 5 medições de cada lado: mediana 0,94 ms COM o desempate e 0,95 ms SEM.
+	// A diferença é −0,01 ms, ou seja não se separa do ruído.
+	$quantos  = array_count_values($rotulos);
+	$destinos = array();
+
+	foreach ($rotulos as $con_id => $rotulo)
+		$destinos[$con_id] = ($quantos[$rotulo] > 1) ? $rotulo . ' #' . $con_id : $rotulo;
 
 	return $destinos;
 }
@@ -752,7 +804,20 @@ function contas_de_destino()
 // vai querer chamar sem sessão nenhuma.
 //
 // A conferência do destino vem ANTES de conta_do_cestante($usr_id, true), e a ordem
-// importa: o `true` cria conta, e um POST forjado não pode fazer nascer conta vazia.
+// importa: o `true` cria conta, e destino forjado não pode fazer nascer conta vazia.
+//
+// A frase acima vale para o DESTINO, e só. Passada esta linha a conta do cestante já
+// nasceu, e um lançamento que falhe depois — valor inválido, INSERT recusado — deixa
+// essa conta comitada, vazia, com saldo zero. Conferido em 2026-08-28: a função devolve
+// null e a conta fica na tabela.
+//
+// Fica assim de propósito. Conta de cestante vazia é o mesmo estado que a próxima
+// chamada de conta_do_cestante($usr_id, true) criaria de qualquer jeito, e conta sem
+// lançamento soma zero — não move o razão nem aparece como destino, porque
+// contas_de_destino() não lista cestante. Já mover a criação para dentro da transação
+// de lanca_transacao() mexeria justamente na ordem que garante a recusa do destino
+// forjado, que é a propriedade cara deste bloco. Artefato benigno preferido a risco na
+// fronteira.
 //
 // Devolve o tra_id, ou null — e no null nenhuma perna é gravada.
 function registra_pagamento($usr_id, $dt, $valor, $con_destino, $comprovante, $obs)

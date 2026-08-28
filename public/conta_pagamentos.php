@@ -295,6 +295,22 @@
 
   <p class="small text-muted">Saldo negativo: o cestante deve. Saldo positivo: tem a receber.</p>
 
+  <?php
+    // A mesma ressalva do extrato, e pela mesma razão — só que aqui ela pesa mais: o
+    // TOTAL EM ABERTO soma a coluna inteira. Medido em 2026-08-28 com a aritmética desta
+    // tela: núcleo 5 (Santa, 32 ativos) dá R$ 1.237.019,51, e o núcleo 7 (Urca, 35
+    // ativos) dá R$ 1.566.447,61. São os números certos pelo contrato do módulo — débito
+    // derivado desde 2013, saldo de abertura ainda não lançado — e frases falsas sobre o
+    // núcleo, se ninguém disser o que eles são.
+  ?>
+  <div class="alert alert-warning hidden-print">
+    <strong>Os saldos ainda não incluem pagamentos anteriores.</strong><br>
+    A coluna e o total somam as entregas registradas desde o início do sistema menos os
+    pagamentos lançados aqui. O que a Rede recebeu antes de o módulo entrar em operação
+    continua na planilha e será lançado como saldo de abertura — até lá, estes valores
+    servem para localizar quem está em dia no período novo, não para cobrar.
+  </div>
+
   <?php if (!$sem_destinos && $cestantes) { ?>
   <div align="right">
     <button class="btn btn-success btn-lg" type="submit"><i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar pagamentos</button>
