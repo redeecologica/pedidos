@@ -182,7 +182,15 @@
 	</div>
 
 
-	<br>
+	<?php
+	  // Uma linha, não o parágrafo que havia antes. Continua sendo verdade que o saldo
+	  // de abertura não entrou, e a frase some sozinha no dia em que a reconciliação
+	  // for lançada — que é quando ela deixa de ser verdade.
+	  //
+	  // Sem hidden-print: o rótulo de situação também não tem, e esconder isto na
+	  // impressão entregaria o número sem a única frase que o qualifica.
+	?>
+	<p class="small text-muted">Não inclui o saldo de abertura, que ainda está na planilha.</p>
 
 	<table class="table table-striped table-bordered table-condensed">
 	  <thead>

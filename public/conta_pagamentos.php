@@ -461,7 +461,10 @@
     </tbody>
   </table>
 
-  <p class="small text-muted">Saldo negativo: o cestante deve. Saldo positivo: tem a receber.</p>
+  <p class="small text-muted">
+    Saldo negativo: o cestante deve. Saldo positivo: tem a receber.
+    Não inclui o saldo de abertura, que ainda está na planilha.
+  </p>
 
 
 
