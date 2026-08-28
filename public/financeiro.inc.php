@@ -1710,11 +1710,26 @@ function fluxo_de_caixa_mensal($nuc_id, $ano)
 		if ($tipo === 'despesa')
 			$total_despesas[$mes] = round($total_despesas[$mes] + $saiu, 2);
 
-		// Tipo que este código não previu — 'ajuste', quando chegar — entra assim mesmo,
-		// e em bloco próprio, para ficar visível que existe algo fora das linhas fixas.
+		// Linha que este código não previu entra assim mesmo — nenhum lançamento some do
+		// relatório por não ter sido antecipado aqui. Onde ela entra é que depende:
+		//
+		//   despesa de categoria APOSENTADA fica no bloco de DESPESAS. A lista de
+		//   categorias é do código; a categoria fica gravada no banco. No dia em que
+		//   alguém renomear ou remover uma das seis, as despesas antigas passam a ter
+		//   categoria desconhecida — e mandá-las para 'outros' deixaria o valor delas
+		//   dentro do total de despesas (somado logo acima) e fora das linhas que o
+		//   compõem. Detalhe que não soma o próprio total é o defeito que faz um
+		//   relatório de dinheiro perder a confiança de quem o lê.
+		//
+		//   tipo desconhecido — 'ajuste', quando chegar — vai para bloco próprio, para
+		//   ficar visível que existe algo fora das linhas fixas.
 		if (!isset($linhas[$chave]))
-			$linhas[$chave] = array('bloco' => 'outros', 'chave' => $chave,
-				'rotulo' => $chave, 'lado' => ($entrou > $saiu) ? 'entrou' : 'saiu', 'meses' => $zeros);
+			$linhas[$chave] = array(
+				'bloco'  => ($tipo === 'despesa') ? 'despesas' : 'outros',
+				'chave'  => $chave,
+				'rotulo' => ($tipo === 'despesa') ? ($cat !== '' ? $cat : 'sem categoria') : $chave,
+				'lado'   => ($entrou > $saiu) ? 'entrou' : 'saiu',
+				'meses'  => $zeros);
 
 		$valor = ($linhas[$chave]['lado'] === 'entrou') ? $entrou : $saiu;
 		$linhas[$chave]['meses'][$mes] = round($linhas[$chave]['meses'][$mes] + $valor, 2);
