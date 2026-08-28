@@ -1786,6 +1786,22 @@ verifica("tra_id invalido nao grava nada",
     edita_descricao_transacao(0, 'x', 'y') === false
     && edita_descricao_transacao('abc', 'x', 'y') === false);
 
+// Fail-open: executa_sql() devolve o INTEIRO 0 sem conexao, e `0 !== false` seria
+// verdadeiro. A funcao tem de exigir `=== true`, senao relata sucesso com nada
+// gravado. A alavanca e sombrear transacoes sem a coluna, o que faz o UPDATE ser
+// recusado com erro de sintaxe — executa_sql devolve false, e a funcao tem de dizer
+// false tambem.
+executa_sql("CREATE TEMPORARY TABLE transacoes (tra_id int)");
+$disse_ok = edita_descricao_transacao($tra_ed, 'nao devia gravar', 'x');
+executa_sql("DROP TEMPORARY TABLE transacoes");
+
+verifica("UPDATE recusado NAO e relatado como sucesso",
+    $disse_ok === false,
+    var_export($disse_ok, true));
+
+verifica("e o texto continua o de antes",
+    valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_ed) === 'texto corrigido');
+
 // cestante_da_transacao(): quem chama precisa dela para aplicar pode_ver_conta_de().
 verifica("cestante_da_transacao acha o dono da conta",
     cestante_da_transacao($tra_ed) === (int)$usr_t,
