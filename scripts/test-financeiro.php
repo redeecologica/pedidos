@@ -2208,6 +2208,49 @@ foreach (array('despesa' => $con_rede, 'repasse' => $con_rede,
         var_export($cat_form, true));
 }
 
+// ---------------------------------------------------------------------------
+echo "\ncontraparte: para onde o dinheiro foi\n";
+// ---------------------------------------------------------------------------
+
+// O extrato dizia que houve um pagamento e nao dizia para onde. A tela de edicao do
+// cestante precisa mostrar isso porque a conta NAO se edita: quem corrige a descricao
+// tem de poder conferir o destino antes de decidir se o caso e de ajuste.
+$tra_dest = registra_pagamento($usr_t, '2026-08-07', 40.00, $con_nuc_t, '', '');
+$ext_dest = extrato_do_cestante($usr_t);
+$linha_dest = null;
+foreach ((array)$ext_dest as $l) if ($l['tra_id'] === $tra_dest) $linha_dest = $l;
+
+verifica("o extrato do cestante traz a conta de destino do pagamento",
+    $linha_dest !== null && $linha_dest['contraparte'] === 'Núcleo ' . valor_escalar(
+        "SELECT nuc_nome_curto FROM nucleos WHERE nuc_id = " . (int)$nuc_livre[2]),
+    var_export($linha_dest ? $linha_dest['contraparte'] : null, true));
+
+verifica("e o tipo, para a tela nao chamar de 'destino' o que destino nao e",
+    $linha_dest !== null && $linha_dest['tipo'] === 'pagamento',
+    var_export($linha_dest ? $linha_dest['tipo'] : null, true));
+
+// Linha DERIVADA nao e lancamento e nao tem outro lado. A chave existe assim mesmo,
+// para a tela nao ter de testar a situacao antes de ler — mesma regra de 'comprovante'.
+$derivada = null;
+foreach ((array)$ext_dest as $l) if ($l['situacao'] === 'derivado') { $derivada = $l; break; }
+verifica("linha derivada tem a chave contraparte, vazia",
+    $derivada !== null && array_key_exists('contraparte', $derivada) && $derivada['contraparte'] === '',
+    $derivada === null ? 'sem linha derivada no fixture' : var_export($derivada['contraparte'], true));
+
+// O prefixo importa: sem ele "Urca" (nucleo) se confunde com uma conta da Rede chamada
+// "Urca", e as duas apareceriam identicas na tela de edicao.
+verifica("o rotulo leva o prefixo do tipo, como na lista de destinos",
+    rotulo_de_contraparte(array('contra_tipo' => 'nucleo',   'nuc_nome_curto'  => 'Urca')) === 'Núcleo Urca'
+ && rotulo_de_contraparte(array('contra_tipo' => 'produtor', 'forn_nome_curto' => 'Bionatur')) === 'Produtor Bionatur'
+ && rotulo_de_contraparte(array('contra_tipo' => 'cestante', 'usr_nome_curto'  => 'Bruss')) === 'Bruss'
+ && rotulo_de_contraparte(array('contra_tipo' => 'rede',     'contra_nome'     => 'Rede Ecológica 1')) === 'Rede Ecológica 1');
+
+// Coluna ausente e o caso normal, nao excecao: cada consulta traz so o que precisa, e
+// ler chave inexistente sairia como warning no meio da tela.
+verifica("coluna ausente nao vira warning nem texto inventado",
+    rotulo_de_contraparte(array()) === ''
+ && rotulo_de_contraparte(array('contra_tipo' => 'nucleo')) === 'Núcleo ');
+
 $so_rede = contas_de_destino_do_tipo('rede');
 $so_forn = contas_de_destino_do_tipo('produtor');
 $todas_d = contas_de_destino();
