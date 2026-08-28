@@ -14,17 +14,21 @@
 # qualquer linha. É a rede que não depende de ninguém lembrar de nada, e vale
 # também para os testes que as próximas tarefas acrescentarem.
 #
-# A lista abaixo cobre TODA tabela em que a suíte cria fixture. Ela cresce junto
-# com os testes: o débito derivado passou a montar chamada, pedido e entrega, e
-# uma tabela de fora desta lista é um vazamento que a rede deixa passar calada.
-# Só usuarios fica fora, e de propósito — a suíte cria usuário DENTRO da transação
-# e a tabela é grande demais para contar a cada corrida.
+# A lista abaixo cobre TODA tabela em que a suíte cria fixture, sem exceção. Ela
+# cresce junto com os testes: o débito derivado passou a montar chamada, pedido e
+# entrega, e uma tabela de fora desta lista é um vazamento que a rede deixa passar
+# calada. Uma rede que se descreve de um jeito e se comporta de outro não é rede.
+#
+# usuarios entrou depois de medido: 1210 linhas, 0,14 s sozinha com o docker exec
+# incluído, e dentro da consulta única abaixo o custo some no ruído dos ~2,4 s que
+# a contagem inteira já leva (o grosso é pedidoprodutos, com 7 milhões de linhas).
+# A alegação anterior — tabela grande demais para contar a cada corrida — era falsa.
 #
 # Uso: scripts/test-financeiro.sh
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-TABELAS="contas transacoes lancamentos chamadas chamadaprodutos pedidos pedidoprodutos"
+TABELAS="contas transacoes lancamentos chamadas chamadaprodutos pedidos pedidoprodutos usuarios"
 
 # todas as contagens numa linha só, separadas por tab
 contagens() {
