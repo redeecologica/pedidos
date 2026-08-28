@@ -27,10 +27,17 @@ docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
 
 # injeta payload de XSS (marcador único) nos campos de texto do usuário de smoke;
 # se alguma view exibir cru, o marcador aparece literal no HTML (escapado vira &lt;...)
+#
+# usr_nome_curto é o campo que vira $_SESSION['usr.nome'] e sai na navbar de TODA
+# página logada. Ele estava fora desta lista, e era justamente onde faltava escape:
+# com o echo cru que o menu.inc.php tinha, o marcador saía literal em 68 das 76
+# páginas e esta rede não via nada. Injetar aqui não quebra tela nenhuma — as 76
+# rodaram com 0 erro de PHP e 0 5xx.
 XSSMARK='<script>SMOKEXSS</script>'
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
   UPDATE usuarios SET
-    usr_nome_completo='Smoke $XSSMARK', usr_contatos='$XSSMARK',
+    usr_nome_completo='Smoke $XSSMARK', usr_nome_curto='$XSSMARK',
+    usr_contatos='$XSSMARK',
     usr_endereco='$XSSMARK', usr_atividades='$XSSMARK',
     usr_profissao='$XSSMARK', usr_habilidades='$XSSMARK'
   WHERE usr_email='$EMAIL';"
