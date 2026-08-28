@@ -465,6 +465,8 @@ function extrato_do_cestante($usr_id)
 			'historico' => (string)$row['tra_historico'],
 			'valor'     => (float)$row['lan_valor'],
 			'situacao'  => 'gravado',
+			// linha já lançada não tem nada pendente de fechamento
+			'congelavel' => true,
 			'tra_id'    => (int)$row['tra_id'],
 			'cha'       => ($row['tra_cha'] === null) ? null : (int)$row['tra_cha'],
 		);
@@ -496,6 +498,10 @@ function extrato_do_cestante($usr_id)
 			'situacao'  => 'derivado',
 			'tra_id'    => null,
 			'cha'       => (int)$d['cha_id'],
+			// Derivado quer dizer "ainda não virou lançamento", NÃO "ainda pode mudar".
+			// Quem responde a segunda pergunta é o prazo contábil, e a tela precisa dos
+			// dois para não avisar sobre valor que já está fechado.
+			'congelavel' => $d['congelavel'],
 		);
 	}
 

@@ -153,14 +153,24 @@
 		<tr><th>Data</th><th>Histórico</th><th class="text-right">Valor</th><th class="text-right">Saldo</th></tr>
 	  </thead>
 	  <tbody>
-	  <?php foreach ($extrato as $linha) { ?>
+	  <?php
+	    // Mais recente em cima. A inversão é SÓ aqui: o saldo de cada linha é um
+	    // acumulado somado em ordem crescente, e o resumo_do_extrato() lê o saldo
+	    // atual como end($extrato)['saldo']. Inverter no modelo faria o resumo ler
+	    // a linha mais antiga como se fosse a de hoje — e em silêncio, porque a
+	    // lista continuaria ordenada, só que ao contrário.
+	    foreach (array_reverse($extrato) as $linha) { ?>
 		<tr>
 		  <td><?php echo(date('d/m/Y', strtotime($linha['dt']))); ?></td>
 		  <td>
 			<?php echo(h($linha['historico'])); ?>
 			<?php
-			  // entrega ainda não lançada no razão: o valor sai da entrega registrada
-			  if ($linha['situacao'] === 'derivado') { ?>
+			  // O aviso é sobre o valor PODER MUDAR, não sobre estar lançado no razão.
+			  // Enquanto o prazo contábil não vence, a entrega ainda pode ser corrigida
+			  // e o valor acompanha; depois disso ele está fechado, mesmo que ninguém
+			  // tenha lançado nada ainda. Marcar toda linha derivada avisaria sobre 606
+			  // das 679 chamadas do cestante 101, todas já encerradas.
+			  if ($linha['situacao'] === 'derivado' && empty($linha['congelavel'])) { ?>
 			  &nbsp;<span class="label label-default">a confirmar</span>
 			<?php } ?>
 		  </td>
