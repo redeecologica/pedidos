@@ -2649,14 +2649,32 @@ function chamadas_a_fechar($de, $ate)
 	$lista = array();
 	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
 	{
-		$pend = estoque_pendente_da_chamada((int)$row['cha_id']);
+		$id = (int)$row['cha_id'];
+
+		$pend = estoque_pendente_da_chamada($id);
 		if ($pend === null) return null;
 
-		// nada guardado e nada lançado: não há fechamento a fazer nesta chamada
-		if (abs($pend['variacao']) < 0.005 && abs($pend['lancado']) < 0.005) continue;
+		$deb = debitos_a_materializar($id);
+		if ($deb === null) return null;
+
+		$a_lancar = 0; $ja = 0; $valor = 0.0;
+		foreach ($deb as $d)
+		{
+			if ($d['ja_lancado'])  { $ja++; continue; }
+			if ($d['valor'] <= 0)  { continue; }
+			$a_lancar++;
+			$valor = round($valor + $d['valor'], 2);
+		}
+
+		$tem_estoque = (abs($pend['variacao']) > 0.005 || abs($pend['lancado']) > 0.005);
+		$tem_debito  = ($a_lancar > 0 || $ja > 0);
+
+		// Chamada que não guarda estoque nem tem entrega registrada não tem o que fechar,
+		// e listá-la seria fila só fazendo volume.
+		if (!$tem_estoque && !$tem_debito) continue;
 
 		$lista[] = array(
-			'cha_id'     => (int)$row['cha_id'],
+			'cha_id'     => $id,
 			'tipo'       => (string)$row['prodt_nome'],
 			'dt'         => $row['cha_dt_entrega'],
 			// o prazo contábil é o que autoriza congelar: antes dele os insumos ainda
@@ -2664,7 +2682,10 @@ function chamadas_a_fechar($de, $ate)
 			'congelavel' => ($row['cha_dt_prazo_contabil'] !== null
 			                 && strtotime($row['cha_dt_prazo_contabil']) <= time()),
 			'estoque'    => $pend,
-			'fechada'    => (abs($pend['falta']) < 0.005),
+			'debitos'    => array('a_lancar' => $a_lancar, 'ja_lancados' => $ja, 'valor' => $valor),
+			// fechada só quando NÃO SOBRA NADA dos dois lados: estoque conciliado e
+			// nenhum cestante por congelar
+			'fechada'    => (abs($pend['falta']) < 0.005 && $a_lancar === 0),
 		);
 	}
 

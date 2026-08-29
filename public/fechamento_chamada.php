@@ -51,15 +51,27 @@
       }
       else
       {
-          $tra = lanca_estoque_da_chamada($cha_id);
+          // Fechar é lançar os DOIS lados: o estoque que a chamada mexeu e o débito de
+          // cada cestante. Os dois na mesma confirmação porque é um ato só para quem
+          // fecha — e cada um já é idempotente por conta própria.
+          $tra   = lanca_estoque_da_chamada($cha_id);
+          $mat   = materializa_debitos_da_chamada($cha_id);
 
-          // Os três desfechos são coisas diferentes, e a mensagem não pode juntá-los:
-          // "nada a lançar" é chamada já fechada, e dizer "fechada com sucesso" ali
-          // faria parecer que algo aconteceu.
-          adiciona_mensagem_status(($tra === null) ? MSG_TIPO_ERRO : MSG_TIPO_SUCESSO,
-              ($tra === null) ? "Não foi possível fechar a chamada."
-            : (($tra === 0)  ? "Nada a lançar: esta chamada já estava fechada."
-                             : "Chamada fechada. O estoque foi lançado no razão."));
+          $fez = array();
+          if ($tra) $fez[] = "estoque lançado";
+          if (is_array($mat) && $mat['lancados'] > 0)
+              $fez[] = $mat['lancados'] . " débito(s) congelado(s), R$ " . formata_moeda($mat['valor']);
+
+          // Cada desfecho é uma coisa: lançou, não havia o que lançar, não deu. Dizer
+          // "fechada com sucesso" quando nada aconteceu faria parecer que algo mudou.
+          if ($tra === null || $mat === null)
+              adiciona_mensagem_status(MSG_TIPO_ERRO,
+                  "Não foi possível fechar a chamada."
+                  . (count($fez) ? " Parte foi lançada: " . implode("; ", $fez) . "." : ""));
+          else if (!count($fez))
+              adiciona_mensagem_status(MSG_TIPO_SUCESSO, "Nada a lançar: esta chamada já estava fechada.");
+          else
+              adiciona_mensagem_status(MSG_TIPO_SUCESSO, "Chamada fechada — " . implode("; ", $fez) . ".");
       }
 
       // POST-redirect-GET: um F5 depois de fechar não relança. O lançamento é
@@ -168,7 +180,8 @@
       <th>Chamada</th>
       <th class="text-right">Estoque antes</th>
       <th class="text-right">Estoque depois</th>
-      <th class="text-right">A lançar</th>
+      <th class="text-right">Estoque a lançar</th>
+      <th class="text-right">Débitos a congelar</th>
       <th>Situação</th>
       <th></th>
     </tr>
@@ -182,11 +195,22 @@
       <td class="text-right"><?php echo(h(formata_moeda($e['antes']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($e['depois']))); ?></td>
       <td class="text-right">
-        <?php if ($f['fechada']) { ?>
+        <?php if (abs($e['falta']) < 0.005) { ?>
           <span class="text-muted">&ndash;</span>
         <?php } else { ?>
           <strong><?php echo(h(formata_moeda($e['falta']))); ?></strong>
           <br><small class="text-muted"><?php echo($e['falta'] > 0 ? 'a guardar' : 'a consumir'); ?></small>
+        <?php } ?>
+      </td>
+      <td class="text-right">
+        <?php $d = $f['debitos']; if ($d['a_lancar'] === 0) { ?>
+          <span class="text-muted">&ndash;</span>
+          <?php if ($d['ja_lancados'] > 0) { ?>
+            <br><small class="text-muted"><?php echo(h($d['ja_lancados'])); ?> já congelados</small>
+          <?php } ?>
+        <?php } else { ?>
+          <strong><?php echo(h(formata_moeda($d['valor']))); ?></strong>
+          <br><small class="text-muted"><?php echo(h($d['a_lancar'])); ?> cestante(s)</small>
         <?php } ?>
       </td>
       <td>
@@ -228,20 +252,23 @@
     </tr>
   <?php } ?>
   <?php if (!count($fila)) { ?>
-    <tr><td colspan="7">Nenhuma chamada com estoque a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
+    <tr><td colspan="8">Nenhuma chamada a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
   <?php } ?>
   </tbody>
 </table>
 
 <p class="small text-muted">
-  Fecha-se uma chamada por vez, e o que se lança é <strong>a mudança do estoque</strong>:
-  mercadoria que sobrou vira ativo da Rede, mercadoria consumida vira custo da entrega.
-  Sem isso o resultado da Rede oscilaria por causa de mercadoria que só mudou de lugar.
+  Fechar uma chamada lança duas coisas. <strong>O estoque</strong> que ela mexeu —
+  mercadoria que sobrou vira ativo da Rede, mercadoria consumida vira custo da entrega —,
+  e <strong>o débito de cada cestante</strong>, que até aqui era calculado a cada leitura e
+  passa a ser um lançamento.
+  <br>Congelar o débito só é seguro depois do prazo contábil, e é por isso que o botão só
+  aparece então: antes dele a entrega ainda muda, e um débito gravado cedo vira um retrato
+  que a realidade desmente — sem ninguém perceber, porque ele deixou de acompanhar a entrega.
   <br>Chamada já fechada continua na lista, marcada — ausência se confunde com esquecimento.
-  E se alguém corrigir o estoque depois, ela volta a aparecer como <em>a fechar</em>:
-  o novo lançamento é só a diferença, sem reescrever o que já foi conferido.
-  <br>Só aparecem as chamadas que guardam estoque. Frescos não guarda, e por isso não
-  entra aqui.
+  Se o estoque for corrigido depois, ela reaparece como <em>a fechar</em> e o novo lançamento
+  é só a diferença. <strong>Débito já congelado não se refaz</strong>: para corrigir dinheiro
+  de alguém, lança-se um ajuste, com valor e motivo.
 </p>
 
 <?php } ?>

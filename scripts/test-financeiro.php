@@ -3611,6 +3611,35 @@ verifica("a sombra faz o servidor recusar a previa", $sombra_m);
 verifica("previa de consulta recusada e null, e nao 'nada a materializar'",
     $m_sem_bd === null, var_export($m_sem_bd, true));
 
+// A fila olha os DOIS lados. A chamada da materializacao nao guarda estoque nenhum, e
+// mesmo assim precisa aparecer — o que ela tem a fechar sao os debitos.
+$fila_m = chamadas_a_fechar('2026-06-01', '2026-07-01');
+$fm = na_fila($fila_m, $cha_mat);
+
+verifica("chamada sem estoque mas com debitos entra na fila",
+    $fm !== null && $fm['debitos']['ja_lancados'] === 2 && $fm['debitos']['a_lancar'] === 0,
+    var_export($fm, true));
+
+verifica("e aparece como fechada, porque nao sobra nada dos dois lados",
+    $fm !== null && $fm['fechada'] === true && abs($fm['estoque']['falta']) < 0.005);
+
+// Chamada nova, com entrega e sem materializar: pendente pelo lado do debito.
+$cha_fm = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2026-06-21 23:59:59','2026-06-01 00:00:00','2026-06-16 23:59:59',0.00, NOW() - INTERVAL 1 DAY)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_fm . "," . (int)$prod_res_id . ",1)");
+$ped_fm = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_fm . "," . (int)$usr_assoc . "," . (int)$nuc_res . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_fm . "," . (int)$prod_res_id . ",7,7)");
+
+$fp = na_fila(chamadas_a_fechar('2026-06-01','2026-07-01'), $cha_fm);
+verifica("chamada com debito por congelar entra como PENDENTE, com quantos e quanto",
+    $fp !== null && $fp['fechada'] === false && $fp['debitos']['a_lancar'] === 1
+                 && round($fp['debitos']['valor'],2) == 70.00,
+    var_export($fp, true));
+
+
 
 mysqli_rollback($conn_link);
 
