@@ -95,7 +95,9 @@
                          'produtor' => 'Produtor', 'cestante' => 'Cestante',
                          // encanamento: recebe a outra perna dos movimentos cujo outro
                          // lado não tem conta — a despesa que sai para o motorista
-                         'sistema' => 'Sistema');
+                         'sistema' => 'Sistema',
+                         // ativo: mercadoria de secos que a Rede guarda entre chamadas
+                         'estoque' => 'Estoque');
 
     while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
     {
