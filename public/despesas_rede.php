@@ -143,13 +143,18 @@
   // catorze linhas repetidas todo mês não ajuda ninguém; o que ajuda é lembrar o nome
   // que aquela área costuma ter, porque é o mesmo nome do mês passado.
   $exemplos = array(
-      'mutirao'   => 'Apoio CAC · Apoio mutirão logística · Auxílio mutirão',
-      'logistica' => 'Apoio Logística · Retorno das embalagens · Despesa Logística',
+      'mutirao'   => 'Apoio CAC, Apoio mutirão logística, Auxílio mutirão',
+      'logistica' => 'Apoio Logística, Retorno das embalagens, Despesa Logística',
       'pedidos'   => 'Resp. pedidos',
       'financas'  => 'Resp. financeiro',
-      'sistemas'  => 'Resp. sistemas · Hospedagem Site e Sistema · Registro do domínio',
+      'sistemas'  => 'Resp. sistemas, Hospedagem Site e Sistema, Registro do domínio',
       'admin'     => 'Despesas bancárias',
   );
+
+  // O ", ..." mora AQUI, e não dentro de cada string: é convenção de exibição — "há
+  // outros além destes" —, e repetida seis vezes a sétima área nasceria sem ela.
+  foreach ($exemplos as $chave_ex => $texto_ex) $exemplos[$chave_ex] = $texto_ex . ', ...';
+
   $primeira_cat = key($cats);
 
   escreve_mensagem_status();
