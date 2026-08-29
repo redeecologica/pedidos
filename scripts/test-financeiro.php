@@ -3348,6 +3348,150 @@ verifica("fila de consulta recusada e null, e nao 'nada a fechar'",
     $f_sem_bd === null, var_export($f_sem_bd, true));
 
 
+// ---------------------------------------------------------------------------
+echo "\nconferencia da chamada: onde a mercadoria entrou e saiu\n";
+// ---------------------------------------------------------------------------
+
+// Chamada propria: dois nucleos, um deles com entrega faltando de proposito.
+$nuc_cf1 = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucconf1','Conferencia 1',0," . (int)$tipo_id['Mensal'] . ")");
+$nuc_cf2 = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucconf2','Conferencia 2',0," . (int)$tipo_id['Mensal'] . ")");
+
+$usr_cf1 = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Cf um','cf1','cf1@teste.local','x','0'," . (int)$nuc_cf1 . ")");
+$usr_cf2 = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Cf dois','cf2','cf2@teste.local','x','0'," . (int)$nuc_cf2 . ")");
+
+// produto: compra 8, venda 10 — a conferencia e a preco de VENDA
+$cha_cf = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-07-18 23:59:59','2026-07-01 00:00:00','2026-07-14 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade, chaprod_recebido_confirmado)
+    VALUES (" . (int)$cha_cf . "," . (int)$prod_est_id . ",1,90)");
+
+// nucleo 1 confirmou 50, os cestantes dele receberam 50 — fecha
+executa_sql("INSERT INTO distribuicao (dist_cha, dist_nuc, dist_prod, dist_quantidade, dist_quantidade_recebido)
+    VALUES (" . (int)$cha_cf . "," . (int)$nuc_cf1 . "," . (int)$prod_est_id . ",50,50)");
+$ped_cf1 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_cf . "," . (int)$usr_cf1 . "," . (int)$nuc_cf1 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf1 . "," . (int)$prod_est_id . ",50,50)");
+
+// nucleo 2 confirmou 40, entregou 30 e deixou 1 linha SEM entrega registrada.
+//
+// A linha faltante e de OUTRO produto, no MESMO pedido: `pedidos` tem UNIQUE
+// (ped_usr, ped_cha) — um pedido por cestante por chamada —, entao dois pedidos para a
+// mesma pessoa na mesma chamada nao existem. A primeira versao deste fixture tentou, e
+// o banco recusou.
+$prod_cf2 = insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900004,1," . (int)$forn_res . ",'Segundo produto','kg',8.00,10.00,13.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+$prod_cf2_id = 900004;
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_cf . "," . (int)$prod_cf2_id . ",1)");
+
+executa_sql("INSERT INTO distribuicao (dist_cha, dist_nuc, dist_prod, dist_quantidade, dist_quantidade_recebido)
+    VALUES (" . (int)$cha_cf . "," . (int)$nuc_cf2 . "," . (int)$prod_est_id . ",40,40)");
+$ped_cf2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_cf . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf2 . "," . (int)$prod_est_id . ",30,30)");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf2 . "," . (int)$prod_cf2_id . ",10,NULL)");
+
+$cf = conferencia_da_chamada($cha_cf);
+
+function nuc_da_conf($cf, $nuc) {
+    foreach ((array)$cf['nucleos'] as $n) if ($n['nuc_id'] === (int)$nuc) return $n;
+    return null;
+}
+
+verifica("a conferencia e a preco de VENDA, nao de compra",
+    is_array($cf) && ($n = nuc_da_conf($cf, $nuc_cf1)) && round($n['recebeu'],2) == 500.00,
+    is_array($cf) ? json_encode($cf['nucleos']) : var_export($cf, true));
+
+verifica("nucleo que entregou tudo fecha em zero",
+    ($n = nuc_da_conf($cf, $nuc_cf1)) && round($n['diferenca'],2) == 0.00,
+    var_export($n, true));
+
+verifica("nucleo que recebeu mais do que distribuiu mostra a diferenca",
+    ($n = nuc_da_conf($cf, $nuc_cf2)) && round($n['recebeu'],2) == 400.00
+                                      && round($n['distribuiu'],2) == 300.00
+                                      && round($n['diferenca'],2) == 100.00,
+    var_export($n, true));
+
+// O AVISO que impede de cobrar do nucleo um erro de digitacao: sem ele, os 100 acima
+// seriam lidos como perda, quando ha uma linha pedida sem entrega registrada.
+verifica("e avisa quantas linhas ficaram sem entrega registrada",
+    ($n = nuc_da_conf($cf, $nuc_cf2)) && $n['sem_registro'] === 1
+ && ($n1 = nuc_da_conf($cf, $nuc_cf1)) && $n1['sem_registro'] === 0,
+    var_export($n['sem_registro'], true));
+
+verifica("o total soma os nucleos",
+    round($cf['total']['recebeu'],2) == 900.00 && round($cf['total']['distribuiu'],2) == 800.00
+ && round($cf['total']['diferenca'],2) == 100.00 && $cf['total']['sem_registro'] === 1,
+    json_encode($cf['total']));
+
+// A − B: o julgamento de Financas. Nucleos confirmaram 900, Financas confirmou 900 tambem
+// (90 unidades x 10) — nada abatido.
+verifica("o abatido de Financas e a distancia entre os nucleos e a confirmacao dela",
+    round($cf['confirmado'],2) == 900.00 && round($cf['abatido'],2) == 0.00,
+    "confirmado=" . $cf['confirmado'] . " abatido=" . $cf['abatido']);
+
+// B − C, ja descontado o estoque: o que a Rede pagou e ninguem foi cobrado.
+verifica("o nao cobrado e o que a Rede pagou sem ninguem ser cobrado",
+    round($cf['nao_cobrado'],2) == 100.00,
+    var_export($cf['nao_cobrado'], true));
+
+// ESTOQUE entra na conta: sem ele, mercadoria guardada seria lida como perda.
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_cf . "," . (int)$prod_est_id . ",0,10)");
+$cf2 = conferencia_da_chamada($cha_cf);
+verifica("mercadoria que ficou guardada sai do 'nao cobrado'",
+    round($cf2['estoque']['depois'],2) == 100.00 && round($cf2['nao_cobrado'],2) == 0.00,
+    "estoque=" . json_encode($cf2['estoque']) . " nao_cobrado=" . $cf2['nao_cobrado']);
+
+// Nucleo que entregou SEM ter confirmado recebimento tambem tem de aparecer: e
+// justamente o caso em que a conta nao fecha, e some-lo esconderia o problema.
+$nuc_cf3 = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucconf3','Conferencia 3',0," . (int)$tipo_id['Mensal'] . ")");
+$usr_cf3 = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Cf tres','cf3','cf3@teste.local','x','0'," . (int)$nuc_cf3 . ")");
+$ped_cf4 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_cf . "," . (int)$usr_cf3 . "," . (int)$nuc_cf3 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf4 . "," . (int)$prod_est_id . ",5,5)");
+
+$cf3 = conferencia_da_chamada($cha_cf);
+verifica("nucleo que entregou sem confirmar recebimento aparece, com diferenca negativa",
+    ($n = nuc_da_conf($cf3, $nuc_cf3)) && round($n['recebeu'],2) == 0.00
+                                       && round($n['distribuiu'],2) == 50.00
+                                       && round($n['diferenca'],2) == -50.00,
+    var_export($n, true));
+
+// A ordem serve para investigar: maior diferenca primeiro.
+verifica("a lista vem ordenada pela diferenca, do maior para o menor",
+    $cf3['nucleos'][0]['diferenca'] >= $cf3['nucleos'][1]['diferenca']
+ && $cf3['nucleos'][1]['diferenca'] >= $cf3['nucleos'][2]['diferenca'],
+    json_encode(array_map(function($n){ return $n['diferenca']; }, $cf3['nucleos'])));
+
+verifica("chamada que nao existe devolve null",
+    conferencia_da_chamada(99999999) === null);
+
+// CONTRATO da familia.
+executa_sql("CREATE TEMPORARY TABLE distribuicao (
+    dist_cha mediumint(6) unsigned NOT NULL, dist_nuc mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_cf = (executa_sql("SELECT dist_quantidade_recebido FROM distribuicao") === false);
+$cf_sem_bd = conferencia_da_chamada($cha_cf);
+executa_sql("DROP TEMPORARY TABLE distribuicao");
+
+verifica("a sombra faz o servidor recusar a conferencia", $sombra_cf);
+verifica("conferencia de consulta recusada e null, e nao chamada sem divergencia",
+    $cf_sem_bd === null, var_export($cf_sem_bd, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
