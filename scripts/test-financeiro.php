@@ -2879,6 +2879,68 @@ verifica("resultado de consulta recusada e null, e nao um nucleo em equilibrio",
     $r_sem_bd === null, var_export($r_sem_bd, true));
 
 
+// ---------------------------------------------------------------------------
+echo "\ndespesas da Rede: lista e reajuste do rateio\n";
+// ---------------------------------------------------------------------------
+
+$lista = despesas_da_rede('2026-04-01', '2026-05-01');
+verifica("a lista traz as despesas da Rede do periodo",
+    is_array($lista) && count($lista) >= 3,
+    is_array($lista) ? count($lista) : var_export($lista, true));
+
+// A sobra aparece de proposito: rateio incompleto viraria custo que ninguem ve, e
+// resultado de nucleo bom demais.
+$so_um = null;
+foreach ((array)$lista as $l) if ($l['historico'] === 'so um nucleo') $so_um = $l;
+verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
+    $so_um !== null && round($so_um['valor'], 2) == 100.00
+                    && round($so_um['rateado'], 2) == 10.00
+                    && round($so_um['sobra'], 2) == 90.00,
+    var_export($so_um, true));
+
+verifica("fora do periodo nao entra",
+    is_array($v = despesas_da_rede('2027-01-01', '2027-02-01')) && count($v) === 0);
+
+// ---- reajuste ----
+$antes_rat = rateio_da_despesa($tra_rede);
+verifica("rateio_da_despesa devolve nucleo => valor",
+    is_array($antes_rat) && count($antes_rat) > 0,
+    var_export($antes_rat === null ? null : count($antes_rat), true));
+
+verifica("reajustar substitui o conjunto inteiro",
+    redefine_rateio($tra_rede, array($nuc_pop => 5.00)) === true
+    && ($d = rateio_da_despesa($tra_rede)) && count($d) === 1
+    && round($d[$nuc_pop], 2) == 5.00,
+    json_encode(rateio_da_despesa($tra_rede)));
+
+// A despesa em si NAO muda: para corrigir dinheiro lanca-se outra, como no resto do
+// modulo. O que se corrige aqui e para quem o custo foi apontado.
+verifica("o reajuste nao mexe no valor nem nas pernas da despesa",
+    ($p = pernas_de($tra_rede)) && round($p[$con_origem], 2) == 302.68,
+    json_encode(pernas_de($tra_rede)));
+
+verifica("reajustar para mais do que a despesa custou e recusado",
+    redefine_rateio($tra_rede, array($nuc_pop => 999999.00)) === false
+    && count((array)rateio_da_despesa($tra_rede)) === 1,
+    json_encode(rateio_da_despesa($tra_rede)));
+
+verifica("reajustar para um nucleo que nao rateia e recusado",
+    redefine_rateio($tra_rede, array($nuc_sent => 5.00)) === false);
+
+// So despesa da Rede tem rateio: apontar custo num pagamento de cestante seria carimbar
+// no nucleo dinheiro que nao e custo de ninguem.
+verifica("transacao que nao e despesa da Rede nao aceita rateio",
+    redefine_rateio($tra_desp, array($nuc_pop => 5.00)) === false);
+
+verifica("transacao que nao existe nao aceita rateio",
+    redefine_rateio(99999999, array($nuc_pop => 5.00)) === false);
+
+// Esvaziar e legitimo: a Rede absorve tudo.
+verifica("rateio pode ser esvaziado, e ai a Rede absorve a despesa inteira",
+    redefine_rateio($tra_rede, array()) === true
+    && count((array)rateio_da_despesa($tra_rede)) === 0);
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
