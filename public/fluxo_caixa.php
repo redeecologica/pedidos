@@ -185,11 +185,13 @@
 </div>
 
 <p class="small text-muted">
-  <strong>Em caixa</strong> é quanto do dinheiro da Rede ainda estava com o núcleo ao fim
-  daquele mês — a mesma conta do extrato do caixa, vista mês a mês. Começa o ano em
+  <strong>Em caixa</strong> é quanto dinheiro estava com o núcleo ao fim daquele mês — a
+  mesma conta do extrato do caixa, vista mês a mês. Começa o ano em
   <strong>R$ <?php echo(h(formata_moeda($fluxo['saldo_anterior']))); ?></strong>, que é o
   que sobrou de <?php echo(h($ano - 1)); ?>.
-  Negativo aqui quer dizer que o núcleo gastou mais do que arrecadou e tem a receber da Rede.
+  Negativo aqui quer dizer que o núcleo gastou mais do que recebeu e tem a receber da Rede.
+  <br>As <strong>outras receitas</strong> — doação, rendimento — são do próprio núcleo e
+  entram no resultado dele; as demais entradas passam adiante.
 </p>
 
 <?php } ?>

@@ -188,10 +188,10 @@
     <span class="label label-danger" style="font-size:larger;">não foi possível calcular o saldo</span>
   <?php } else if ($saldo < -0.005) { ?>
     <span class="label label-danger" style="font-size:larger;">em caixa: R$ <?php echo(formata_moeda(-$saldo)); ?></span>
-    <span class="text-muted">&nbsp;dinheiro da Rede que ainda não saiu — vai virar repasse ou despesa</span>
+    <span class="text-muted">&nbsp;dinheiro que entrou e ainda não saiu — vai virar repasse ou despesa</span>
   <?php } else if ($saldo > 0.005) { ?>
     <span class="label label-info" style="font-size:larger;">a receber da Rede: R$ <?php echo(formata_moeda($saldo)); ?></span>
-    <span class="text-muted">&nbsp;o núcleo gastou mais do que arrecadou</span>
+    <span class="text-muted">&nbsp;o núcleo gastou mais do que recebeu</span>
   <?php } else { ?>
     <span class="label label-success" style="font-size:larger;">em dia</span>
   <?php } ?>
@@ -368,9 +368,9 @@
       <th>Data</th>
       <th>Lançamento</th>
       <th class="text-right">Valor<?php adiciona_popover_descricao("Valor",
-        "Negativo = <b>entrou</b> dinheiro no caixa (pagamento de cestante, outra receita).<br>Positivo = <b>saiu</b> (despesa, repasse, pagamento a produtor)."); ?></th>
+        "Positivo = <b>entrou</b> dinheiro no caixa (pagamento de cestante, doação).<br>Negativo = <b>saiu</b> (despesa, repasse, pagamento a produtor)."); ?></th>
       <th class="text-right">Saldo<?php adiciona_popover_descricao("Saldo",
-        "Quanto do dinheiro <b>da Rede</b> ainda está com o núcleo.<br>Negativo: falta sair. Positivo: o núcleo gastou mais do que arrecadou. Zero: tudo acertado."); ?></th>
+        "Quanto dinheiro estava com o núcleo até aquela linha.<br>Negativo quer dizer que o núcleo gastou mais do que recebeu, e tem a receber da Rede."); ?></th>
     </tr>
   </thead>
   <tbody>

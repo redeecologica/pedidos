@@ -114,11 +114,35 @@
     <table class="table table-bordered table-condensed">
       <thead><tr><th colspan="2">Quanto o núcleo contribuiu</th></tr></thead>
       <tbody>
-        <tr><td>associação</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['associacao']))); ?></td></tr>
-        <tr><td>taxa sobre pedidos de associados</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['taxa']))); ?></td></tr>
-        <tr><td>margem de não associados</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['margem_nao_associado']))); ?></td></tr>
-        <?php if (abs($r['receita']['margem_produto']) > 0.005) { ?>
-        <tr><td>margem no produto</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['margem_produto']))); ?></td></tr>
+        <?php
+          // PERCORRE o que a função devolveu, em vez de listar as linhas à mão. Listadas
+          // à mão, a linha de "outras receitas" nasceu na função e não chegou aqui: o
+          // total já a somava e nenhuma linha visível a explicava. Detalhe que não fecha
+          // com o próprio total é o defeito que faz um relatório de dinheiro perder a
+          // confiança de quem o lê — e foi o mesmo que o fluxo de caixa teve.
+          //
+          // Assim, chave nova aparece sempre. Sem rótulo ela sai com o próprio nome, que
+          // é feio e visível — melhor do que bonita e ausente.
+          $rotulos_receita = array(
+              'associacao'           => 'associação',
+              'taxa'                 => 'taxa sobre pedidos de associados',
+              'margem_nao_associado' => 'margem de não associados',
+              'margem_produto'       => 'margem no produto',
+              'outras'               => 'doações e outras receitas do núcleo',
+          );
+
+          foreach ($r['receita'] as $chave_r => $valor_r)
+          {
+              if ($chave_r === 'total') continue;
+              // linha zerada some quando é rara; as três primeiras ficam sempre, porque
+              // sumir e voltar faria a tabela mudar de forma de um mês para outro
+              $sempre = in_array($chave_r, array('associacao', 'taxa', 'margem_nao_associado'));
+              if (!$sempre && abs($valor_r) < 0.005) continue;
+        ?>
+        <tr>
+          <td><?php echo(h(isset($rotulos_receita[$chave_r]) ? $rotulos_receita[$chave_r] : $chave_r)); ?></td>
+          <td class="text-right"><?php echo(h(formata_moeda($valor_r))); ?></td>
+        </tr>
         <?php } ?>
         <tr class="active"><th>total</th><th class="text-right"><?php echo(h(formata_moeda($r['receita']['total']))); ?></th></tr>
       </tbody>
