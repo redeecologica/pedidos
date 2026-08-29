@@ -2865,3 +2865,155 @@ function conferencia_da_chamada($cha_id)
 		'abatido'     => round($total['recebeu'] - $confirmado, 2),
 	);
 }
+
+
+// O que a materialização desta chamada vai gravar, por cestante — sem gravar nada.
+//
+// As REGRAS SÃO AS MESMAS de debitos_derivados(): mesmo filtro de disponibilidade, mesma
+// exigência de entrega registrada, mesmo casamento de preço pela janela de validade,
+// mesma taxa só para associado. Se aquela mudar, esta tem de mudar junto — e o teste que
+// compara as duas para o mesmo cestante é o que faz a divergência aparecer.
+//
+// A diferença é o recorte: lá é um cestante em todas as chamadas, aqui é uma chamada com
+// todos os cestantes.
+//
+// CONTRATO: array de linhas (vazio quando não há o que materializar), ou null quando a
+// chamada não existe ou a consulta não roda.
+function debitos_a_materializar($cha_id)
+{
+	$res = executa_sql("SELECT cha_id, cha_dt_entrega, cha_dt_prazo_contabil FROM chamadas "
+	     . "WHERE cha_id = " . prep_para_bd($cha_id));
+	if (!$res) return null;
+	$cha = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$cha) return null;
+
+	$sql = "SELECT p.ped_usr usr, u.usr_nome_curto nome, c.cha_taxa_percentual taxa, ";
+	$sql.= "p.ped_usr_associado assoc, ";
+	$sql.= "SUM(IF(p.ped_usr_associado = '0', pr.prod_valor_venda_margem, pr.prod_valor_venda) ";
+	$sql.= "    * pp.pedprod_entregue) entregue ";
+	$sql.= "FROM pedidos p ";
+	$sql.= "JOIN chamadas c        ON c.cha_id = p.ped_cha ";
+	$sql.= "JOIN usuarios u        ON u.usr_id = p.ped_usr ";
+	$sql.= "JOIN pedidoprodutos pp ON pp.pedprod_ped = p.ped_id ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = c.cha_id AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos pr       ON pr.prod_id = pp.pedprod_prod ";
+	$sql.= "  AND pr.prod_ini_validade <= c.cha_dt_entrega AND pr.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "WHERE p.ped_cha = " . prep_para_bd($cha_id) . " AND p.ped_fechado = 1 ";
+	$sql.= "AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND pp.pedprod_entregue > 0 ";
+	$sql.= "GROUP BY p.ped_usr ";
+	$sql.= "ORDER BY u.usr_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	// Quem já foi materializado nesta chamada. A trava é a EXISTÊNCIA do lançamento, e
+	// não um sinalizador na chamada: sinalizador pode discordar dos fatos, o lançamento é
+	// o fato. Rodar duas vezes não pode dobrar dívida de ninguém.
+	$sql_ja = "SELECT c.con_usr usr FROM transacoes t ";
+	$sql_ja.= "JOIN lancamentos l ON l.lan_tra = t.tra_id ";
+	$sql_ja.= "JOIN contas c ON c.con_id = l.lan_con AND c.con_tipo = 'cestante' ";
+	$sql_ja.= "WHERE t.tra_tipo = 'debito_entrega' AND t.tra_cha = " . prep_para_bd($cha_id);
+
+	$res_ja = executa_sql($sql_ja);
+	if (!$res_ja) return null;
+
+	$ja = array();
+	while ($r = mysqli_fetch_array($res_ja, MYSQLI_ASSOC)) $ja[(int)$r['usr']] = true;
+
+	$linhas = array();
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$entregue = round((float)$r['entregue'], 2);
+		// não-associado já paga o preço com margem embutido; taxa só para associado —
+		// a mesma regra de debitos_derivados()
+		$taxa = ((string)$r['assoc'] === '0') ? 0.0
+		      : round($entregue * (float)$r['taxa'], 2);
+
+		$linhas[] = array(
+			'usr_id'    => (int)$r['usr'],
+			'nome'      => (string)$r['nome'],
+			'entregue'  => $entregue,
+			'taxa'      => $taxa,
+			'valor'     => round($entregue + $taxa, 2),
+			'ja_lancado' => isset($ja[(int)$r['usr']]),
+		);
+	}
+
+	return $linhas;
+}
+
+
+// Congela o débito desta chamada: o que era derivado da entrega vira lançamento.
+//
+// POR QUE ISSO É SEGURO no prazo contábil: os insumos já congelaram sozinhos.
+// entrega_cestante.php:44 recusa gravação depois do prazo, e o preço está preso à janela
+// de validade do produto. O retrato é tirado depois que o modelo parou de se mexer — e a
+// tela só oferece o botão quando o prazo passou.
+//
+// CORREÇÃO DEPOIS DO CONGELAMENTO NÃO ACONTECE AQUI. A spec é explícita: não se apaga nem
+// se reescreve; entra uma transação de ajuste, com valor, motivo e autor. Por isso quem
+// já tem lançamento é PULADO, e não recalculado — ao contrário do estoque, onde a
+// correção é o próprio número e não há dívida de ninguém no meio.
+//
+// CONTRATO: array com 'lancados', 'pulados' e 'valor' · null quando a chamada não existe,
+// não é congelável, ou a consulta não roda.
+function materializa_debitos_da_chamada($cha_id)
+{
+	$res = executa_sql("SELECT cha_id, cha_dt_entrega, cha_dt_prazo_contabil FROM chamadas "
+	     . "WHERE cha_id = " . prep_para_bd($cha_id));
+	if (!$res) return null;
+	$cha = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$cha) return null;
+
+	// Antes do prazo contábil a entrega ainda muda, e um débito gravado cedo é um retrato
+	// que a realidade desmente — sem ninguém perceber, porque ele deixa de ser derivado.
+	if ($cha['cha_dt_prazo_contabil'] === null
+	    || strtotime($cha['cha_dt_prazo_contabil']) > time()) return null;
+
+	// A data de corte é onde a contabilidade começa: materializar entrega de 2013 criaria
+	// dívida que ninguém conferiu e que a Rede já considera resolvida.
+	if ($cha['cha_dt_entrega'] < DATA_CORTE_FINANCEIRO) return null;
+
+	$linhas = debitos_a_materializar($cha_id);
+	if ($linhas === null) return null;
+
+	$con_rede = conta_da_rede();
+	if (!$con_rede) return null;
+
+	$lancados = 0; $pulados = 0; $valor = 0.0;
+
+	global $conn_link, $financeiro_em_transacao;
+	$nossa = empty($financeiro_em_transacao);
+	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
+
+	foreach ($linhas as $l)
+	{
+		if ($l['ja_lancado']) { $pulados++; continue; }
+		if ($l['valor'] <= 0) { $pulados++; continue; }
+
+		$con = conta_do_cestante($l['usr_id'], true);
+		if (!$con)
+		{
+			if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+			return null;
+		}
+
+		// cestante −valor · rede +valor: quem recebeu passa a dever, e a Rede a receber
+		$tra = lanca_transacao($cha['cha_dt_entrega'], 'debito_entrega', $con, $con_rede,
+			$l['valor'], 'entrega', array('cha' => $cha_id));
+
+		if (!$tra)
+		{
+			if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+			return null;
+		}
+
+		$lancados++;
+		$valor = round($valor + $l['valor'], 2);
+	}
+
+	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
+
+	return array('lancados' => $lancados, 'pulados' => $pulados, 'valor' => $valor);
+}
