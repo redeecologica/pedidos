@@ -133,6 +133,10 @@ if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
 // tela, e ela não é destino de pagamento (contas_de_destino filtra por tipo).
 if (!defined('CONTA_CHAVE_CONTRAPARTIDA')) define('CONTA_CHAVE_CONTRAPARTIDA', 'contrapartida');
 
+// O estoque de secos que a Rede guarda entre uma chamada e outra. Mercadoria parada é
+// ATIVO — a Rede pagou o produtor por ela e ainda não vendeu —, e não prejuízo.
+if (!defined('CONTA_CHAVE_ESTOQUE')) define('CONTA_CHAVE_ESTOQUE', 'estoque');
+
 // Data em que o módulo entra em operação. Entrega anterior a ela NÃO vira débito
 // derivado: fica na planilha e entra depois como uma linha de reconciliação por
 // cestante, com o saldo que o núcleo informar.
@@ -176,7 +180,8 @@ if (!defined('DATA_CORTE_FINANCEIRO')) define('DATA_CORTE_FINANCEIRO', '2026-05-
 // nunca a menos.
 function chaves_reservadas()
 {
-	return array(CONTA_CHAVE_REDE => 'rede', CONTA_CHAVE_CONTRAPARTIDA => 'sistema');
+	return array(CONTA_CHAVE_REDE => 'rede', CONTA_CHAVE_CONTRAPARTIDA => 'sistema',
+	             CONTA_CHAVE_ESTOQUE => 'estoque');
 }
 
 
@@ -207,6 +212,9 @@ function cria_conta($tipo, $campos = array())
 		// 'sistema' é conta de encanamento, não de gente: contas_de_destino_por_grupo
 		// filtra por tipo e nunca a oferece como destino de pagamento.
 		'sistema'  => 'con_nome',
+		// 'estoque' é ativo da Rede, não encanamento — merece tipo próprio para se
+		// distinguir na lista de contas. Fica fora dos destinos pelo mesmo filtro.
+		'estoque'  => 'con_nome',
 	);
 
 	if (!isset($vinculo[$tipo])) return null;
@@ -2461,4 +2469,175 @@ function define_quotas_de_rateio($quotas)
 	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
 
 	return true;
+}
+
+
+// ============================================================================
+// ESTOQUE
+//
+// Em Secos a Rede guarda mercadoria entre uma chamada e outra — e ao montar o pedido
+// seguinte abate da demanda o que já tem. A tabela `estoque` registra isso por chamada
+// e produto, com a quantidade ANTES e DEPOIS.
+//
+// POR QUE ISSO PRECISA ESTAR NO RAZÃO. Mercadoria parada é ATIVO: a Rede pagou o
+// produtor por ela e ainda não vendeu. Sem essa conta, o resultado da Rede oscila por
+// causa de mercadoria que só mudou de lugar — no mês em que ela estoca, paga ao produtor
+// e não cobra de ninguém, e parece prejuízo; no mês em que consome, cobra sem pagar, e
+// parece lucro. Nenhuma das duas leituras é verdade.
+//
+// Medido na cópia de produção, chamada 1159: sem o estoque a conta acusava R$ 3.741 de
+// "perda"; com ele, R$ 247 — 1,1% do recebido. O resto era mercadoria guardada.
+//
+// A PREÇO DE COMPRA, por decisão da Rede: é o que ela desembolsou, que é o que ativo
+// significa. A preço de venda embutiria margem ainda não realizada.
+// ============================================================================
+
+
+// A conta de estoque. Mesma forma de conta_da_rede(): busca por con_chave, cria se não
+// houver, e a UNIQUE da chave garante que só existe uma.
+function conta_de_estoque()
+{
+	$chave = CONTA_CHAVE_ESTOQUE;
+
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
+	if (!$res) return null;
+	if ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+
+	return cria_conta('estoque', array(
+		'con_nome'  => 'Estoque da Rede',
+		'con_chave' => $chave,
+	));
+}
+
+
+// Quanto valia o estoque desta chamada antes e depois dela, a preço de COMPRA.
+//
+// CONTRATO: array com 'antes', 'depois' e 'variacao', ou null quando a chamada não
+// existe ou a consulta não roda. Chamada sem linha de estoque devolve zeros — é o caso
+// normal de Frescos, que não se guarda.
+function valor_do_estoque_da_chamada($cha_id)
+{
+	$res = executa_sql("SELECT cha_id, cha_dt_entrega FROM chamadas WHERE cha_id = " . prep_para_bd($cha_id));
+	if (!$res) return null;
+	$cha = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$cha) return null;
+
+	// A janela de validade casa pela data de entrega, como no resto do módulo: o preço
+	// de um produto muda ao longo do tempo e `produtos` guarda uma linha por janela.
+	$sql = "SELECT SUM(IFNULL(e.est_prod_qtde_antes,0)  * p.prod_valor_compra) antes, ";
+	$sql.= "SUM(IFNULL(e.est_prod_qtde_depois,0) * p.prod_valor_compra) depois ";
+	$sql.= "FROM estoque e ";
+	$sql.= "JOIN chamadas c ON c.cha_id = e.est_cha ";
+	$sql.= "JOIN produtos p ON p.prod_id = e.est_prod ";
+	$sql.= "WHERE e.est_cha = " . prep_para_bd($cha_id) . " ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$row    = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	$antes  = ($row && $row['antes']  !== null) ? round((float)$row['antes'], 2)  : 0.0;
+	$depois = ($row && $row['depois'] !== null) ? round((float)$row['depois'], 2) : 0.0;
+
+	return array(
+		'antes'    => $antes,
+		'depois'   => $depois,
+		'variacao' => round($depois - $antes, 2),
+		'dt'       => $cha['cha_dt_entrega'],
+	);
+}
+
+
+// A ABERTURA do estoque: o que já estava guardado antes de o módulo começar a lançar.
+//
+// Sem ela a conta guarda só a SOMA DAS VARIAÇÕES, que é o quanto o estoque mudou desde
+// que se começou a lançar — não quanto ele vale. As duas coisas só coincidem se o
+// estoque partiu de zero, e ele não parte: quando o módulo entrar em operação já haverá
+// secos guardados.
+//
+// É a mesma necessidade que a spec registra para o cestante, com outro nome: alguém
+// informa uma vez o ponto de partida, e daí em diante o razão acompanha sozinho.
+//
+// Lança o `antes` da chamada indicada — normalmente a primeira que se vai lançar.
+//
+// CONTRATO: tra_id · 0 quando a conta JÁ tem lançamento (abrir duas vezes dobraria o
+// estoque, e em silêncio) · null quando a chamada não existe ou a consulta não roda.
+function lanca_abertura_do_estoque($cha_id)
+{
+	$v = valor_do_estoque_da_chamada($cha_id);
+	if ($v === null) return null;
+
+	$con_estoque = conta_de_estoque();
+	$con_rede    = conta_da_rede();
+	if (!$con_estoque || !$con_rede) return null;
+
+	$res = executa_sql("SELECT COUNT(*) n FROM lancamentos WHERE lan_con = " . prep_para_bd($con_estoque));
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$row || (int)$row['n'] > 0) return 0;      // já aberta — ver o CONTRATO
+
+	if ($v['antes'] <= 0) return 0;                 // nada guardado no ponto de partida
+
+	// TIPO PRÓPRIO, e não 'estoque'. A abertura carrega o mesmo tra_cha do lançamento de
+	// variação daquela chamada — sem tipos distintos, a consulta de idempotência somaria
+	// as duas e lançaria a variação a menos, exatamente pelo valor da abertura.
+	return lanca_transacao($v['dt'], 'estoque_abertura', $con_estoque, $con_rede, $v['antes'],
+		'estoque de abertura', array('cha' => $cha_id));
+}
+
+
+// Lança no razão o que o estoque desta chamada mudou.
+//
+// IDEMPOTENTE POR DIFERENÇA, e não por "já rodou": olha quanto já foi lançado para esta
+// chamada e lança só o que falta. Rodar duas vezes sem mudança não faz nada; rodar
+// depois de alguém corrigir o estoque lança a correção, sem reescrever o lançamento
+// anterior — que talvez já tenha sido conferido num fechamento.
+//
+// A DATA é a da entrega da chamada, e não a de hoje: é o dia em que a mercadoria de fato
+// ficou parada, e é por essa data que o fluxo de caixa e o resultado agrupam.
+//
+// CONTRATO: tra_id quando lançou · 0 quando não havia o que lançar · null quando a
+// chamada não existe ou a consulta não roda. Os três são coisas diferentes, e "não havia
+// o que lançar" não pode se confundir com falha.
+function lanca_estoque_da_chamada($cha_id)
+{
+	$v = valor_do_estoque_da_chamada($cha_id);
+	if ($v === null) return null;
+
+	$con_estoque = conta_de_estoque();
+	$con_rede    = conta_da_rede();
+	if (!$con_estoque || !$con_rede) return null;
+
+	// A perna que o estoque DEVERIA ter, somadas todas as chamadas... não: apenas esta.
+	// Guardar valor é segurar algo que não é seu para gastar, e na régua do módulo isso
+	// é negativo — a mesma leitura do caixa do núcleo.
+	$alvo = round(-$v['variacao'], 2);
+
+	$sql = "SELECT IFNULL(SUM(l.lan_valor),0) ja FROM lancamentos l ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE l.lan_con = " . prep_para_bd($con_estoque) . " ";
+	// tra_tipo EXATAMENTE 'estoque': a abertura é 'estoque_abertura' e não entra nesta
+	// conta, senão a variação sairia a menos pelo valor dela.
+	$sql.= "AND t.tra_tipo = 'estoque' AND t.tra_cha = " . prep_para_bd($cha_id);
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	$ja  = $row ? round((float)$row['ja'], 2) : 0.0;
+
+	$falta = round($alvo - $ja, 2);
+	if (abs($falta) < 0.005) return 0;          // nada a lançar — ver o CONTRATO
+
+	$historico = ($falta < 0) ? 'mercadoria que ficou em estoque'
+	                          : 'estoque consumido na entrega';
+
+	// falta < 0: o estoque passa a segurar mais valor, e a posição da Rede melhora —
+	// ela não perdeu aquele dinheiro, tem mercadoria. falta > 0: o estoque devolve o
+	// valor e o custo se realiza contra a venda.
+	if ($falta < 0)
+		return lanca_transacao($v['dt'], 'estoque', $con_estoque, $con_rede, -$falta,
+			$historico, array('cha' => $cha_id));
+
+	return lanca_transacao($v['dt'], 'estoque', $con_rede, $con_estoque, $falta,
+		$historico, array('cha' => $cha_id));
 }

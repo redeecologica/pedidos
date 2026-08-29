@@ -2982,6 +2982,17 @@ verifica("o teto do rateio e o valor da perna de custo",
  && redefine_rateio($tra_3, array($nuc_pop => 100.01)) === false,
     json_encode(rateio_da_despesa($tra_3)));
 
+// Esta fixture viola o invariante do modulo DE PROPOSITO — ele exige exatamente duas
+// pernas, e ela tem tres. Deixa-la de pe faria toda assercao posterior sobre o
+// invariante falhar por causa dela, apontando para o lugar errado.
+executa_sql("DELETE FROM rateios WHERE rat_tra = " . (int)$tra_3);
+executa_sql("DELETE FROM lancamentos WHERE lan_tra = " . (int)$tra_3);
+executa_sql("DELETE FROM transacoes WHERE tra_id = " . (int)$tra_3);
+
+verifica("e a fixture de tres pernas se limpa, para o invariante seguir conferivel",
+    count(transacoes_desbalanceadas()) === 0,
+    json_encode(transacoes_desbalanceadas()));
+
 // ---- reajuste ----
 $antes_rat = rateio_da_despesa($tra_rede);
 verifica("rateio_da_despesa devolve nucleo => valor",
@@ -3108,6 +3119,148 @@ verifica("entrada que nao e array e recusada",
 // Nao ha acao legitima de gravar zero quotas — para tirar um nucleo do rateio, grava-se 0.
 verifica("lista vazia e recusada, e nao devolve sucesso sem gravar nada",
     define_quotas_de_rateio(array()) === false);
+
+
+// ---------------------------------------------------------------------------
+echo "\nestoque: mercadoria parada e ativo, nao prejuizo\n";
+// ---------------------------------------------------------------------------
+
+// Chamada de secos propria, com produto de compra 8 e venda 10 — a diferenca entre os
+// dois precos e o que este bloco confere: estoque se avalia pelo que a Rede DESEMBOLSOU.
+$prod_est = insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900003,1," . (int)$forn_res . ",'Secos do estoque','kg',8.00,10.00,13.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+$prod_est_id = 900003;
+
+$cha_est = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-09-12 23:59:59','2026-09-01 00:00:00','2026-09-08 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_est . "," . (int)$prod_est_id . ",1)");
+
+$con_estoque = conta_de_estoque();
+$con_rede_est = conta_da_rede();
+
+verifica("a conta de estoque existe e nao e destino de pagamento",
+    $con_estoque > 0 && !isset(((array)contas_de_destino())[$con_estoque]),
+    var_export($con_estoque, true));
+
+// ESTOCOU: entrou 10 e sobraram 30 (antes 20, depois 50). Variacao +30 unidades.
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_est . "," . (int)$prod_est_id . ",20,50)");
+
+// ABERTURA: 20 unidades ja guardadas antes de o modulo comecar a lancar. Sem isso a
+// conta guardaria so a soma das variacoes — o quanto o estoque MUDOU, e nao quanto vale.
+verifica("a abertura lanca o que ja estava guardado",
+    lanca_abertura_do_estoque($cha_est) > 0
+    && round(-saldo_da_conta($con_estoque), 2) == 160.00,
+    var_export(-saldo_da_conta($con_estoque), true));
+
+verifica("abrir duas vezes nao dobra o estoque",
+    lanca_abertura_do_estoque($cha_est) === 0
+    && round(-saldo_da_conta($con_estoque), 2) == 160.00);
+
+$v = valor_do_estoque_da_chamada($cha_est);
+verifica("o estoque e avaliado a preco de COMPRA, nao de venda",
+    is_array($v) && round($v['antes'],2) == 160.00 && round($v['depois'],2) == 400.00
+                 && round($v['variacao'],2) == 240.00,
+    var_export($v, true));
+
+$tra_est = lanca_estoque_da_chamada($cha_est);
+$p = pernas_de($tra_est);
+verifica("estocar move valor para o estoque e MELHORA a posicao da Rede",
+    $tra_est && round($p[$con_estoque],2) == -240.00 && round($p[$con_rede_est],2) == 240.00,
+    "tra=" . var_export($tra_est,true) . " pernas=" . json_encode($p));
+
+verifica("e o saldo passa a ser o estoque inteiro: 50 x 8 = 400",
+    round(-saldo_da_conta($con_estoque), 2) == 400.00,
+    var_export(-saldo_da_conta($con_estoque), true));
+
+// IDEMPOTENTE: rodar de novo sem mudanca nao lanca nada.
+verifica("rodar de novo sem mudanca nao lanca nada",
+    lanca_estoque_da_chamada($cha_est) === 0,
+    var_export(lanca_estoque_da_chamada($cha_est), true));
+
+verifica("e o saldo continua o mesmo",
+    round(-saldo_da_conta($con_estoque), 2) == 400.00);
+
+// CORRECAO: alguem conferiu e o estoque final era 45, nao 50. Lanca so a DIFERENCA —
+// reescrever o lancamento anterior apagaria o que ja foi conferido.
+executa_sql("UPDATE estoque SET est_prod_qtde_depois = 45
+    WHERE est_cha = " . (int)$cha_est . " AND est_prod = " . (int)$prod_est_id);
+
+$tra_corr = lanca_estoque_da_chamada($cha_est);
+$p2 = pernas_de($tra_corr);
+verifica("correcao lanca so a diferenca, e nao reescreve o que ja estava",
+    $tra_corr > 0 && round($p2[$con_estoque],2) == 40.00 && round($p2[$con_rede_est],2) == -40.00,
+    json_encode($p2));
+
+verifica("o saldo passa a refletir o estoque corrigido: 45 x 8 = 360",
+    round(-saldo_da_conta($con_estoque), 2) == 360.00,
+    var_export(-saldo_da_conta($con_estoque), true));
+
+// CONSUMIU: chamada seguinte comeca com 45 e termina com 5.
+$cha_est2 = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-10-10 23:59:59','2026-10-01 00:00:00','2026-10-05 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_est2 . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_est2 . "," . (int)$prod_est_id . ",45,5)");
+
+$tra_cons = lanca_estoque_da_chamada($cha_est2);
+$p3 = pernas_de($tra_cons);
+verifica("consumir estoque devolve o valor e PIORA a posicao da Rede — o custo se realiza",
+    $tra_cons && round($p3[$con_estoque],2) == 320.00 && round($p3[$con_rede_est],2) == -320.00,
+    json_encode($p3));
+
+verifica("e o estoque fica valendo 5 x 8 = 40",
+    round(-saldo_da_conta($con_estoque), 2) == 40.00,
+    var_export(-saldo_da_conta($con_estoque), true));
+
+// SEM VARIACAO nao e erro: e chamada que nao mexeu no estoque.
+$cha_est3 = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-11-14 23:59:59','2026-11-01 00:00:00','2026-11-10 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_est3 . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_est3 . "," . (int)$prod_est_id . ",5,5)");
+
+verifica("chamada sem variacao de estoque nao gera lancamento",
+    lanca_estoque_da_chamada($cha_est3) === 0);
+
+// Chamada SEM linha de estoque nenhuma: o normal para Frescos, que nao se guarda.
+$cha_sem = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-12-12 23:59:59','2026-12-01 00:00:00','2026-12-08 23:59:59',0.00)");
+verifica("chamada sem estoque nenhum devolve zero, e nao erro",
+    lanca_estoque_da_chamada($cha_sem) === 0
+    && ($z = valor_do_estoque_da_chamada($cha_sem)) && round($z['variacao'],2) == 0.00,
+    var_export($z, true));
+
+verifica("chamada que nao existe devolve null",
+    valor_do_estoque_da_chamada(99999999) === null
+ && lanca_estoque_da_chamada(99999999) === null);
+
+// O INVARIANTE do modulo continua: toda transacao soma zero.
+verifica("os lancamentos de estoque somam zero, como todos os outros",
+    count(transacoes_desbalanceadas()) === 0,
+    json_encode(transacoes_desbalanceadas()));
+
+// A soma de tudo que foi lancado tem de bater com o estoque que existe HOJE nas
+// chamadas tocadas — e o mesmo dinheiro contado de dois jeitos.
+verifica("o saldo da conta bate com o estoque final da ultima chamada lancada",
+    round(-saldo_da_conta($con_estoque), 2) == round(5 * 8.00, 2));
+
+// CONTRATO da familia: consulta que nao roda devolve null.
+executa_sql("CREATE TEMPORARY TABLE estoque (
+    est_cha mediumint(6) unsigned NOT NULL, est_prod mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_est = (executa_sql("SELECT est_prod_qtde_antes FROM estoque") === false);
+$v_sem_bd = valor_do_estoque_da_chamada($cha_est);
+executa_sql("DROP TEMPORARY TABLE estoque");
+
+verifica("a sombra sem as colunas faz o servidor recusar", $sombra_est);
+verifica("valor de consulta recusada e null, e nao estoque zerado",
+    $v_sem_bd === null, var_export($v_sem_bd, true));
 
 
 mysqli_rollback($conn_link);
