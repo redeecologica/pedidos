@@ -222,6 +222,7 @@
                        ?>
 			                    <li><a href="contas.php"><i class="glyphicon glyphicon-briefcase"></i> Contas</a></li>
 			                    <li><a href="despesas_rede.php"><i class="glyphicon glyphicon-globe"></i> Despesas da Rede</a></li>
+			                    <li><a href="fechamento_chamada.php"><i class="glyphicon glyphicon-lock"></i> Fechamento de chamadas</a></li>
                       <?php 
                             } 			  
                       ?> 
