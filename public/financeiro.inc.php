@@ -23,6 +23,8 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 	// só o caixa do núcleo usa categoria, e só em despesa; nas demais fica NULL, que é
 	// a verdade — pagamento e repasse não têm o que classificar
 	$categoria    = isset($extras['categoria'])    ? prep_para_bd($extras['categoria'])    : "NULL";
+	// quem recebeu, quando o outro lado não tem conta — o motorista, quem levou a carga
+	$favorecido   = isset($extras['favorecido'])   ? prep_para_bd($extras['favorecido'])   : "NULL";
 	$usr          = isset($_SESSION['usr.id'])     ? prep_para_bd($_SESSION['usr.id'])     : "0";
 
 	// MySQL não aninha transação: um BEGIN dentro de outra faz COMMIT implícito
@@ -33,9 +35,9 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 	$nossa = empty($financeiro_em_transacao);
 	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
 
-	$sql = "INSERT INTO transacoes (tra_dt, tra_tipo, tra_cha, tra_historico, tra_comprovante, tra_obs, tra_categoria, tra_usr_registro) ";
+	$sql = "INSERT INTO transacoes (tra_dt, tra_tipo, tra_cha, tra_historico, tra_comprovante, tra_obs, tra_categoria, tra_favorecido, tra_usr_registro) ";
 	$sql.= "VALUES (" . prep_para_bd($dt) . ", " . prep_para_bd($tipo) . ", $cha, ";
-	$sql.= prep_para_bd($historico) . ", $comprovante, $obs, $categoria, $usr)";
+	$sql.= prep_para_bd($historico) . ", $comprovante, $obs, $categoria, $favorecido, $usr)";
 
 	if (!executa_sql($sql)) { if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; } return null; }
 	$tra_id = id_inserido();
@@ -124,6 +126,13 @@ function transacoes_desbalanceadas()
 // usa, e em silêncio.
 if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
 
+// A conta que recebe a OUTRA perna dos movimentos cujo outro lado não tem conta no
+// sistema — a despesa que sai para o motorista, a doação que entra de um cestante.
+// Toda transação soma zero e precisa de duas pernas; esta é a segunda quando não há
+// ninguém cadastrado do outro lado. É encanamento: ninguém escolhe esta conta numa
+// tela, e ela não é destino de pagamento (contas_de_destino filtra por tipo).
+if (!defined('CONTA_CHAVE_CONTRAPARTIDA')) define('CONTA_CHAVE_CONTRAPARTIDA', 'contrapartida');
+
 // Data em que o módulo entra em operação. Entrega anterior a ela NÃO vira débito
 // derivado: fica na planilha e entra depois como uma linha de reconciliação por
 // cestante, com o saldo que o núcleo informar.
@@ -167,7 +176,7 @@ if (!defined('DATA_CORTE_FINANCEIRO')) define('DATA_CORTE_FINANCEIRO', '2026-05-
 // nunca a menos.
 function chaves_reservadas()
 {
-	return array(CONTA_CHAVE_REDE => 'rede');
+	return array(CONTA_CHAVE_REDE => 'rede', CONTA_CHAVE_CONTRAPARTIDA => 'sistema');
 }
 
 
@@ -195,6 +204,9 @@ function cria_conta($tipo, $campos = array())
 		'nucleo'   => 'con_nuc',
 		'produtor' => 'con_forn',
 		'rede'     => 'con_nome',
+		// 'sistema' é conta de encanamento, não de gente: contas_de_destino_por_grupo
+		// filtra por tipo e nunca a oferece como destino de pagamento.
+		'sistema'  => 'con_nome',
 	);
 
 	if (!isset($vinculo[$tipo])) return null;
@@ -314,6 +326,34 @@ function conta_da_rede()
 
 	return cria_conta('rede', array('con_nome' => $nome, 'con_chave' => $chave));
 }
+
+// A conta de contrapartida. Mesma forma de conta_da_rede(): busca por con_chave, cria
+// se não houver, e a UNIQUE da chave garante que só existe uma.
+//
+// Ela existe porque o razão exige duas pernas somando zero, e metade dos movimentos do
+// caixa do núcleo não tem ninguém cadastrado do outro lado: quem recebe a despesa é o
+// motorista, quem faz a doação é alguém sem conta. Antes, essas pernas iam para a conta
+// da Rede — o que dizia que a Rede assumira aquele custo, e deixou de ser verdade
+// quando a despesa virou custo do próprio núcleo, medido no resultado.
+//
+// NINGUÉM ESCOLHE ESTA CONTA numa tela, e é de propósito: ela não carrega informação. O
+// que interessa — qual núcleo, que tipo, que categoria, quanto, quando — está todo na
+// perna do CAIXA, que é a que o resultado e o fluxo de caixa leem.
+function conta_de_contrapartida()
+{
+	$chave = CONTA_CHAVE_CONTRAPARTIDA;
+
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_chave = " . prep_para_bd($chave));
+	if (!$res) return null;
+	if ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) return (int)$row['con_id'];
+
+	return cria_conta('sistema', array(
+		'con_nome'  => 'Contrapartida (despesas e receitas fora do sistema)',
+		'con_chave' => $chave,
+	));
+}
+
+
 
 
 // O débito é derivado enquanto a chamada pode mudar — é a mesma conta que o
@@ -1382,12 +1422,21 @@ function contas_de_destino_do_tipo($tipo)
 // repasse, que está na lista e mesmo assim não é aquele movimento.
 function lanca_movimento_nucleo($nuc_id, $tipo, $dt, $valor, $con_contraparte, $extras = array())
 {
-	// que tipo de conta cada lançamento aceita do outro lado
+	// O QUE ESTÁ DO OUTRO LADO DE CADA LANÇAMENTO — e em metade deles não é conta de
+	// ninguém. Quem recebe uma despesa é o motorista; quem faz uma doação é alguém sem
+	// cadastro. Essas duas vão para a conta de contrapartida, que é encanamento.
+	//
+	// As outras duas têm conta de verdade, e ali a escolha decide quem recebeu: existem
+	// duas contas da Rede a distinguir, e o produtor pago é um entre muitos.
+	//
+	// Antes, despesa e receita também pediam conta da Rede. Era coerente enquanto a Rede
+	// absorvia o custo do núcleo; deixou de ser quando a despesa virou custo do próprio
+	// núcleo, medido no resultado. E na tela pedia uma escolha que não significava nada.
 	$contraparte_de = array(
-		'despesa'            => 'rede',
+		'despesa'            => 'contrapartida',
 		'repasse'            => 'rede',
 		'pagamento_produtor' => 'produtor',
-		'receita'            => 'rede',
+		'receita'            => 'contrapartida',
 	);
 	if (!isset($contraparte_de[$tipo])) return null;
 
@@ -1407,16 +1456,28 @@ function lanca_movimento_nucleo($nuc_id, $tipo, $dt, $valor, $con_contraparte, $
 	if ($tipo === 'despesa') { if (!isset($categorias[$categoria])) return null; }
 	else $categoria = '';
 
-	// Array onde se espera escalar é TypeError dentro do isset() no PHP 8: a tela
-	// inteira cairia por causa de um `con_contraparte[]` no POST. Mesma guarda de
-	// registra_pagamento().
-	if (!is_string($con_contraparte) && !is_int($con_contraparte)) return null;
+	if ($contraparte_de[$tipo] === 'contrapartida')
+	{
+		// A conta mandada é IGNORADA, não recusada. A tela não oferece o campo nestes
+		// dois tipos, mas um POST antigo ou forjado ainda pode trazer um — e recusar
+		// repetiria o erro do mv_categoria, em que um campo que a tela escondia
+		// derrubava todo lançamento legítimo feito por ela.
+		$con_contraparte = conta_de_contrapartida();
+		if (!$con_contraparte) return null;
+	}
+	else
+	{
+		// Array onde se espera escalar é TypeError dentro do isset() no PHP 8: a tela
+		// inteira cairia por causa de um `con_contraparte[]` no POST. Mesma guarda de
+		// registra_pagamento().
+		if (!is_string($con_contraparte) && !is_int($con_contraparte)) return null;
 
-	$destinos = contas_de_destino();
-	if ($destinos === null)                 return null;   // sem lista não há o que conferir
-	if (!isset($destinos[$con_contraparte])) return null;   // conta que a lista não oferece
+		$destinos = contas_de_destino();
+		if ($destinos === null)                 return null;   // sem lista não há o que conferir
+		if (!isset($destinos[$con_contraparte])) return null;   // conta que a lista não oferece
 
-	if (tipo_de_conta($con_contraparte) !== $contraparte_de[$tipo]) return null;
+		if (tipo_de_conta($con_contraparte) !== $contraparte_de[$tipo]) return null;
+	}
 
 	$con_caixa = conta_do_nucleo($nuc_id);
 	if (!$con_caixa) return null;
@@ -1437,6 +1498,14 @@ function lanca_movimento_nucleo($nuc_id, $tipo, $dt, $valor, $con_contraparte, $
 		'obs'         => isset($extras['obs'])         ? $extras['obs']         : null,
 	);
 	if ($tipo === 'despesa') $campos['categoria'] = $categoria;
+
+	// Quem recebeu, quando o outro lado não tem conta. Só faz sentido nos dois tipos que
+	// usam a contrapartida: em repasse e pagamento a produtor o favorecido É a conta, e
+	// gravar os dois diria a mesma coisa duas vezes — com risco de divergirem.
+	$favorecido = isset($extras['favorecido']) && (is_string($extras['favorecido']) || is_int($extras['favorecido']))
+	            ? trim((string)$extras['favorecido']) : '';
+	if ($favorecido !== '' && $contraparte_de[$tipo] === 'contrapartida')
+		$campos['favorecido'] = $favorecido;
 
 	// Só 'receita' inverte: é o único dos quatro em que dinheiro ENTRA no caixa, e
 	// portanto o único que aumenta o que o núcleo deve.
@@ -2083,29 +2152,40 @@ function resultado_do_nucleo($nuc_id, $ano, $mes)
 		'taxa'                 => $v($row ? $row['taxa'] : null),
 		'margem_nao_associado' => $v($row ? $row['margem_nao_assoc'] : null),
 		'margem_produto'       => $v($row ? $row['margem_produto'] : null),
+		// doação, rendimento de conta: receita do PRÓPRIO núcleo, por decisão do time.
+		// Preenchida logo abaixo, junto das despesas, porque sai da mesma varredura do
+		// caixa — e a chave nasce aqui para a ordem das linhas na tela ser esta.
+		'outras'               => 0.0,
 	);
-	$receita['total'] = round(array_sum($receita), 2);
 
-	// ---- despesas que o próprio núcleo lançou ----
+	// ---- o que o próprio núcleo lançou no caixa: despesas e outras receitas ----
 	$proprias = array();
 	$con = conta_do_nucleo($nuc_id);
 
 	if ($con)
 	{
 		// Na conta-caixa a perna da despesa é POSITIVA — o núcleo deixou de segurar
-		// aquele dinheiro. Aqui ela vira custo, que é o que a palavra quer dizer.
-		$sql = "SELECT IFNULL(t.tra_categoria,'') cat, SUM(l.lan_valor) v ";
+		// aquele dinheiro — e a da receita é NEGATIVA, porque entrou. Aqui as duas viram
+		// número positivo: custo e receita, que é o que as palavras querem dizer.
+		$sql = "SELECT t.tra_tipo tipo, IFNULL(t.tra_categoria,'') cat, SUM(l.lan_valor) v ";
 		$sql.= "FROM lancamentos l JOIN transacoes t ON t.tra_id = l.lan_tra ";
-		$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " AND t.tra_tipo = 'despesa' ";
+		$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " AND t.tra_tipo IN ('despesa','receita') ";
 		$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
-		$sql.= "GROUP BY cat";
+		$sql.= "GROUP BY tipo, cat";
 
 		$res = executa_sql($sql);
 		if (!$res) return null;
 
 		while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
-			$proprias[(string)$r['cat']] = round((float)$r['v'], 2);
+		{
+			if ((string)$r['tipo'] === 'receita')
+				$receita['outras'] = round($receita['outras'] - (float)$r['v'], 2);
+			else
+				$proprias[(string)$r['cat']] = round((float)$r['v'], 2);
+		}
 	}
+
+	$receita['total'] = round(array_sum($receita), 2);
 
 	// ---- rateio: a parte dos custos da Rede carimbada neste núcleo ----
 	$rateio = rateios_do_nucleo($nuc_id, $de, $ate);
