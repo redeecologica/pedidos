@@ -2132,3 +2132,129 @@ function resultado_do_nucleo($nuc_id, $ano, $mes)
 		'situacao'  => $situacao,
 	);
 }
+
+
+// As despesas da Rede de um período, com quanto de cada uma já foi carimbado nos
+// núcleos. A diferença entre o valor e o rateado é o que a Rede absorveu — e ela
+// aparece na tela de propósito: rateio silenciosamente incompleto viraria custo que
+// ninguém vê e resultado de núcleo bom demais.
+//
+// CONTRATO: array (vazio quando não houve despesa), ou null quando a consulta não roda.
+function despesas_da_rede($de, $ate)
+{
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, ";
+	$sql.= "ABS(l.lan_valor) valor, ";
+	$sql.= "(SELECT IFNULL(SUM(r.rat_valor),0) FROM rateios r WHERE r.rat_tra = t.tra_id) rateado ";
+	$sql.= "FROM transacoes t ";
+	// a perna da conta principal é a que carrega o custo; a outra é de onde saiu o dinheiro
+	$sql.= "JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_valor < 0 ";
+	$sql.= "WHERE t.tra_tipo = 'despesa_rede' ";
+	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$categorias = categorias_de_despesa_da_rede();
+	$linhas = array();
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$cat     = trim((string)$row['tra_categoria']);
+		$valor   = round((float)$row['valor'], 2);
+		$rateado = round((float)$row['rateado'], 2);
+
+		$linhas[] = array(
+			'tra_id'    => (int)$row['tra_id'],
+			'dt'        => $row['tra_dt'],
+			'categoria' => $cat,
+			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : $cat,
+			'historico' => (string)$row['tra_historico'],
+			'valor'     => $valor,
+			'rateado'   => $rateado,
+			// o que a Rede absorveu: sobra de centavos, ou parte que ninguém carimbou
+			'sobra'     => round($valor - $rateado, 2),
+		);
+	}
+
+	return $linhas;
+}
+
+
+// O rateio de uma despesa já lançada, como nuc_id => valor.
+function rateio_da_despesa($tra_id)
+{
+	$res = executa_sql("SELECT rat_nuc, rat_valor FROM rateios WHERE rat_tra = " . prep_para_bd($tra_id));
+	if (!$res) return null;
+
+	$r = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$r[(int)$row['rat_nuc']] = round((float)$row['rat_valor'], 2);
+
+	return $r;
+}
+
+
+// Refaz a atribuição de uma despesa já lançada. A despesa em si — valor, data, conta —
+// NÃO muda: para corrigir dinheiro lança-se outra, como no resto do módulo. O que se
+// corrige aqui é para quem o custo foi apontado, que é decisão e não fato consumado.
+//
+// Substitui em bloco em vez de editar linha a linha: o conjunto tem de continuar
+// somando no máximo o valor da despesa, e conferir isso linha a linha deixaria estados
+// intermediários inválidos gravados.
+//
+// CONTRATO: true, ou false quando não pôde.
+function redefine_rateio($tra_id, $rateio)
+{
+	if (!is_array($rateio)) return false;
+
+	$res = executa_sql("SELECT tra_id, tra_tipo, ABS(lan_valor) valor FROM transacoes "
+	     . "JOIN lancamentos ON lan_tra = tra_id AND lan_valor < 0 "
+	     . "WHERE tra_id = " . prep_para_bd($tra_id));
+	if (!$res) return false;
+
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$row || $row['tra_tipo'] !== 'despesa_rede') return false;
+
+	$valor  = round((float)$row['valor'], 2);
+	$quotas = quotas_de_rateio();
+	if ($quotas === null) return false;
+
+	$soma  = 0.0;
+	$limpo = array();
+	foreach ($rateio as $nuc => $v)
+	{
+		if (!isset($quotas[(int)$nuc])) return false;
+		$v = round((float)$v, 2);
+		if ($v < 0) return false;
+		if ($v == 0) continue;
+		$soma += $v;
+		$limpo[(int)$nuc] = $v;
+	}
+	if ($soma > $valor + 0.0001) return false;
+
+	global $conn_link, $financeiro_em_transacao;
+	$nossa = empty($financeiro_em_transacao);
+	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
+
+	if (!executa_sql("DELETE FROM rateios WHERE rat_tra = " . prep_para_bd($tra_id)))
+	{
+		if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+		return false;
+	}
+
+	foreach ($limpo as $nuc => $v)
+	{
+		$sql = "INSERT INTO rateios (rat_tra, rat_nuc, rat_valor) VALUES (";
+		$sql.= prep_para_bd($tra_id) . ", " . prep_para_bd($nuc) . ", " . prep_para_bd($v) . ")";
+		if (!executa_sql($sql))
+		{
+			if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+			return false;
+		}
+	}
+
+	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
+
+	return true;
+}
