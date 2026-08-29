@@ -2052,15 +2052,34 @@ verifica("conta_do_nucleo devolve null para nucleo sem conta",
     conta_do_nucleo(99999999) === null,
     var_export(conta_do_nucleo(99999999), true));
 
-// DESPESA — nucleo +X, contraparte -X. O nucleo deixa de dever porque gastou o
-// dinheiro que segurava; a Rede assume o custo.
+// DESPESA — saiu dinheiro do caixa para alguem que NAO tem conta no sistema: o
+// motorista. A outra perna vai para a conta de contrapartida, e nao para a Rede: dizer
+// que a Rede assumiu o custo era verdade no modelo antigo e deixou de ser quando a
+// despesa virou custo do proprio nucleo, medido no resultado.
+$con_contra = conta_de_contrapartida();
 $tra_desp = lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-01 10:00:00', 45.00,
-    $con_rede, array('categoria' => 'passagens', 'historico' => 'passagem do motorista'));
+    null, array('categoria' => 'passagens', 'historico' => 'passagem do motorista',
+                'favorecido' => 'Seu Antunes'));
 $p = pernas_de($tra_desp);
-verifica("despesa: nucleo +45 e contraparte -45",
+verifica("despesa: caixa +45 e contrapartida -45, sem tocar na Rede",
     $tra_desp && isset($p[$con_caixa]) && $p[$con_caixa] == 45.00
-             && isset($p[$con_rede])  && $p[$con_rede]  == -45.00,
+             && isset($p[$con_contra]) && $p[$con_contra] == -45.00
+             && !isset($p[$con_rede]),
     "tra=" . var_export($tra_desp, true) . " pernas=" . json_encode($p));
+
+verifica("e guarda QUEM recebeu, que nao tem conta e nao teria onde ficar",
+    valor_escalar("SELECT tra_favorecido FROM transacoes WHERE tra_id = " . (int)$tra_desp) === 'Seu Antunes',
+    var_export(valor_escalar("SELECT tra_favorecido FROM transacoes WHERE tra_id = " . (int)$tra_desp), true));
+
+// A conta escolhida no POST e IGNORADA em despesa, nao recusada — a tela nao oferece o
+// campo, mas um POST antigo ou forjado ainda pode trazer um. Recusar repetiria o erro
+// do mv_categoria: campo que a tela nao mostra derrubando lancamento legitimo.
+$tra_ign = lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-01 11:00:00', 5.00,
+    $con_forn_t, array('categoria' => 'outros'));
+$p_ign = pernas_de($tra_ign);
+verifica("conta mandada numa despesa e ignorada, e o lancamento acontece",
+    $tra_ign && isset($p_ign[$con_contra]) && !isset($p_ign[$con_forn_t]),
+    json_encode($p_ign));
 
 verifica("despesa grava a categoria",
     valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_desp) === 'passagens',
@@ -2088,12 +2107,15 @@ verifica("pagamento a produtor: nucleo +120 e produtor -120",
     $tra_pp && $p[$con_caixa] == 120.00 && $p[$con_forn_t] == -120.00,
     "tra=" . var_export($tra_pp, true) . " pernas=" . json_encode($p));
 
-// OUTRA RECEITA — unica das quatro que aumenta o que o nucleo deve.
+// OUTRA RECEITA — entrou dinheiro no caixa, de quem tambem nao tem conta: doacao,
+// rendimento. Unica das quatro em que o caixa cresce, e por decisao do time ela e
+// receita DO NUCLEO, entrando no equilibrio dele.
 $tra_rec = lanca_movimento_nucleo($nuc_livre[3], 'receita', '2026-08-04 10:00:00', 60.00,
-    $con_rede, array('historico' => 'venda de sacola'));
+    null, array('historico' => 'doacao de cestante'));
 $p = pernas_de($tra_rec);
-verifica("outra receita: nucleo -60 e rede +60 (sentido invertido)",
-    $tra_rec && $p[$con_caixa] == -60.00 && $p[$con_rede] == 60.00,
+verifica("outra receita: caixa -60 e contrapartida +60 (o caixa cresce)",
+    $tra_rec && $p[$con_caixa] == -60.00 && $p[$con_contra] == 60.00
+             && !isset($p[$con_rede]),
     "tra=" . var_export($tra_rec, true) . " pernas=" . json_encode($p));
 
 verifica("as quatro somam zero, como toda transacao do modulo",
@@ -2138,10 +2160,6 @@ verifica("contraparte que nao esta em contas_de_destino e recusada (conta de ces
 verifica("repasse contra conta de PRODUTOR e recusado",
     lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_forn_t) === null);
 
-verifica("despesa contra conta de PRODUTOR e recusada",
-    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_forn_t,
-        array('categoria' => 'outros')) === null);
-
 verifica("pagamento a produtor contra conta da REDE e recusado",
     lanca_movimento_nucleo($nuc_livre[3], 'pagamento_produtor', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
 
@@ -2163,7 +2181,7 @@ verifica("nucleo SEM conta e recusado",
 // Nenhuma das recusas acima pode ter deixado meia transacao gravada.
 verifica("nenhuma recusa gravou transacao pela metade",
     count(transacoes_desbalanceadas()) === 0
-    && valor_escalar("SELECT COUNT(DISTINCT lan_tra) FROM lancamentos WHERE lan_con = " . (int)$con_caixa) == 4,
+    && valor_escalar("SELECT COUNT(DISTINCT lan_tra) FROM lancamentos WHERE lan_con = " . (int)$con_caixa) == 5,
     "desbalanceadas=" . json_encode(transacoes_desbalanceadas())
         . " no caixa=" . var_export(valor_escalar("SELECT COUNT(DISTINCT lan_tra) FROM lancamentos WHERE lan_con = " . (int)$con_caixa), true));
 
@@ -2284,18 +2302,19 @@ verifica("as seis categorias da planilha estao la",
     json_encode(array_keys((array)$cats)));
 
 $ext = extrato_do_nucleo($nuc_livre[3]);
-verifica("o extrato do nucleo traz os quatro lancamentos",
-    is_array($ext) && count($ext) === 4,
+verifica("o extrato do nucleo traz os cinco lancamentos",
+    is_array($ext) && count($ext) === 5,
     "veio " . var_export(is_array($ext) ? count($ext) : $ext, true));
 
 // Saldo corrente somado linha a linha, como no extrato do cestante: 45 + 300 + 120 - 60.
-verifica("o saldo corrente fecha em 405,00",
-    is_array($ext) && count($ext) === 4 && round(end($ext)['saldo'], 2) == 405.00,
+verifica("o saldo corrente fecha em 410,00",
+    is_array($ext) && count($ext) === 5 && round(end($ext)['saldo'], 2) == 410.00,
     is_array($ext) && $ext ? "saldo final = " . var_export(end($ext)['saldo'], true) : 'sem extrato');
 
 verifica("o extrato vem em ordem cronologica",
-    is_array($ext) && count($ext) === 4
-    && $ext[0]['dt'] <= $ext[1]['dt'] && $ext[1]['dt'] <= $ext[2]['dt'] && $ext[2]['dt'] <= $ext[3]['dt'],
+    is_array($ext) && count($ext) === 5
+    && $ext[0]['dt'] <= $ext[1]['dt'] && $ext[1]['dt'] <= $ext[2]['dt']
+    && $ext[2]['dt'] <= $ext[3]['dt'] && $ext[3]['dt'] <= $ext[4]['dt'],
     is_array($ext) ? json_encode(array_map(function ($l) { return $l['dt']; }, $ext)) : 'sem extrato');
 
 verifica("a linha de despesa carrega a categoria legivel",
@@ -2319,8 +2338,8 @@ verifica("a sombra sem lan_valor faz o servidor recusar o extrato do nucleo",
 verifica("extrato de consulta recusada e null, e nao caixa vazio",
     $ext_sem_banco === null, var_export($ext_sem_banco, true));
 
-verifica("derrubada a sombra, o extrato volta com as quatro linhas",
-    is_array(extrato_do_nucleo($nuc_livre[3])) && count(extrato_do_nucleo($nuc_livre[3])) === 4);
+verifica("derrubada a sombra, o extrato volta com as cinco linhas",
+    is_array(extrato_do_nucleo($nuc_livre[3])) && count(extrato_do_nucleo($nuc_livre[3])) === 5);
 
 // ---------------------------------------------------------------------------
 echo "\nnucleo em foco: a regra mora numa funcao so\n";
@@ -2800,6 +2819,11 @@ executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quan
 // DESPESA PROPRIA do nucleo: motorista, 40
 lanca_movimento_nucleo($nuc_res, 'despesa', '2026-05-15', 40.00, $con_rede, array('categoria' => 'motorista'));
 
+// OUTRA RECEITA do proprio nucleo: doacao de 25. Por decisao do time, ela conta para o
+// equilibrio do nucleo — quem consegue doacao esta de fato em melhor situacao.
+lanca_movimento_nucleo($nuc_res, 'receita', '2026-05-20', 25.00, null,
+    array('historico' => 'doacao de cestante'));
+
 // RATEIO: 12 carimbados neste nucleo
 lanca_despesa_da_rede('2026-05-02', 'sistemas', 300.00, $con_origem, 'Sistemas de maio',
     array($nuc_res => 12.00));
@@ -2822,8 +2846,12 @@ verifica("o associado nao gera margem de produto quando venda = compra",
     is_array($r) && round($r['receita']['margem_produto'], 2) == 0.00,
     is_array($r) ? var_export($r['receita']['margem_produto'], true) : '?');
 
-verifica("receita total = 60 + 5 + 30",
-    is_array($r) && round($r['receita']['total'], 2) == 95.00,
+verifica("a doacao entra como receita propria do nucleo",
+    is_array($r) && round($r['receita']['outras'], 2) == 25.00,
+    is_array($r) ? var_export($r['receita'], true) : '?');
+
+verifica("receita total = 60 + 5 + 30 + 25",
+    is_array($r) && round($r['receita']['total'], 2) == 120.00,
     is_array($r) ? var_export($r['receita']['total'], true) : '?');
 
 verifica("a despesa propria do nucleo entra no custo, por categoria",
@@ -2837,8 +2865,8 @@ verifica("o rateio entra no custo, e vem aberto por despesa da Rede",
                  && $r['custo']['rateio'][0]['categoria'] === 'sistemas',
     is_array($r) ? json_encode($r['custo']['rateio']) : '?');
 
-verifica("resultado = receita - custo = 95 - 52",
-    is_array($r) && round($r['resultado'], 2) == 43.00,
+verifica("resultado = receita - custo = 120 - 52",
+    is_array($r) && round($r['resultado'], 2) == 68.00,
     is_array($r) ? var_export($r['resultado'], true) : '?');
 
 // O sinal e o que a tela vai dizer em palavras, entao tem de ser inequivoco.
@@ -2853,11 +2881,15 @@ verifica("mes sem movimento devolve zeros, e nao null",
                   && $r0['situacao'] === 'equilibrio',
     var_export($r0 === null ? null : $r0['situacao'], true));
 
-// Um nucleo que so tem custo e deficitario — o caso que o time disse ser comum e OK.
-$r_def = resultado_do_nucleo($nuc_livre[3], 2026, 8);
+// Mes so com custo e deficitario — o caso que o time disse ser comum e OK. Junho tem
+// so a despesa, e nenhuma entrega: e o retrato do nucleo que nao se paga.
+lanca_movimento_nucleo($nuc_res, 'despesa', '2026-06-10', 80.00, null,
+    array('categoria' => 'motorista', 'favorecido' => 'motorista de junho'));
+
+$r_def = resultado_do_nucleo($nuc_res, 2026, 6);
 verifica("mes com custo e sem receita se diz deficitario",
-    is_array($r_def) && $r_def['resultado'] <= 0
-    && ($r_def['resultado'] < 0 ? $r_def['situacao'] === 'deficitario' : true),
+    is_array($r_def) && round($r_def['resultado'], 2) == -80.00
+    && $r_def['situacao'] === 'deficitario',
     is_array($r_def) ? $r_def['situacao'] . ' ' . $r_def['resultado'] : '?');
 
 verifica("nucleo que nao existe devolve null",
