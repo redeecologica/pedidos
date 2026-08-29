@@ -203,6 +203,17 @@
                       ?> 
 
 					  <?php 
+                            // Resultado do nucleo: mesma regra de escopo do Caixa e do
+                            // Fluxo. Quem opera o caixa de um nucleo le o resultado dele.
+                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
+                            {
+                       ?>
+			                    <li><a href="resultado_nucleo.php"><i class="glyphicon glyphicon-scale"></i> Resultado do núcleo</a></li>
+                      <?php 
+                            } 			  
+                      ?> 
+
+					  <?php 
                             // Cadastro de contas: quem cuida do dinheiro da Rede, não quem
                             // lança pagamento no núcleo. Por isso a pergunta aqui é outra.
                             if (pode_ver_financeiro()
@@ -210,6 +221,7 @@
                             {
                        ?>
 			                    <li><a href="contas.php"><i class="glyphicon glyphicon-briefcase"></i> Contas</a></li>
+			                    <li><a href="despesas_rede.php"><i class="glyphicon glyphicon-globe"></i> Despesas da Rede</a></li>
                       <?php 
                             } 			  
                       ?> 
