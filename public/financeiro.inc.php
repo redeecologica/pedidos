@@ -2365,3 +2365,100 @@ function redefine_rateio($tra_id, $rateio)
 
 	return true;
 }
+
+
+// Os núcleos e suas quotas, para a tela em que Finanças as edita. Traz os ARQUIVADOS
+// também, marcados: um núcleo que volta a ativo precisa reaparecer com a quota que
+// tinha, e escondê-lo faria a quota ressurgir sem ninguém ter olhado para ela.
+//
+// Devolve, por núcleo: o tipo, a quota SUGERIDA pelo tipo e a quota que VALE hoje. As
+// duas separadas de propósito — a tela mostra a sugestão ao lado do campo para quem
+// edita saber do que está discordando.
+//
+// CONTRATO: array, ou null quando a consulta não roda.
+function nucleos_e_quotas()
+{
+	$sql = "SELECT n.nuc_id, n.nuc_nome_curto, n.nuc_archive, t.nuct_nome, ";
+	$sql.= "t.nuct_quota_rateio sugerida, n.nuc_quota_rateio propria ";
+	$sql.= "FROM nucleos n JOIN nucleotipos t ON t.nuct_id = n.nuc_nuct ";
+	$sql.= "ORDER BY n.nuc_archive, n.nuc_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$lista = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$sugerida = (float)$row['sugerida'];
+		$propria  = ($row['propria'] === null) ? null : (float)$row['propria'];
+
+		$lista[] = array(
+			'nuc_id'    => (int)$row['nuc_id'],
+			'nome'      => (string)$row['nuc_nome_curto'],
+			'tipo'      => (string)$row['nuct_nome'],
+			'arquivado' => ((int)$row['nuc_archive'] === 1),
+			'sugerida'  => $sugerida,
+			// null quando ninguém definiu ainda: aí vale a do tipo, e a tela mostra isso
+			'propria'   => $propria,
+			'vale'      => ($propria === null) ? $sugerida : $propria,
+		);
+	}
+
+	return $lista;
+}
+
+
+// Grava a quota de cada núcleo. Recebe nuc_id => quota e escreve TODAS de uma vez.
+//
+// Depois disto a quota deixa de ser derivada: fica gravada, e é dela que o rateio parte.
+// A sugestão do tipo continua valendo só para núcleo que nunca passou por aqui — o que
+// nasce amanhã em nucleo.php, onde ninguém pensa em rateio.
+//
+// Quota 0 não é ausência de quota: é "este núcleo NÃO rateia", que é o caso de
+// Logística e Mutirão. Por isso zero é valor válido, e não motivo de recusa.
+//
+// CONTRATO: true, ou false quando alguma quota é inválida — e aí NENHUMA é gravada.
+function define_quotas_de_rateio($quotas)
+{
+	if (!is_array($quotas)) return false;
+
+	// Lista VAZIA é recusa, não sucesso silencioso. Vinda da tela ela significa que o
+	// formulário chegou truncado — e responder "quotas gravadas" a um POST que não
+	// gravou nada é a mentira que este módulo existe para não contar. Não há ação
+	// legítima de "gravar zero quotas": para tirar um núcleo do rateio grava-se 0.
+	if (!count($quotas)) return false;
+
+	// Confere tudo antes de escrever: metade gravada deixaria o rateio partir de uma
+	// divisão que ninguém escolheu, e a soma das quotas é o divisor de todo mundo.
+	$limpo = array();
+	foreach ($quotas as $nuc => $q)
+	{
+		if (!ctype_digit((string)$nuc) || (int)$nuc <= 0) return false;
+		if (!is_numeric($q)) return false;
+
+		$q = round((float)$q, 1);
+		if ($q < 0 || $q > 99) return false;
+
+		$limpo[(int)$nuc] = $q;
+	}
+
+	global $conn_link, $financeiro_em_transacao;
+	$nossa = empty($financeiro_em_transacao);
+	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
+
+	foreach ($limpo as $nuc => $q)
+	{
+		$sql = "UPDATE nucleos SET nuc_quota_rateio = " . prep_para_bd($q);
+		$sql.= " WHERE nuc_id = " . prep_para_bd($nuc);
+
+		if (executa_sql($sql) !== true)
+		{
+			if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+			return false;
+		}
+	}
+
+	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
+
+	return true;
+}
