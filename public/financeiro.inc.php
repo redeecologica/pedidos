@@ -2003,3 +2003,132 @@ function rateios_do_nucleo($nuc_id, $de, $ate)
 
 	return $linhas;
 }
+
+
+// Resultado mensal do núcleo — o "ponto de equilíbrio" da planilha. Responde a única
+// pergunta que o caixa não responde: este núcleo se paga?
+//
+// RECEITA é o que o núcleo gera de próprio. NÃO é o que os cestantes pagam: quase tudo
+// que eles pagam é do produtor e passa direto. Sobra o que a Rede cobra a mais —
+//
+//   associação          a anuidade, que entra como chamada de tipo Associação
+//   taxa                o percentual da chamada sobre o pedido do associado
+//   margem não assoc.   prod_valor_venda_margem menos a compra, para quem não é sócio
+//   margem no produto   venda menos compra; quase sempre zero, porque a Rede repassa a custo
+//
+// Medido na base em 12 meses: associação R$ 75.005 e taxa R$ 27.421 sustentam o
+// sistema; as duas margens de produto somam R$ 644 no ano inteiro.
+//
+// CUSTO tem duas metades: as despesas que o próprio núcleo lançou (motorista,
+// passagens) e o RATEIO — a parte dos custos fixos da Rede carimbada nele.
+//
+// A conta é POR ENTREGA, não por pagamento: usa o que foi entregue no mês, e não o que
+// foi recebido. Assim o resultado não oscila por causa de quem pagou atrasado, que é
+// exatamente o que a aba de ponto de equilíbrio da planilha já faz.
+//
+// CONTRATO: array, ou null quando o núcleo não existe, o mês é inválido, ou a consulta
+// não roda. Mês sem movimento devolve zeros — que é diferente de null.
+function resultado_do_nucleo($nuc_id, $ano, $mes)
+{
+	$ano = (int)$ano;
+	$mes = (int)$mes;
+	if ($mes < 1 || $mes > 12)      return null;
+	if ($ano < 2000 || $ano > 2200) return null;
+
+	$res = executa_sql("SELECT nuc_id FROM nucleos WHERE nuc_id = " . prep_para_bd($nuc_id));
+	if (!$res) return null;
+	if (!mysqli_fetch_array($res, MYSQLI_ASSOC)) return null;
+
+	$de  = sprintf('%04d-%02d-01 00:00:00', $ano, $mes);
+	$ate = ($mes == 12) ? sprintf('%04d-01-01 00:00:00', $ano + 1)
+	                    : sprintf('%04d-%02d-01 00:00:00', $ano, $mes + 1);
+
+	// ---- receita, da mesma varredura de pedidos que o débito derivado usa ----
+	$sql = "SELECT ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome LIKE 'Associa%' ";
+	$sql.= "     THEN pr.prod_valor_venda * pp.pedprod_entregue ELSE 0 END) associacao, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado <> '0' ";
+	$sql.= "     THEN pr.prod_valor_venda * pp.pedprod_entregue * c.cha_taxa_percentual ELSE 0 END) taxa, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado = '0' ";
+	$sql.= "     THEN (pr.prod_valor_venda_margem - pr.prod_valor_compra) * pp.pedprod_entregue ELSE 0 END) margem_nao_assoc, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado <> '0' ";
+	$sql.= "     THEN (pr.prod_valor_venda - pr.prod_valor_compra) * pp.pedprod_entregue ELSE 0 END) margem_produto ";
+	$sql.= "FROM pedidos p ";
+	$sql.= "JOIN pedidoprodutos pp  ON pp.pedprod_ped = p.ped_id ";
+	$sql.= "JOIN chamadas c         ON c.cha_id = p.ped_cha ";
+	$sql.= "JOIN produtotipos pt    ON pt.prodt_id = c.cha_prodt ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = p.ped_cha AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos pr        ON pr.prod_id = pp.pedprod_prod ";
+	// O recorte é ped_nuc, e NÃO usr_nuc: quem troca de núcleo deixa os pedidos antigos
+	// no núcleo antigo, e a receita daquela entrega é de quem a fez. Medido: juntar pelo
+	// núcleo atual dá números absurdos — um núcleo apareceu com 95% de quebra.
+	$sql.= "WHERE p.ped_nuc = " . prep_para_bd($nuc_id) . " AND p.ped_fechado = 1 ";
+	$sql.= "AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND pr.prod_ini_validade <= c.cha_dt_entrega AND pr.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "AND c.cha_dt_entrega >= " . prep_para_bd($de) . " AND c.cha_dt_entrega < " . prep_para_bd($ate);
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+
+	$v = function ($x) { return ($x === null) ? 0.0 : round((float)$x, 2); };
+	$receita = array(
+		'associacao'           => $v($row ? $row['associacao'] : null),
+		'taxa'                 => $v($row ? $row['taxa'] : null),
+		'margem_nao_associado' => $v($row ? $row['margem_nao_assoc'] : null),
+		'margem_produto'       => $v($row ? $row['margem_produto'] : null),
+	);
+	$receita['total'] = round(array_sum($receita), 2);
+
+	// ---- despesas que o próprio núcleo lançou ----
+	$proprias = array();
+	$con = conta_do_nucleo($nuc_id);
+
+	if ($con)
+	{
+		// Na conta-caixa a perna da despesa é POSITIVA — o núcleo deixou de segurar
+		// aquele dinheiro. Aqui ela vira custo, que é o que a palavra quer dizer.
+		$sql = "SELECT IFNULL(t.tra_categoria,'') cat, SUM(l.lan_valor) v ";
+		$sql.= "FROM lancamentos l JOIN transacoes t ON t.tra_id = l.lan_tra ";
+		$sql.= "WHERE l.lan_con = " . prep_para_bd($con) . " AND t.tra_tipo = 'despesa' ";
+		$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+		$sql.= "GROUP BY cat";
+
+		$res = executa_sql($sql);
+		if (!$res) return null;
+
+		while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+			$proprias[(string)$r['cat']] = round((float)$r['v'], 2);
+	}
+
+	// ---- rateio: a parte dos custos da Rede carimbada neste núcleo ----
+	$rateio = rateios_do_nucleo($nuc_id, $de, $ate);
+	if ($rateio === null) return null;
+
+	$total_rateio = 0.0;
+	foreach ($rateio as $l) $total_rateio = round($total_rateio + $l['valor'], 2);
+
+	$total_proprias = round(array_sum($proprias), 2);
+	$custo_total    = round($total_proprias + $total_rateio, 2);
+	$resultado      = round($receita['total'] - $custo_total, 2);
+
+	// Estado, e não só o número: `if ($resultado > 0)` numa tela trataria null como
+	// deficitário, e null aqui não acontece — mas o estado deixa a tela dizer a palavra
+	// sem refazer a comparação, que é onde os três casos costumam virar dois.
+	$situacao = ($resultado < -0.005) ? 'deficitario'
+	          : (($resultado > 0.005) ? 'superavitario' : 'equilibrio');
+
+	return array(
+		'ano' => $ano, 'mes' => $mes,
+		'receita' => $receita,
+		'custo'   => array(
+			'proprias'       => $proprias,
+			'total_proprias' => $total_proprias,
+			'rateio'         => $rateio,
+			'total_rateio'   => $total_rateio,
+			'total'          => $custo_total,
+		),
+		'resultado' => $resultado,
+		'situacao'  => $situacao,
+	);
+}
