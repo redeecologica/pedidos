@@ -1535,7 +1535,7 @@ function extrato_do_nucleo($nuc_id)
 	// diria "despesa 45,00" sem dizer contra quem, e duas contas da Rede tornam isso
 	// ambíguo justamente onde a prestação de contas precisa ser específica.
 	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_tipo, t.tra_categoria, t.tra_historico, ";
-	$sql.= "t.tra_comprovante, t.tra_dt_alteracao, l.lan_valor, ";
+	$sql.= "t.tra_comprovante, t.tra_dt_alteracao, t.tra_favorecido, l.lan_valor, ";
 	$sql.= "co.con_tipo contra_tipo, co.con_nome contra_nome, ";
 	$sql.= "n.nuc_nome_curto, f.forn_nome_curto, u.usr_nome_curto ";
 	$sql.= "FROM lancamentos l ";
@@ -1570,6 +1570,10 @@ function extrato_do_nucleo($nuc_id)
 			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : '',
 			'historico'   => (string)$row['tra_historico'],
 			'contraparte' => $contraparte,
+			// Quem recebeu, nos lançamentos cuja contraparte é a conta de encanamento:
+			// ali "Contrapartida (despesas e receitas fora do sistema)" não diz nada a
+			// ninguém, e o nome do motorista diz tudo.
+			'favorecido'  => trim((string)$row['tra_favorecido']),
 			'valor'       => round((float)$row['lan_valor'], 2),
 			'comprovante' => (string)$row['tra_comprovante'],
 			'editado_em'  => $row['tra_dt_alteracao'],
