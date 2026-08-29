@@ -272,10 +272,6 @@
           <label for="mv_favorecido" id="rotulo_favorecido">Quem recebeu</label>
           <input type="text" id="mv_favorecido" name="mv_favorecido" class="form-control" maxlength="120"
                  value="<?php echo(h(rasc($rascunho, 'favorecido'))); ?>" placeholder="nome do motorista, da loja…" />
-          <span class="help-block small">
-            Quem está do outro lado não tem conta no sistema, então o nome só fica registrado
-            se for escrito aqui.
-          </span>
         </div>
 
         <div class="col-sm-4" id="bloco_rede">
