@@ -139,6 +139,19 @@
 
   $regras = array('igual' => 'igual entre os núcleos', 'quota' => 'por quota de entrega');
 
+  // Exemplo por área, tirado da planilha da Rede. Placeholder genérico numa tela de
+  // catorze linhas repetidas todo mês não ajuda ninguém; o que ajuda é lembrar o nome
+  // que aquela área costuma ter, porque é o mesmo nome do mês passado.
+  $exemplos = array(
+      'mutirao'   => 'Apoio CAC · Apoio mutirão logística · Auxílio mutirão',
+      'logistica' => 'Apoio Logística · Retorno das embalagens · Despesa Logística',
+      'pedidos'   => 'Resp. pedidos',
+      'financas'  => 'Resp. financeiro',
+      'sistemas'  => 'Resp. sistemas · Hospedagem Site e Sistema · Registro do domínio',
+      'admin'     => 'Despesas bancárias',
+  );
+  $primeira_cat = key($cats);
+
   escreve_mensagem_status();
 ?>
 
@@ -298,6 +311,10 @@
           <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
           <?php } ?>
         </select>
+        <span class="help-block small">
+          Vale para <strong>todas</strong> as linhas marcadas. Se alguma saiu de outra conta,
+          lance essa à parte no formulário abaixo.
+        </span>
       </div>
 
       <table class="table table-condensed">
@@ -384,7 +401,7 @@
         <div class="col-sm-6">
           <label for="historico">Descrição</label>
           <input type="text" id="historico" name="historico" class="form-control" maxlength="200"
-                 placeholder="Resp. sistemas, Hospedagem Site e Sistema…" />
+                 placeholder="<?php echo(h($exemplos[$primeira_cat])); ?>" />
         </div>
         <div class="col-sm-6">
           <label for="origem">Sai da conta</label>
@@ -403,11 +420,28 @@
   </div>
 </div>
 
+<script type="text/javascript">
+// Troca o exemplo do campo Descrição conforme a área escolhida. É CONVENIÊNCIA: o
+// placeholder inicial já vem certo do servidor, então sem JavaScript a tela continua
+// inteira — só deixa de acompanhar a troca de área.
+(function () {
+  var exemplos = <?php echo(json_encode($exemplos)); ?>;
+  var area = document.getElementById('categoria');
+  var desc = document.getElementById('historico');
+  if (!area || !desc) return;
+
+  area.onchange = function () { desc.placeholder = exemplos[area.value] || ''; };
+})();
+</script>
+
 <p class="small text-muted">
   O rateio é <strong>sugerido</strong> ao lançar e fica sempre conferível no botão da linha —
   nunca é a última palavra. Ele <strong>não</strong> vira dívida do núcleo: é custo apontado,
   para o resultado dele poder dizer se se paga. Nenhum saldo de caixa se mexe.
   A sobra de centavos da divisão fica com a Rede.
+  <br>A <strong>data da despesa</strong> é o que decide em que mês o custo aparece para o
+  núcleo — lançar em setembro uma despesa datada de agosto a faz cair no resultado de
+  agosto, que o núcleo talvez já tenha conferido.
 </p>
 
 <?php } ?>
