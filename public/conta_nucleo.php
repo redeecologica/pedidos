@@ -237,10 +237,6 @@
             </optgroup>
             <?php } ?>
           </select>
-          <span class="help-block small">
-            Despesa e repasse mexem o saldo do mesmo jeito; o que muda é para onde o dinheiro
-            foi, e é isso que o relatório separa.
-          </span>
         </div>
         <div class="col-sm-3">
           <label for="mv_dt">Data</label>
@@ -362,14 +358,8 @@
 <?php } else { ?>
 
 <p class="small text-muted">
-  O caixa mostra quanto do dinheiro <strong>da Rede</strong> ainda está com o núcleo — não
-  quanto o núcleo tem de seu.
-  Os pagamentos que os cestantes fizeram no caixa aparecem aqui sozinhos: eles se lançam em
-  <strong>Pagamentos</strong>, não nesta tela. Junto com a outra receita, eles
-  <strong>põem</strong> dinheiro no caixa, e por isso aparecem com valor negativo — é o que
-  ainda falta sair. Despesa, repasse e pagamento a produtor <strong>tiram</strong>, e
-  aparecem positivos.
-  Quando tudo que entrou já saiu, o saldo fica zero.
+  O saldo é quanto dinheiro está com o núcleo.
+  Pagamento de cestante aparece aqui sozinho — ele se lança em <strong>Pagamentos</strong>.
 </p>
 
 <table class="table table-striped table-bordered table-condensed extrato-caixa">
@@ -426,8 +416,22 @@
           <br><small class="text-muted"><em>descrição editada em <?php echo(h(date('d/m/Y', strtotime($linha['editado_em'])))); ?></em></small>
         <?php } ?>
       </td>
-      <td class="text-right<?php echo($linha['valor'] < 0 ? ' text-danger' : ''); ?>"><?php echo(formata_moeda($linha['valor'])); ?></td>
-      <td class="text-right"><?php echo(formata_moeda($linha['saldo'])); ?></td>
+      <?php
+        // SINAL INVERTIDO NA EXIBIÇÃO, e só aqui. No razão a perna do caixa é negativa
+        // quando dinheiro ENTRA — o núcleo passa a segurar dinheiro que ainda vai sair.
+        // Mas o rótulo no alto desta mesma tela diz "em caixa: R$ 1.000,00", e a tabela
+        // dizia -1.000,00 logo abaixo: o mesmo número, com sinais opostos, na mesma
+        // página. O parágrafo que explicava isso era remendo de uma contradição que não
+        // precisava existir.
+        //
+        // Aqui a coluna se lê como extrato de banco: entrou soma, saiu subtrai, e o
+        // saldo é quanto dinheiro está com o núcleo. O razão não muda — quem inverte é
+        // a exibição, no último passo.
+        $valor_visto = -$linha['valor'];
+        $saldo_visto = -$linha['saldo'];
+      ?>
+      <td class="text-right<?php echo($valor_visto < 0 ? ' text-danger' : ''); ?>"><?php echo(formata_moeda($valor_visto)); ?></td>
+      <td class="text-right<?php echo($saldo_visto < 0 ? ' text-danger' : ''); ?>"><?php echo(formata_moeda($saldo_visto)); ?></td>
     </tr>
   <?php } ?>
   <?php if (!count($extrato)) { ?>
