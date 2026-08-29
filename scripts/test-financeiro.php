@@ -3492,6 +3492,126 @@ verifica("conferencia de consulta recusada e null, e nao chamada sem divergencia
     $cf_sem_bd === null, var_export($cf_sem_bd, true));
 
 
+// ---------------------------------------------------------------------------
+echo "\nmaterializacao: o debito derivado vira lancamento\n";
+// ---------------------------------------------------------------------------
+
+// Chamada com prazo contabil VENCIDO, dentro da data de corte, com um associado (paga
+// taxa) e um nao associado (paga o preco com margem e nao paga taxa).
+$cha_mat = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2026-06-20 23:59:59','2026-06-01 00:00:00','2026-06-15 23:59:59',0.05, NOW() - INTERVAL 2 DAY)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_mat . "," . (int)$prod_res_id . ",1)");
+
+// associado: 10 x venda 10 = 100, mais 5% = 105
+$ped_m1 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_mat . "," . (int)$usr_assoc . "," . (int)$nuc_res . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_m1 . "," . (int)$prod_res_id . ",10,10)");
+
+// nao associado: 10 x venda_margem 13 = 130, sem taxa
+$ped_m2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_mat . "," . (int)$usr_nao . "," . (int)$nuc_res . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_m2 . "," . (int)$prod_res_id . ",10,10)");
+
+$prev = debitos_a_materializar($cha_mat);
+
+function linha_mat($prev, $usr) {
+    foreach ((array)$prev as $l) if ($l['usr_id'] === (int)$usr) return $l;
+    return null;
+}
+
+verifica("a previa mostra o que vai ser gravado, sem gravar",
+    is_array($prev) && count($prev) === 2
+    && ($a = linha_mat($prev, $usr_assoc)) && round($a['valor'],2) == 105.00
+    && ($b = linha_mat($prev, $usr_nao))   && round($b['valor'],2) == 130.00,
+    is_array($prev) ? json_encode($prev) : var_export($prev, true));
+
+verifica("a taxa e so do associado, como no debito derivado",
+    ($a = linha_mat($prev, $usr_assoc)) && round($a['taxa'],2) == 5.00
+ && ($b = linha_mat($prev, $usr_nao))   && round($b['taxa'],2) == 0.00);
+
+verifica("e nada foi gravado ainda",
+    valor_escalar("SELECT COUNT(*) FROM transacoes WHERE tra_tipo='debito_entrega' AND tra_cha = " . (int)$cha_mat) == 0);
+
+// ---- materializa ----
+$m = materializa_debitos_da_chamada($cha_mat);
+verifica("materializa os dois, somando 235",
+    is_array($m) && $m['lancados'] === 2 && $m['pulados'] === 0 && round($m['valor'],2) == 235.00,
+    var_export($m, true));
+
+$con_assoc = conta_do_cestante($usr_assoc);
+$con_rede_m = conta_da_rede();
+$tra_m = valor_escalar("SELECT t.tra_id FROM transacoes t JOIN lancamentos l ON l.lan_tra=t.tra_id
+    WHERE t.tra_tipo='debito_entrega' AND t.tra_cha = " . (int)$cha_mat . "
+      AND l.lan_con = " . (int)$con_assoc);
+$p = pernas_de($tra_m);
+verifica("as pernas sao cestante -105 e Rede +105",
+    round($p[$con_assoc],2) == -105.00 && round($p[$con_rede_m],2) == 105.00,
+    json_encode($p));
+
+verifica("e a chamada fica gravada na transacao, para o extrato dizer de onde veio",
+    valor_escalar("SELECT tra_cha FROM transacoes WHERE tra_id = " . (int)$tra_m) == $cha_mat);
+
+// A MESMA CONTA das duas maneiras: o valor materializado tem de bater com o que o debito
+// derivado dizia. Se as duas regras divergirem, e aqui que aparece.
+verifica("o valor materializado bate com o que o debito derivado calculava",
+    ($a = linha_mat($prev, $usr_assoc)) && round($a['valor'],2) == 105.00
+    && round(-$p[$con_assoc],2) == round($a['valor'],2));
+
+// ---- idempotencia ----
+$m2 = materializa_debitos_da_chamada($cha_mat);
+verifica("rodar de novo nao dobra divida de ninguem",
+    is_array($m2) && $m2['lancados'] === 0 && $m2['pulados'] === 2,
+    var_export($m2, true));
+
+verifica("e o saldo do cestante nao mudou",
+    round(saldo_da_conta($con_assoc), 2) == -105.00,
+    var_export(saldo_da_conta($con_assoc), true));
+
+// A entrega ja lancada SAI da lista de derivados, senao o cestante veria a mesma entrega
+// duas vezes e o saldo dobraria a divida.
+$ext_m = extrato_do_cestante($usr_assoc);
+$quantas_dessa_cha = 0;
+foreach ((array)$ext_m as $l) if ((int)$l['cha'] === (int)$cha_mat) $quantas_dessa_cha++;
+verifica("a entrega ja lancada aparece UMA vez no extrato, e nao duas",
+    $quantas_dessa_cha === 1, "aparicoes = $quantas_dessa_cha");
+
+// ---- o que e recusado ----
+$cha_cedo_m = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2026-06-27 23:59:59','2026-06-01 00:00:00','2026-06-22 23:59:59',0.05, NOW() + INTERVAL 10 DAY)");
+verifica("chamada com prazo contabil no futuro NAO materializa",
+    materializa_debitos_da_chamada($cha_cedo_m) === null);
+
+$cha_sem_prazo = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-06-28 23:59:59','2026-06-01 00:00:00','2026-06-24 23:59:59',0.05)");
+verifica("chamada SEM prazo contabil nao materializa — nao ha o que congelar",
+    materializa_debitos_da_chamada($cha_sem_prazo) === null);
+
+// Antes da data de corte a contabilidade nao comecou: materializar ali criaria divida que
+// a Rede ja considera resolvida.
+$cha_velha_m = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2013-06-20 23:59:59','2013-06-01 00:00:00','2013-06-15 23:59:59',0.05,'2013-07-01 00:00:00')");
+verifica("chamada anterior a data de corte nao materializa",
+    materializa_debitos_da_chamada($cha_velha_m) === null);
+
+verifica("chamada que nao existe devolve null",
+    materializa_debitos_da_chamada(99999999) === null
+ && debitos_a_materializar(99999999) === null);
+
+// CONTRATO da familia.
+executa_sql("CREATE TEMPORARY TABLE pedidoprodutos (
+    pedprod_ped int(10) unsigned NOT NULL, pedprod_prod mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_m = (executa_sql("SELECT pedprod_entregue FROM pedidoprodutos") === false);
+$m_sem_bd = debitos_a_materializar($cha_mat);
+executa_sql("DROP TEMPORARY TABLE pedidoprodutos");
+
+verifica("a sombra faz o servidor recusar a previa", $sombra_m);
+verifica("previa de consulta recusada e null, e nao 'nada a materializar'",
+    $m_sem_bd === null, var_export($m_sem_bd, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
