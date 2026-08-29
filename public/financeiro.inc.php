@@ -3038,3 +3038,82 @@ function materializa_debitos_da_chamada($cha_id)
 
 	return array('lancados' => $lancados, 'pulados' => $pulados, 'valor' => $valor);
 }
+
+
+// ============================================================================
+// AS DUAS SEQUÊNCIAS DE ABAS DO MÓDULO
+//
+// O módulo tem duas audiências que não se misturam: quem cuida das finanças de UM
+// NÚCLEO e quem cuida das finanças DA REDE. Não é a mesma pessoa — a Rede confirmou
+// isso —, e as telas já dizem o mesmo: metade exige RESP_NÚCLEO e a outra metade
+// RESP_FINANÇAS.
+//
+// Num menu só, quem responde por um núcleo via "Despesas da Rede" e "Quotas de rateio",
+// telas que iam recusá-lo. Menu que oferece o que não se pode abrir ensina a ignorar o
+// menu.
+//
+// A sequência mora AQUI, e não copiada em cada tela: com oito cópias, a nona tela
+// nasceria fora da barra, ou a barra ficaria diferente numa delas — e ninguém notaria.
+// ============================================================================
+
+
+// As telas de cada grupo, na ordem em que se usa.
+function abas_financeiras_do_grupo($grupo)
+{
+	if ($grupo === 'nucleo')
+		return array(
+			'hub'        => array('financas_nucleo.php',  'Finanças do núcleo', ''),
+			'pagamentos' => array('conta_pagamentos.php', 'Pagamentos',         'glyphicon-piggy-bank'),
+			'caixa'      => array('conta_nucleo.php',     'Caixa',              'glyphicon-inbox'),
+			'fluxo'      => array('fluxo_caixa.php',      'Fluxo de caixa',     'glyphicon-stats'),
+			'resultado'  => array('resultado_nucleo.php', 'Resultado',          'glyphicon-scale'),
+		);
+
+	return array(
+		'hub'        => array('financas.php',            'Finanças da Rede',   ''),
+		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
+		                                                 'Recebimento dos produtores', 'glyphicon-road'),
+		'fechamento' => array('fechamento_chamada.php',  'Fechamento de chamadas', 'glyphicon-lock'),
+		'despesas'   => array('despesas_rede.php',       'Despesas da Rede',   'glyphicon-globe'),
+		'quotas'     => array('quotas_rateio.php',       'Quotas de rateio',   'glyphicon-equalizer'),
+		'contas'     => array('contas.php',              'Contas',             'glyphicon-briefcase'),
+		'prazos'     => array('financas_prazos.php',     'Prazos',             'glyphicon-calendar'),
+	);
+}
+
+
+// Imprime a barra de abas do grupo, marcando a ativa. Mesmo formato de entregas.php e
+// mutirao.php, que é o que o time já reconhece.
+function abas_financeiras($grupo, $ativa)
+{
+	$abas = abas_financeiras_do_grupo($grupo);
+
+	echo('<ul class="nav nav-tabs">' . "\n");
+
+	foreach ($abas as $chave => $aba)
+	{
+		list($url, $rotulo, $icone) = $aba;
+		$e_ativa = ($chave === $ativa);
+
+		echo('  <li' . ($e_ativa ? ' class="active"' : '') . '>');
+		echo('<a href="' . ($e_ativa ? '#' : h($url)) . '">');
+		if ($icone !== '') echo('<i class="glyphicon ' . h($icone) . '"></i> ');
+		echo(h($rotulo) . '</a></li>' . "\n");
+	}
+
+	echo('</ul>' . "\n<br>\n");
+}
+
+
+// Quem alcança cada grupo. É a mesma pergunta que as telas do grupo fazem — repetida
+// aqui só para o menu não oferecer o que vai recusar.
+function pode_ver_financas_do_nucleo()
+{
+	return pode_lancar_pagamento();
+}
+
+function pode_ver_financas_da_rede()
+{
+	return pode_ver_financeiro()
+	    && (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+}

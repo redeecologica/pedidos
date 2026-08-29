@@ -36,6 +36,7 @@
   $ano = (int)$ano;
 
   top();
+  abas_financeiras('nucleo', 'fluxo');
 
   $fluxo = fluxo_de_caixa_mensal($nuc_id, $ano);
 

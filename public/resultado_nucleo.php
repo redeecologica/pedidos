@@ -32,6 +32,7 @@
   if ($ano < 2000 || $ano > 2200) $ano = (int)date('Y');
 
   top();
+  abas_financeiras('nucleo', 'resultado');
 
   $r          = resultado_do_nucleo($nuc_id, $ano, $mes);
   $categorias = categorias_de_despesa();

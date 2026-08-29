@@ -144,90 +144,40 @@
                                                           
 
 					  <?php 
+                            // FINANÇAS, EM DOIS GRUPOS. O módulo tem duas audiências que
+                            // não se misturam — a Rede confirmou que quem cuida das
+                            // finanças de um núcleo não é quem cuida das da Rede —, e as
+                            // telas já diziam o mesmo: metade exige RESP_NÚCLEO, a outra
+                            // metade RESP_FINANÇAS.
+                            //
+                            // Antes eram sete itens soltos aqui, e um responsável de
+                            // núcleo via "Despesas da Rede" e "Quotas de rateio", telas
+                            // que iam recusá-lo. Menu que oferece o que não se pode abrir
+                            // ensina a ignorar o menu.
+                            //
+                            // Cada hub refaz a própria pergunta por dentro, antes de
+                            // qualquer saída: esconder item é conveniência, não trava.
+                            if (pode_ver_financas_do_nucleo())
+                            {
+                       ?>
+			                    <li><a href="financas_nucleo.php"><i class="glyphicon glyphicon-piggy-bank"></i> Finanças do núcleo</a></li>
+                      <?php 
+                            } 			  
+                      ?> 
+
+					  <?php 
+                            // A tela de Finanças existia antes do módulo, com duas abas.
+                            // Quem não tem o papel Beta Tester continua vendo aquelas duas
+                            // e mais nada — o módulo segue invisível até estar pronto.
                             if( $_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_FINANCAS] )			  
                             {
                        ?>
-			                    <li><a href="financas.php"><i class="glyphicon glyphicon-usd"></i> Finanças</a></li>    
+			                    <li><a href="financas.php"><i class="glyphicon glyphicon-usd"></i> Finanças da Rede</a></li>    
                       <?php 
                             } 			  
                       ?> 
 
-					  <?php 
-                            // Mora aqui, junto de Finanças, e não no menu de primeiro
-                            // nível: é tela de quem administra, não de cestante.
-                            //
-                            // Mudar de lugar não muda regra de acesso:
-                            // pode_lancar_pagamento() exige RESP_NÚCLEO, RESP_FINANÇAS ou
-                            // ADM, e os três já estão entre os papéis que abrem este
-                            // dropdown — ninguém que via o item deixou de ver. E quem
-                            // tranca continua sendo a mesma pergunta refeita dentro do
-                            // conta_pagamentos.php, antes de qualquer saída.
-                            if (pode_lancar_pagamento())
-                            {
-                       ?>
-			                    <li><a href="conta_pagamentos.php"><i class="glyphicon glyphicon-piggy-bank"></i> Pagamentos</a></li>
-                      <?php 
-                            } 			  
-                      ?> 
 
-					  <?php 
-                            // Caixa do núcleo. A pergunta é pode_lancar_no_caixa() SEM
-                            // núcleo, e não a mesma de Pagamentos: aqui o alcance depende
-                            // de qual núcleo, e no menu ainda não há um escolhido. Passa-se
-                            // o núcleo da sessão, que é exatamente o que a tela vai impor
-                            // para quem responde por um só. Quem responde por todos entra
-                            // de qualquer forma, pelo primeiro ramo da função.
-                            //
-                            // Item escondido é conveniência, não impedimento: quem trancar
-                            // de verdade é a mesma pergunta refeita dentro do
-                            // conta_nucleo.php, antes de qualquer saída.
-                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
-                            {
-                       ?>
-			                    <li><a href="conta_nucleo.php"><i class="glyphicon glyphicon-inbox"></i> Caixa do núcleo</a></li>
-                      <?php 
-                            } 			  
-                      ?> 
-
-					  <?php 
-                            // Fluxo de caixa: mesma pergunta do Caixa, porque e a mesma
-                            // regra de escopo — quem opera o caixa de um nucleo le o
-                            // relatorio dele. A tela refaz a pergunta por dentro, via
-                            // nucleo_do_caixa_em_foco(), antes de qualquer saida.
-                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
-                            {
-                       ?>
-			                    <li><a href="fluxo_caixa.php"><i class="glyphicon glyphicon-stats"></i> Fluxo de caixa</a></li>
-                      <?php 
-                            } 			  
-                      ?> 
-
-					  <?php 
-                            // Resultado do nucleo: mesma regra de escopo do Caixa e do
-                            // Fluxo. Quem opera o caixa de um nucleo le o resultado dele.
-                            if (pode_lancar_no_caixa(isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : ""))
-                            {
-                       ?>
-			                    <li><a href="resultado_nucleo.php"><i class="glyphicon glyphicon-scale"></i> Resultado do núcleo</a></li>
-                      <?php 
-                            } 			  
-                      ?> 
-
-					  <?php 
-                            // Cadastro de contas: quem cuida do dinheiro da Rede, não quem
-                            // lança pagamento no núcleo. Por isso a pergunta aqui é outra.
-                            if (pode_ver_financeiro()
-                                && (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM])))
-                            {
-                       ?>
-			                    <li><a href="contas.php"><i class="glyphicon glyphicon-briefcase"></i> Contas</a></li>
-			                    <li><a href="despesas_rede.php"><i class="glyphicon glyphicon-globe"></i> Despesas da Rede</a></li>
-			                    <li><a href="fechamento_chamada.php"><i class="glyphicon glyphicon-lock"></i> Fechamento de chamadas</a></li>
-                      <?php 
-                            } 			  
-                      ?> 
-                      
-                      
 					  <?php 
                             if( $_SESSION[PAP_ADM] || $_SESSION[PAP_RESP_NUCLEO] || $_SESSION[PAP_RESP_ENTREGA] || $_SESSION[PAP_RESP_FINANCAS] )			  
                             {

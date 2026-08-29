@@ -35,6 +35,7 @@
   }
 
   top();
+  abas_financeiras('rede', 'contas');
 
   // Lista TODAS, inclusive arquivadas e de cestante: esta é a tela de quem precisa
   // enxergar o conjunto. O que muda por tipo é o que dá para fazer, não o que dá para ver.

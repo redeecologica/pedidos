@@ -121,6 +121,7 @@
   }
 
   top();
+  abas_financeiras('nucleo', 'caixa');
 
   $extrato = extrato_do_nucleo($nuc_id);
   $nao_deu = ($extrato === null);
