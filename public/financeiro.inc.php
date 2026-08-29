@@ -1270,9 +1270,11 @@ function linhas_de_pagamento($campos)
 // ============================================================================
 
 
-// As seis da planilha da Rede. Chave curta para o banco, rótulo para a tela: o
-// rótulo pode mudar de redação sem invalidar o que já foi classificado, e é por isso
-// que não se grava o texto.
+// As seis categorias de despesa DO NÚCLEO — motorista, passagens e as demais da folha
+// que o núcleo já preenche. Para as áreas da REDE, ver categorias_de_despesa_da_rede().
+//
+// Chave curta para o banco, rótulo para a tela: o rótulo pode mudar de redação sem
+// invalidar o que já foi classificado, e é por isso que não se grava o texto.
 function categorias_de_despesa()
 {
 	return array(
@@ -1781,12 +1783,16 @@ function fluxo_de_caixa_mensal($nuc_id, $ano)
 // ============================================================================
 
 
-// As áreas da Rede. A categoria aqui não classifica a NATUREZA do gasto (pessoal,
-// infraestrutura, serviço) — classifica a ÁREA a que ele pertence, que é como a
-// planilha da Rede já organiza: "Resp pedidos" é Pedidos, "Resp financeiro" é Finanças.
-// A pergunta que a categoria responde é "de quem é este custo?".
+// As áreas da Rede. NÃO são as categorias do núcleo — para aquelas, ver
+// categorias_de_despesa(). As duas listas têm seis itens e nomes parecidos, e passar uma
+// no lugar da outra não daria erro nenhum: a despesa apenas ficaria com uma categoria
+// que a tela não sabe rotular.
 //
-// Por isso são diferentes das seis do núcleo: hospedagem não é "passagens".
+// A categoria aqui não classifica a NATUREZA do gasto (pessoal, infraestrutura,
+// serviço) — classifica a ÁREA a que ele pertence, que é como a planilha da Rede já
+// organiza: "Resp pedidos" é Pedidos, "Resp financeiro" é Finanças. A pergunta que ela
+// responde é "de quem é este custo?". Por isso são diferentes das do núcleo: hospedagem
+// não é "passagens".
 function categorias_de_despesa_da_rede()
 {
 	return array(
@@ -2142,12 +2148,23 @@ function resultado_do_nucleo($nuc_id, $ano, $mes)
 // CONTRATO: array (vazio quando não houve despesa), ou null quando a consulta não roda.
 function despesas_da_rede($de, $ate)
 {
+	// O valor da despesa é lido da perna da CONTA PRINCIPAL da Rede — a que carrega o
+	// custo —, e a junção é por conta e não por sinal.
+	//
+	// Por sinal funcionaria hoje: lanca_transacao (:50) é o único a escrever em
+	// `lancamentos`, e sempre escreve duas pernas, uma negativa e uma positiva. Mas o
+	// schema aceita três, e uma transação de três pernas somando zero pode ter DUAS
+	// negativas — aí a junção duplicaria a linha e o valor sairia errado. Este número é
+	// o TETO de todo rateio (redefine_rateio confere a soma contra ele), então um valor
+	// errado aqui deixaria carimbar nos núcleos mais do que a Rede gastou.
+	$con_rede = conta_da_rede();
+	if (!$con_rede) return null;
+
 	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, ";
 	$sql.= "ABS(l.lan_valor) valor, ";
 	$sql.= "(SELECT IFNULL(SUM(r.rat_valor),0) FROM rateios r WHERE r.rat_tra = t.tra_id) rateado ";
 	$sql.= "FROM transacoes t ";
-	// a perna da conta principal é a que carrega o custo; a outra é de onde saiu o dinheiro
-	$sql.= "JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_valor < 0 ";
+	$sql.= "JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_con = " . prep_para_bd($con_rede) . " ";
 	$sql.= "WHERE t.tra_tipo = 'despesa_rede' ";
 	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
 	$sql.= "ORDER BY t.tra_dt, t.tra_id";
@@ -2208,8 +2225,14 @@ function redefine_rateio($tra_id, $rateio)
 {
 	if (!is_array($rateio)) return false;
 
+	// Pela CONTA e não pelo sinal, pelo motivo detalhado em despesas_da_rede(): este
+	// valor é o teto que a soma do rateio não pode passar, e lê-lo errado deixaria
+	// carimbar nos núcleos mais do que a Rede gastou.
+	$con_rede_teto = conta_da_rede();
+	if (!$con_rede_teto) return false;
+
 	$res = executa_sql("SELECT tra_id, tra_tipo, ABS(lan_valor) valor FROM transacoes "
-	     . "JOIN lancamentos ON lan_tra = tra_id AND lan_valor < 0 "
+	     . "JOIN lancamentos ON lan_tra = tra_id AND lan_con = " . prep_para_bd($con_rede_teto) . " "
 	     . "WHERE tra_id = " . prep_para_bd($tra_id));
 	if (!$res) return false;
 

@@ -2901,6 +2901,36 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
 verifica("fora do periodo nao entra",
     is_array($v = despesas_da_rede('2027-01-01', '2027-02-01')) && count($v) === 0);
 
+// TRES PERNAS. lanca_transacao so escreve duas, e e o unico a escrever em `lancamentos`
+// — mas o schema aceita tres, e tres somando zero podem ter DUAS negativas. Se a leitura
+// do valor fosse pelo SINAL, a juncao duplicaria a linha e o valor sairia dobrado.
+//
+// Isso nao seria detalhe: este valor e o TETO do rateio, e lido para mais deixaria
+// carimbar nos nucleos mais do que a Rede gastou. Por isso a leitura e pela CONTA.
+$tra_3 = insere("INSERT INTO transacoes (tra_dt, tra_tipo, tra_historico, tra_categoria, tra_usr_registro)
+    VALUES ('2026-04-20 00:00:00','despesa_rede','tres pernas','admin',0)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_3, " . (int)$con_rede_pr . ", -100.00)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_3, " . (int)$con_t . ", -50.00)");
+insere("INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES ($tra_3, " . (int)$con_origem . ", 150.00)");
+
+$l3 = null;
+foreach ((array)despesas_da_rede('2026-04-01','2026-05-01') as $l)
+    if ($l['tra_id'] === (int)$tra_3) $l3 = $l;
+
+verifica("com tres pernas o valor sai da conta que carrega o custo, e nao dobrado",
+    $l3 !== null && round($l3['valor'], 2) == 100.00,
+    var_export($l3, true));
+
+verifica("e a linha aparece UMA vez, nao duas",
+    count(array_filter((array)despesas_da_rede('2026-04-01','2026-05-01'),
+        function ($x) use ($tra_3) { return $x['tra_id'] === (int)$tra_3; })) === 1);
+
+// o teto do rateio segue o mesmo numero: 100, nao 150 nem 200
+verifica("o teto do rateio e o valor da perna de custo",
+    redefine_rateio($tra_3, array($nuc_pop => 100.00)) === true
+ && redefine_rateio($tra_3, array($nuc_pop => 100.01)) === false,
+    json_encode(rateio_da_despesa($tra_3)));
+
 // ---- reajuste ----
 $antes_rat = rateio_da_despesa($tra_rede);
 verifica("rateio_da_despesa devolve nucleo => valor",
