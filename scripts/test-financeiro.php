@@ -2317,6 +2317,15 @@ verifica("o extrato vem em ordem cronologica",
     && $ext[2]['dt'] <= $ext[3]['dt'] && $ext[3]['dt'] <= $ext[4]['dt'],
     is_array($ext) ? json_encode(array_map(function ($l) { return $l['dt']; }, $ext)) : 'sem extrato');
 
+verifica("a linha de despesa carrega QUEM recebeu",
+    is_array($ext) && $ext[0]['favorecido'] === 'Seu Antunes',
+    is_array($ext) && isset($ext[0]) ? var_export($ext[0]['favorecido'], true) : 'sem extrato');
+
+// Em repasse e pagamento a produtor o favorecido E a conta, e nao se grava duas vezes.
+verifica("linha sem favorecido devolve string vazia, e nao null",
+    is_array($ext) && $ext[2]['favorecido'] === '',
+    is_array($ext) && isset($ext[2]) ? var_export($ext[2]['favorecido'], true) : '?');
+
 verifica("a linha de despesa carrega a categoria legivel",
     is_array($ext) && $ext[0]['tipo'] === 'despesa' && $ext[0]['categoria'] === 'passagens',
     is_array($ext) && isset($ext[0]) ? json_encode($ext[0]) : 'sem extrato');

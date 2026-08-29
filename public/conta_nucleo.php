@@ -53,12 +53,11 @@
       $tipo = request_get("mv_tipo", "");
       if (!is_string($tipo)) $tipo = "";
 
-      // Duas listas de contraparte, e o TIPO escolhe qual vale. Renderizar as duas e
-      // decidir no servidor mantém a tela utilizável sem JavaScript — e é o servidor
-      // que decide qual campo conta, então trocar o outro no POST não muda nada.
-      $contraparte = ($tipo === 'pagamento_produtor')
-                   ? request_get("mv_produtor", "")
-                   : request_get("mv_rede", "");
+      // A conta só é lida nos dois lançamentos que TÊM conta do outro lado. Em despesa
+      // e outra receita quem recebe é o motorista ou o doador, que não têm cadastro —
+      // a função usa a conta de contrapartida e ignora o que vier aqui.
+      $contraparte = ($tipo === 'pagamento_produtor') ? request_get("mv_produtor", "")
+                   : (($tipo === 'repasse')           ? request_get("mv_rede", "") : null);
 
       // date_create_from_format devolve FALSE para texto que não é data, e
       // date_format(false, ...) é TypeError no PHP 8 — a página inteira cairia por
@@ -73,6 +72,7 @@
           $tra = lanca_movimento_nucleo($nuc_id, $tipo, date_format($data, 'Y-m-d'), $valor,
               $contraparte, array(
                   'categoria'   => request_get("mv_categoria", ""),
+                  'favorecido'  => request_get("mv_favorecido", ""),
                   'historico'   => request_get("mv_historico", ""),
                   'comprovante' => request_get("mv_comprovante", ""),
               ));
@@ -111,6 +111,7 @@
           'categoria'   => campo_texto("mv_categoria"),
           'rede'        => campo_texto("mv_rede"),
           'produtor'    => campo_texto("mv_produtor"),
+          'favorecido'  => campo_texto("mv_favorecido"),
           'historico'   => campo_texto("mv_historico"),
           'comprovante' => campo_texto("mv_comprovante"),
       );
@@ -150,7 +151,14 @@
       'despesa'            => 'despesa',
       'repasse'            => 'repasse à Rede',
       'pagamento_produtor' => 'pagamento a produtor',
-      'receita'            => 'outra receita',
+      'receita'            => 'outra receita (doação, rendimento)',
+  );
+
+  // Agrupados por dinheiro entrando e saindo, que é como quem cuida do caixa pensa —
+  // e não pelo efeito no saldo, que fazia "despesa" e "repasse" parecerem a mesma coisa.
+  $grupos_tipo = array(
+      'Saiu dinheiro do caixa' => array('despesa', 'repasse', 'pagamento_produtor'),
+      'Entrou dinheiro'        => array('receita'),
   );
 
   escreve_mensagem_status();
@@ -221,15 +229,17 @@
         <div class="col-sm-4">
           <label for="mv_tipo">O que foi</label>
           <select id="mv_tipo" name="mv_tipo" class="form-control">
-            <?php foreach ($rotulo_tipo as $chave => $rotulo) { ?>
-            <option value="<?php echo(h($chave)); ?>"<?php echo(rasc($rascunho, 'tipo') === $chave ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
+            <?php foreach ($grupos_tipo as $titulo => $chaves) { ?>
+            <optgroup label="<?php echo(h($titulo)); ?>">
+              <?php foreach ($chaves as $chave) { ?>
+              <option value="<?php echo(h($chave)); ?>"<?php echo(rasc($rascunho, 'tipo') === $chave ? ' selected' : ''); ?>><?php echo(h($rotulo_tipo[$chave])); ?></option>
+              <?php } ?>
+            </optgroup>
             <?php } ?>
           </select>
           <span class="help-block small">
-            Despesa, repasse e pagamento a produtor <strong>tiram</strong> dinheiro do caixa;
-            outra receita — doação, rendimento — <strong>põe</strong>. Despesa e repasse mexem
-            o saldo do mesmo jeito; o que muda é para onde o dinheiro foi, e é isso que o
-            relatório separa.
+            Despesa e repasse mexem o saldo do mesmo jeito; o que muda é para onde o dinheiro
+            foi, e é isso que o relatório separa.
           </span>
         </div>
         <div class="col-sm-3">
@@ -256,6 +266,16 @@
             <option value="<?php echo(h($chave)); ?>"<?php echo($chave === rasc($rascunho, 'categoria', 'outros') ? ' selected' : ''); ?>><?php echo(h($rotulo)); ?></option>
             <?php } ?>
           </select>
+        </div>
+
+        <div class="col-sm-4" id="bloco_favorecido">
+          <label for="mv_favorecido" id="rotulo_favorecido">Quem recebeu</label>
+          <input type="text" id="mv_favorecido" name="mv_favorecido" class="form-control" maxlength="120"
+                 value="<?php echo(h(rasc($rascunho, 'favorecido'))); ?>" placeholder="nome do motorista, da loja…" />
+          <span class="help-block small">
+            Quem está do outro lado não tem conta no sistema, então o nome só fica registrado
+            se for escrito aqui.
+          </span>
         </div>
 
         <div class="col-sm-4" id="bloco_rede">
@@ -303,10 +323,10 @@
 </form>
 
 <script type="text/javascript">
-// Esconde o campo que não vale para o tipo escolhido. É CONVENIÊNCIA: quem decide
-// qual contraparte conta é o servidor, que lê mv_produtor só em pagamento a produtor,
-// e categoria só em despesa. Sem JavaScript a tela continua inteira e funcionando —
-// aparecem os três campos e o lançamento sai igual.
+// Esconde o campo que não vale para o tipo escolhido. É CONVENIÊNCIA: quem decide o que
+// conta é o servidor — ele lê mv_rede só em repasse, mv_produtor só em pagamento a
+// produtor, categoria e favorecido só onde cabem, e IGNORA o resto. Sem JavaScript a
+// tela continua inteira: aparecem todos os campos e o lançamento sai igual.
 (function () {
   var tipo = document.getElementById('mv_tipo');
   if (!tipo) return;
@@ -316,11 +336,18 @@
     if (el) el.style.display = sim ? '' : 'none';
   }
 
+  var rotulo = document.getElementById('rotulo_favorecido');
+
   function ajusta() {
     var v = tipo.value;
-    mostra('bloco_categoria', v === 'despesa');
-    mostra('bloco_produtor',  v === 'pagamento_produtor');
-    mostra('bloco_rede',      v !== 'pagamento_produtor');
+    // Cada campo aparece só onde significa alguma coisa. Conta da Rede em despesa era
+    // uma escolha que não mudava nada — o dinheiro foi para o motorista, não para lá.
+    mostra('bloco_categoria',   v === 'despesa');
+    mostra('bloco_favorecido',  v === 'despesa' || v === 'receita');
+    mostra('bloco_rede',        v === 'repasse');
+    mostra('bloco_produtor',    v === 'pagamento_produtor');
+
+    if (rotulo) rotulo.innerHTML = (v === 'receita') ? 'De quem veio' : 'Quem recebeu';
   }
 
   tipo.onchange = ajusta;
@@ -377,7 +404,13 @@
         <?php if ($linha['categoria_rotulo'] !== '') { ?>
           <span class="label label-default"><?php echo(h($linha['categoria_rotulo'])); ?></span>
         <?php } ?>
-        <?php if (trim((string)$linha['contraparte']) !== '') { ?>
+        <?php
+          // Em despesa e outra receita a contraparte é a conta de encanamento, cujo nome
+          // não diz nada a ninguém: ali o que interessa é QUEM recebeu.
+          if ($linha['favorecido'] !== '') { ?>
+          <small class="text-muted">&middot; <?php echo(h($linha['favorecido'])); ?></small>
+        <?php } else if (trim((string)$linha['contraparte']) !== ''
+                         && $linha['tipo'] !== 'despesa' && $linha['tipo'] !== 'receita') { ?>
           <small class="text-muted">&middot; <?php echo(h($linha['contraparte'])); ?></small>
         <?php } ?>
         <?php if (trim((string)$linha['historico']) !== '') { ?>

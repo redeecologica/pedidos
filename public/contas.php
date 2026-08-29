@@ -92,7 +92,10 @@
   <?php
     $quantas = 0;
     $rotulo_tipo = array('rede' => 'Rede', 'nucleo' => 'Núcleo',
-                         'produtor' => 'Produtor', 'cestante' => 'Cestante');
+                         'produtor' => 'Produtor', 'cestante' => 'Cestante',
+                         // encanamento: recebe a outra perna dos movimentos cujo outro
+                         // lado não tem conta — a despesa que sai para o motorista
+                         'sistema' => 'Sistema');
 
     while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
     {
