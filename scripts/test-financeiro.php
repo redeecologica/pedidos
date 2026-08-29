@@ -3263,6 +3263,91 @@ verifica("valor de consulta recusada e null, e nao estoque zerado",
     $v_sem_bd === null, var_export($v_sem_bd, true));
 
 
+// ---------------------------------------------------------------------------
+echo "\nfechamento da chamada: ver antes de confirmar\n";
+// ---------------------------------------------------------------------------
+
+// cha_est3 (14/11/2026) tem estoque 5 -> 5: variacao zero e nada lancado.
+// cha_sem  (12/12/2026) nao tem linha de estoque nenhuma.
+// As duas nao devem entrar na fila — nao ha o que fechar nelas.
+$fila = chamadas_a_fechar('2026-09-01', '2027-01-01');
+
+function na_fila($fila, $cha) {
+    foreach ((array)$fila as $f) if ($f['cha_id'] === (int)$cha) return $f;
+    return null;
+}
+
+verifica("a fila traz o que ha para fechar, com o pendente aberto",
+    is_array($fila) && ($f = na_fila($fila, $cha_est2)) !== null
+    && isset($f['estoque']['antes'], $f['estoque']['depois'], $f['estoque']['falta']),
+    is_array($fila) ? json_encode($fila) : var_export($fila, true));
+
+// Chamada ja lancada aparece MARCADA como fechada, e nao some: quem confere precisa ver
+// que ela foi tratada, senao a ausencia se confunde com esquecimento.
+verifica("chamada ja lancada aparece marcada como fechada",
+    ($f = na_fila($fila, $cha_est2)) && $f['fechada'] === true
+                                     && abs($f['estoque']['falta']) < 0.005,
+    var_export($f, true));
+
+verifica("chamada sem variacao e sem lancamento fica FORA da fila",
+    na_fila($fila, $cha_est3) === null && na_fila($fila, $cha_sem) === null);
+
+// PENDENTE de verdade: uma chamada nova, com estoque e sem lancamento.
+$cha_pend = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2026-10-24 23:59:59','2026-10-01 00:00:00','2026-10-20 23:59:59',0.00, NOW() - INTERVAL 5 DAY)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_pend . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_pend . "," . (int)$prod_est_id . ",5,20)");
+
+$f = na_fila(chamadas_a_fechar('2026-09-01','2027-01-01'), $cha_pend);
+verifica("chamada com estoque e sem lancamento entra como PENDENTE, com o valor a lancar",
+    $f !== null && $f['fechada'] === false && round($f['estoque']['falta'],2) == 120.00
+                && round($f['estoque']['lancado'],2) == 0.00,
+    var_export($f, true));
+
+// O PRAZO CONTABIL e o que autoriza congelar: antes dele os insumos ainda mudam.
+verifica("a fila diz se a chamada ja e congelavel",
+    $f !== null && $f['congelavel'] === true, var_export($f['congelavel'], true));
+
+$cha_cedo = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)
+    VALUES (1,'2026-12-05 23:59:59','2026-12-01 00:00:00','2026-12-03 23:59:59',0.00, NOW() + INTERVAL 30 DAY)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_cedo . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_cedo . "," . (int)$prod_est_id . ",1,9)");
+
+$fc = na_fila(chamadas_a_fechar('2026-09-01','2027-01-01'), $cha_cedo);
+verifica("chamada com prazo contabil no futuro aparece, mas NAO congelavel",
+    $fc !== null && $fc['congelavel'] === false && $fc['fechada'] === false,
+    var_export($fc, true));
+
+// Depois de fechar, a mesma chamada muda de estado na fila — e o valor pendente zera.
+lanca_estoque_da_chamada($cha_pend);
+$f2 = na_fila(chamadas_a_fechar('2026-09-01','2027-01-01'), $cha_pend);
+verifica("fechar muda o estado na fila e zera o pendente",
+    $f2 !== null && $f2['fechada'] === true && abs($f2['estoque']['falta']) < 0.005
+                 && round($f2['estoque']['lancado'],2) == 120.00,
+    var_export($f2, true));
+
+// A janela vazia tem de ser uma que a base NAO alcance: 2019 tem chamadas reais na copia
+// de producao, e a primeira tentativa deste teste passou a mao numa delas.
+verifica("periodo sem chamada devolve lista vazia, e nao null",
+    is_array($vz = chamadas_a_fechar('2035-01-01','2035-02-01')) && count($vz) === 0,
+    var_export($vz, true));
+
+// CONTRATO da familia.
+executa_sql("CREATE TEMPORARY TABLE estoque (
+    est_cha mediumint(6) unsigned NOT NULL, est_prod mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_f = (executa_sql("SELECT est_prod_qtde_antes FROM estoque") === false);
+$f_sem_bd = chamadas_a_fechar('2026-09-01','2027-01-01');
+executa_sql("DROP TEMPORARY TABLE estoque");
+
+verifica("a sombra faz o servidor recusar a fila", $sombra_f);
+verifica("fila de consulta recusada e null, e nao 'nada a fechar'",
+    $f_sem_bd === null, var_export($f_sem_bd, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

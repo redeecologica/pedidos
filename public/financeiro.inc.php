@@ -2586,6 +2586,92 @@ function lanca_abertura_do_estoque($cha_id)
 }
 
 
+// O que ainda falta lançar de estoque nesta chamada. Existe separado do lançador porque
+// a tela de fechamento precisa MOSTRAR o que vai acontecer antes de alguém confirmar —
+// ritual em que se aperta um botão sem ver o número é ritual que se aperta no automático.
+//
+// CONTRATO: array com 'variacao' (o que a chamada mexeu), 'lancado' (o que já foi ao
+// razão) e 'falta' (a diferença), ou null quando a chamada não existe ou a consulta não
+// roda. falta = 0 quer dizer fechada quanto ao estoque.
+function estoque_pendente_da_chamada($cha_id)
+{
+	$v = valor_do_estoque_da_chamada($cha_id);
+	if ($v === null) return null;
+
+	$con_estoque = conta_de_estoque();
+	if (!$con_estoque) return null;
+
+	$sql = "SELECT IFNULL(SUM(l.lan_valor),0) ja FROM lancamentos l ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE l.lan_con = " . prep_para_bd($con_estoque) . " ";
+	// tra_tipo EXATAMENTE 'estoque': a abertura é 'estoque_abertura' e não entra nesta
+	// conta, senão a variação sairia a menos pelo valor dela.
+	$sql.= "AND t.tra_tipo = 'estoque' AND t.tra_cha = " . prep_para_bd($cha_id);
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+
+	// a perna guardada é negativa; o valor lançado é o oposto dela
+	$lancado = $row ? round(-(float)$row['ja'], 2) : 0.0;
+
+	return array(
+		'variacao' => $v['variacao'],
+		'lancado'  => $lancado,
+		'falta'    => round($v['variacao'] - $lancado, 2),
+		'antes'    => $v['antes'],
+		'depois'   => $v['depois'],
+		'dt'       => $v['dt'],
+	);
+}
+
+
+// As chamadas do período que Finanças pode fechar, com o que falta lançar em cada uma.
+//
+// Só entram as que têm ALGO a lançar ou que já foram fechadas: chamada de Frescos, que
+// não guarda estoque, não tem o que fechar hoje e ficaria na lista só fazendo volume.
+// Quando a materialização do débito chegar, ela entra aqui do mesmo jeito e a lista
+// passa a incluir todas — a forma da tela não muda.
+//
+// CONTRATO: array (vazio quando não há chamada no período), ou null quando a consulta
+// não roda.
+function chamadas_a_fechar($de, $ate)
+{
+	$sql = "SELECT c.cha_id, c.cha_dt_entrega, c.cha_dt_prazo_contabil, pt.prodt_nome ";
+	$sql.= "FROM chamadas c JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt ";
+	$sql.= "WHERE c.cha_dt_entrega >= " . prep_para_bd($de) . " ";
+	$sql.= "AND c.cha_dt_entrega < " . prep_para_bd($ate) . " ";
+	$sql.= "ORDER BY c.cha_dt_entrega, c.cha_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$lista = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$pend = estoque_pendente_da_chamada((int)$row['cha_id']);
+		if ($pend === null) return null;
+
+		// nada guardado e nada lançado: não há fechamento a fazer nesta chamada
+		if (abs($pend['variacao']) < 0.005 && abs($pend['lancado']) < 0.005) continue;
+
+		$lista[] = array(
+			'cha_id'     => (int)$row['cha_id'],
+			'tipo'       => (string)$row['prodt_nome'],
+			'dt'         => $row['cha_dt_entrega'],
+			// o prazo contábil é o que autoriza congelar: antes dele os insumos ainda
+			// podem mudar, e lançar cedo grava um retrato que a entrega ainda desmente
+			'congelavel' => ($row['cha_dt_prazo_contabil'] !== null
+			                 && strtotime($row['cha_dt_prazo_contabil']) <= time()),
+			'estoque'    => $pend,
+			'fechada'    => (abs($pend['falta']) < 0.005),
+		);
+	}
+
+	return $lista;
+}
+
+
 // Lança no razão o que o estoque desta chamada mudou.
 //
 // IDEMPOTENTE POR DIFERENÇA, e não por "já rodou": olha quanto já foi lançado para esta
@@ -2611,21 +2697,10 @@ function lanca_estoque_da_chamada($cha_id)
 	// A perna que o estoque DEVERIA ter, somadas todas as chamadas... não: apenas esta.
 	// Guardar valor é segurar algo que não é seu para gastar, e na régua do módulo isso
 	// é negativo — a mesma leitura do caixa do núcleo.
-	$alvo = round(-$v['variacao'], 2);
+	$pend = estoque_pendente_da_chamada($cha_id);
+	if ($pend === null) return null;
 
-	$sql = "SELECT IFNULL(SUM(l.lan_valor),0) ja FROM lancamentos l ";
-	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
-	$sql.= "WHERE l.lan_con = " . prep_para_bd($con_estoque) . " ";
-	// tra_tipo EXATAMENTE 'estoque': a abertura é 'estoque_abertura' e não entra nesta
-	// conta, senão a variação sairia a menos pelo valor dela.
-	$sql.= "AND t.tra_tipo = 'estoque' AND t.tra_cha = " . prep_para_bd($cha_id);
-
-	$res = executa_sql($sql);
-	if (!$res) return null;
-	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
-	$ja  = $row ? round((float)$row['ja'], 2) : 0.0;
-
-	$falta = round($alvo - $ja, 2);
+	$falta = round(-$pend['falta'], 2);
 	if (abs($falta) < 0.005) return 0;          // nada a lançar — ver o CONTRATO
 
 	$historico = ($falta < 0) ? 'mercadoria que ficou em estoque'
