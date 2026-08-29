@@ -46,6 +46,7 @@
   }
 
   top();
+  abas_financeiras('rede', 'quotas');
 
   $lista = nucleos_e_quotas();
 

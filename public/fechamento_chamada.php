@@ -81,6 +81,7 @@
   }
 
   top();
+  abas_financeiras('rede', 'fechamento');
 
   $fila        = chamadas_a_fechar($de, $ate);
   $con_estoque = conta_de_estoque();

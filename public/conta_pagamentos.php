@@ -73,6 +73,7 @@
   if ($editar !== "" && !pode_ver_conta_de($editar)) $editar = "";
 
   top();
+  abas_financeiras('nucleo', 'pagamentos');
 
   if ($action == ACAO_SALVAR)
   {
