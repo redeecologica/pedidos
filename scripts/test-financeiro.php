@@ -3012,6 +3012,94 @@ verifica("rateio pode ser esvaziado, e ai a Rede absorve a despesa inteira",
     && count((array)rateio_da_despesa($tra_rede)) === 0);
 
 
+// ---------------------------------------------------------------------------
+echo "\nquota: gravada no banco, sugerida pelo tipo\n";
+// ---------------------------------------------------------------------------
+
+$lista_q = nucleos_e_quotas();
+verifica("a lista traz nucleo, tipo, sugestao do tipo e quota que vale",
+    is_array($lista_q) && count($lista_q) > 0
+    && isset($lista_q[0]['nome'], $lista_q[0]['tipo'], $lista_q[0]['sugerida'], $lista_q[0]['vale']),
+    is_array($lista_q) ? json_encode($lista_q[0]) : var_export($lista_q, true));
+
+function quota_de($lista, $nuc)
+{
+    foreach ((array)$lista as $l) if ($l['nuc_id'] === (int)$nuc) return $l;
+    return null;
+}
+
+// O nucleo popular do bloco anterior tem 0,5 gravado, contra 1 sugerido pelo tipo
+// Mensal. As duas aparecem separadas para quem edita saber do que esta discordando.
+$q_pop = quota_de($lista_q, $nuc_pop);
+verifica("quando ha quota propria, ela e a que vale — e a sugestao continua visivel",
+    $q_pop !== null && $q_pop['propria'] == 0.5 && $q_pop['sugerida'] == 1.0
+                    && $q_pop['vale'] == 0.5,
+    var_export($q_pop, true));
+
+// Nucleo que ninguem tocou ainda: quota propria nula, e vale a do tipo.
+$nuc_novo = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucsemquota','Sem quota definida',0," . (int)$tipo_id['Semanal'] . ")");
+$q_novo = quota_de(nucleos_e_quotas(), $nuc_novo);
+verifica("nucleo que nunca passou pela tela vale a sugestao do tipo",
+    $q_novo !== null && $q_novo['propria'] === null && $q_novo['vale'] == 4.0,
+    var_export($q_novo, true));
+
+// ARQUIVADO aparece, marcado: se voltar a ativo tem de reaparecer com a quota que tinha,
+// e escondido a quota ressurgiria sem ninguem ter olhado para ela.
+$q_arq = quota_de(nucleos_e_quotas(), $nuc_arq);
+verifica("nucleo arquivado aparece na lista, marcado como arquivado",
+    $q_arq !== null && $q_arq['arquivado'] === true,
+    var_export($q_arq, true));
+
+// ---- gravar ----
+verifica("gravar torna a quota explicita, e ela passa a mandar",
+    define_quotas_de_rateio(array($nuc_novo => 2.0)) === true
+    && ($q = quota_de(nucleos_e_quotas(), $nuc_novo)) && $q['propria'] == 2.0 && $q['vale'] == 2.0,
+    json_encode(quota_de(nucleos_e_quotas(), $nuc_novo)));
+
+verifica("e o rateio passa a usar a quota gravada, nao a do tipo",
+    ($qs = quotas_de_rateio()) && isset($qs[$nuc_novo]) && $qs[$nuc_novo] == 2.0,
+    var_export(isset($qs[$nuc_novo]) ? $qs[$nuc_novo] : null, true));
+
+// ZERO nao e ausencia de quota: e "este nucleo NAO rateia", que e o caso de Logistica e
+// Mutirao. Por isso zero e valor valido, e nao motivo de recusa.
+verifica("zero e valor valido, e tira o nucleo do rateio",
+    define_quotas_de_rateio(array($nuc_novo => 0)) === true
+    && !isset(((array)quotas_de_rateio())[$nuc_novo]));
+
+verifica("varias de uma vez",
+    define_quotas_de_rateio(array($nuc_novo => 4.0, $nuc_pop => 0.5)) === true
+    && ($qs = quotas_de_rateio()) && $qs[$nuc_novo] == 4.0 && $qs[$nuc_pop] == 0.5);
+
+// ---- o que e recusado ----
+// A soma das quotas e o divisor de TODO MUNDO: uma quota invalida no meio da lista
+// mudaria o rateio de todos os outros. Por isso confere tudo antes de gravar nada.
+$antes_pop = ((array)quotas_de_rateio())[$nuc_pop];
+verifica("quota negativa e recusada, e NENHUMA da leva e gravada",
+    define_quotas_de_rateio(array($nuc_pop => 3.0, $nuc_novo => -1)) === false
+    && ((array)quotas_de_rateio())[$nuc_pop] == $antes_pop,
+    "antes=$antes_pop depois=" . ((array)quotas_de_rateio())[$nuc_pop]);
+
+verifica("quota que nao e numero e recusada",
+    define_quotas_de_rateio(array($nuc_pop => 'quatro')) === false);
+
+verifica("id que nao e id e recusado",
+    define_quotas_de_rateio(array('abc' => 1.0)) === false
+ && define_quotas_de_rateio(array(0 => 1.0)) === false);
+
+verifica("quota absurda e recusada",
+    define_quotas_de_rateio(array($nuc_pop => 1000)) === false);
+
+verifica("entrada que nao e array e recusada",
+    define_quotas_de_rateio('tudo 4') === false);
+
+// Lista vazia e recusa, e nao sucesso silencioso: vinda da tela significa formulario
+// truncado, e responder "gravadas" a um POST que nao gravou nada e a mentira de sempre.
+// Nao ha acao legitima de gravar zero quotas — para tirar um nucleo do rateio, grava-se 0.
+verifica("lista vazia e recusada, e nao devolve sucesso sem gravar nada",
+    define_quotas_de_rateio(array()) === false);
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

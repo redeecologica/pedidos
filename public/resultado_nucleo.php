@@ -87,22 +87,32 @@
 
 <?php } else { ?>
 
-<p>
+<?php
+  // TOM. Este número é lido por quem cuida de um núcleo que muitas vezes está no
+  // vermelho — e, como a Rede diz, estar no vermelho aqui não é erro nem falha: é o
+  // ponto de partida do trabalho.
+  //
+  // O que pesava era a TARJA, não a cor: um bloco vermelho preenchido transforma um
+  // dado em acusação. O número colorido em texto diz a mesma coisa sem levantar a voz.
+?>
+<p style="font-size:larger; margin-bottom:14px;">
+  Resultado de <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>:
   <?php if ($r['situacao'] === 'deficitario') { ?>
-    <span class="label label-danger" style="font-size:larger;">deficitário: R$ <?php echo(h(formata_moeda(-$r['resultado']))); ?></span>
-    <span class="text-muted">&nbsp;o núcleo custou mais do que gerou neste mês</span>
+    <strong class="text-danger">&minus;R$ <?php echo(h(formata_moeda(-$r['resultado']))); ?></strong>
+    <small class="text-muted">&nbsp;&mdash;&nbsp;os custos do núcleo passaram o que ele contribuiu neste mês</small>
   <?php } else if ($r['situacao'] === 'superavitario') { ?>
-    <span class="label label-success" style="font-size:larger;">superavitário: R$ <?php echo(h(formata_moeda($r['resultado']))); ?></span>
-    <span class="text-muted">&nbsp;o núcleo gerou mais do que custou neste mês</span>
+    <strong class="text-success">R$ <?php echo(h(formata_moeda($r['resultado']))); ?></strong>
+    <small class="text-muted">&nbsp;&mdash;&nbsp;o núcleo contribuiu mais do que custou neste mês</small>
   <?php } else { ?>
-    <span class="label label-default" style="font-size:larger;">em equilíbrio</span>
+    <strong>R$ 0,00</strong>
+    <small class="text-muted">&nbsp;&mdash;&nbsp;o mês fechou em equilíbrio</small>
   <?php } ?>
 </p>
 
 <div class="row">
   <div class="col-sm-6">
     <table class="table table-bordered table-condensed">
-      <thead><tr><th colspan="2">O que o núcleo gerou</th></tr></thead>
+      <thead><tr><th colspan="2">Quanto o núcleo contribuiu</th></tr></thead>
       <tbody>
         <tr><td>associação</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['associacao']))); ?></td></tr>
         <tr><td>taxa sobre pedidos de associados</td><td class="text-right"><?php echo(h(formata_moeda($r['receita']['taxa']))); ?></td></tr>
@@ -117,7 +127,7 @@
 
   <div class="col-sm-6">
     <table class="table table-bordered table-condensed">
-      <thead><tr><th colspan="2">O que o núcleo custou</th></tr></thead>
+      <thead><tr><th colspan="2">Custos do núcleo</th></tr></thead>
       <tbody>
         <?php
           // Todas as seis, mesmo zeradas: categoria que some no mês em que ninguém
@@ -165,8 +175,8 @@
 
 <p class="small text-muted">
   Este quadro <strong>não é o caixa</strong>. Ele não diz quanto dinheiro está com o núcleo —
-  diz se o núcleo se paga. A receita aqui é só o que a Rede cobra a mais: quase tudo que o
-  cestante paga é do produtor e passa direto.
+  diz se o núcleo se paga. O que ele <strong>contribui</strong> é só o que a Rede cobra a
+  mais: quase tudo que o cestante paga é do produtor e passa direto.
   O rateio é a parte dos custos fixos da Rede apontada para este núcleo<?php if ($quota !== null) { ?>,
   que entra na divisão por entrega com <strong><?php echo(h(rtrim(rtrim(number_format($quota, 1, ',', ''), '0'), ','))); ?> quota(s)</strong><?php } ?>.
   Ele <strong>não</strong> é dívida: nenhum saldo de caixa se mexe por causa dele.

@@ -287,6 +287,10 @@
   <a class="btn btn-default btn-sm" href="<?php echo(h($volta)); ?>&amp;repetir=1">
     <i class="glyphicon glyphicon-repeat"></i> repetir as despesas do mês anterior
   </a>
+  &nbsp;
+  <a class="btn btn-default btn-sm" href="quotas_rateio.php">
+    <i class="glyphicon glyphicon-equalizer"></i> quotas de rateio
+  </a>
 </p>
 
 <?php
