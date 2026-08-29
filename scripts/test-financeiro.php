@@ -2729,6 +2729,156 @@ verifica("rateio de consulta recusada e null, e nao lista vazia",
     $rat_sem_bd === null, var_export($rat_sem_bd, true));
 
 
+// ---------------------------------------------------------------------------
+echo "\nresultado do nucleo: o ponto de equilibrio\n";
+// ---------------------------------------------------------------------------
+
+// Nucleo, cestantes e chamadas proprios: a conta so e conferivel se nada da copia de
+// producao entrar nela.
+$nuc_res = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucresult','Nucleo do resultado',0," . (int)$tipo_id['Mensal'] . ")");
+$con_res = cria_conta('nucleo', array('con_nuc' => $nuc_res, 'con_nome' => 'Caixa Resultado'));
+
+$usr_assoc = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Associado','assoc','assoc@teste.local','x','0'," . (int)$nuc_res . ")");
+$usr_nao   = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Nao associado','naoassoc','naoassoc@teste.local','x','0'," . (int)$nuc_res . ")");
+
+$forn_res  = insere("INSERT INTO fornecedores (forn_prodt, forn_nome_curto, forn_nome_completo, forn_archive)
+    VALUES (1,'fornres','Fornecedor do resultado',0)");
+
+// produto com compra 10, venda 10 (sem margem para associado) e venda_margem 13
+$prod_res = insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900001,1," . (int)$forn_res . ",'Produto resultado','kg',10.00,10.00,13.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+$prod_res_id = 900001;
+
+// produto de ASSOCIACAO: 60 de venda, 0 de compra (a Rede fica com tudo)
+$prodt_assoc = valor_escalar("SELECT prodt_id FROM produtotipos WHERE prodt_nome LIKE 'Associa%'");
+$prod_ass = insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900002," . (int)$prodt_assoc . "," . (int)$forn_res . ",'Anuidade','un',0.00,60.00,60.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+$prod_ass_id = 900002;
+
+verifica("o fixture do resultado esta de pe",
+    $con_res > 0 && $prodt_assoc > 0, "conta=$con_res prodt_assoc=" . var_export($prodt_assoc, true));
+
+// chamada de PRODUTOS em maio/2026, com taxa de 5%
+$cha_prod = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-05-10 23:59:59','2026-05-01 00:00:00','2026-05-05 23:59:59',0.05)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_prod . "," . (int)$prod_res_id . ",1)");
+
+// chamada de ASSOCIACAO no mesmo mes, sem taxa
+$cha_ass = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (" . (int)$prodt_assoc . ",'2026-05-12 23:59:59','2026-05-01 00:00:00','2026-05-08 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_ass . "," . (int)$prod_ass_id . ",1)");
+
+// ASSOCIADO leva 10 unidades: paga 10 x 10 = 100, mais 5% = 5 de taxa
+$ped_a = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_prod . "," . (int)$usr_assoc . "," . (int)$nuc_res . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_a . "," . (int)$prod_res_id . ",10,10)");
+
+// NAO ASSOCIADO leva 10: paga 10 x 13 = 130; margem = (13 - 10) x 10 = 30
+$ped_n = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_prod . "," . (int)$usr_nao . "," . (int)$nuc_res . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_n . "," . (int)$prod_res_id . ",10,10)");
+
+// ANUIDADE do associado: 60
+$ped_ass = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_ass . "," . (int)$usr_assoc . "," . (int)$nuc_res . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_ass . "," . (int)$prod_ass_id . ",1,1)");
+
+// DESPESA PROPRIA do nucleo: motorista, 40
+lanca_movimento_nucleo($nuc_res, 'despesa', '2026-05-15', 40.00, $con_rede, array('categoria' => 'motorista'));
+
+// RATEIO: 12 carimbados neste nucleo
+lanca_despesa_da_rede('2026-05-02', 'sistemas', 300.00, $con_origem, 'Sistemas de maio',
+    array($nuc_res => 12.00));
+
+$r = resultado_do_nucleo($nuc_res, 2026, 5);
+
+verifica("a anuidade entra na receita do nucleo",
+    is_array($r) && round($r['receita']['associacao'], 2) == 60.00,
+    is_array($r) ? var_export($r['receita'], true) : var_export($r, true));
+
+verifica("a taxa de 5% do associado entra, e e sobre o valor entregue",
+    is_array($r) && round($r['receita']['taxa'], 2) == 5.00,
+    is_array($r) ? var_export($r['receita']['taxa'], true) : '?');
+
+verifica("a margem do nao associado sai de prod_valor_venda_margem",
+    is_array($r) && round($r['receita']['margem_nao_associado'], 2) == 30.00,
+    is_array($r) ? var_export($r['receita']['margem_nao_associado'], true) : '?');
+
+verifica("o associado nao gera margem de produto quando venda = compra",
+    is_array($r) && round($r['receita']['margem_produto'], 2) == 0.00,
+    is_array($r) ? var_export($r['receita']['margem_produto'], true) : '?');
+
+verifica("receita total = 60 + 5 + 30",
+    is_array($r) && round($r['receita']['total'], 2) == 95.00,
+    is_array($r) ? var_export($r['receita']['total'], true) : '?');
+
+verifica("a despesa propria do nucleo entra no custo, por categoria",
+    is_array($r) && round($r['custo']['proprias']['motorista'], 2) == 40.00
+                 && round($r['custo']['total_proprias'], 2) == 40.00,
+    is_array($r) ? json_encode($r['custo']['proprias']) : '?');
+
+verifica("o rateio entra no custo, e vem aberto por despesa da Rede",
+    is_array($r) && round($r['custo']['total_rateio'], 2) == 12.00
+                 && count($r['custo']['rateio']) === 1
+                 && $r['custo']['rateio'][0]['categoria'] === 'sistemas',
+    is_array($r) ? json_encode($r['custo']['rateio']) : '?');
+
+verifica("resultado = receita - custo = 95 - 52",
+    is_array($r) && round($r['resultado'], 2) == 43.00,
+    is_array($r) ? var_export($r['resultado'], true) : '?');
+
+// O sinal e o que a tela vai dizer em palavras, entao tem de ser inequivoco.
+verifica("resultado positivo se diz superavitario",
+    is_array($r) && $r['situacao'] === 'superavitario', is_array($r) ? $r['situacao'] : '?');
+
+// Mesmo nucleo, mes SEM nada: zero em tudo, e nao null.
+$r0 = resultado_do_nucleo($nuc_res, 2026, 7);
+verifica("mes sem movimento devolve zeros, e nao null",
+    is_array($r0) && round($r0['receita']['total'], 2) == 0.00
+                  && round($r0['resultado'], 2) == 0.00
+                  && $r0['situacao'] === 'equilibrio',
+    var_export($r0 === null ? null : $r0['situacao'], true));
+
+// Um nucleo que so tem custo e deficitario — o caso que o time disse ser comum e OK.
+$r_def = resultado_do_nucleo($nuc_livre[3], 2026, 8);
+verifica("mes com custo e sem receita se diz deficitario",
+    is_array($r_def) && $r_def['resultado'] <= 0
+    && ($r_def['resultado'] < 0 ? $r_def['situacao'] === 'deficitario' : true),
+    is_array($r_def) ? $r_def['situacao'] . ' ' . $r_def['resultado'] : '?');
+
+verifica("nucleo que nao existe devolve null",
+    resultado_do_nucleo(99999999, 2026, 5) === null);
+
+verifica("mes fora de 1..12 devolve null",
+    resultado_do_nucleo($nuc_res, 2026, 13) === null
+ && resultado_do_nucleo($nuc_res, 2026, 0) === null);
+
+// CONTRATO da familia. Aqui a sombra vai sobre `rateios`, que e a perna nova.
+executa_sql("CREATE TEMPORARY TABLE rateios (
+    rat_tra int(10) unsigned NOT NULL, rat_nuc mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_res = (executa_sql("SELECT rat_valor FROM rateios") === false);
+$r_sem_bd = resultado_do_nucleo($nuc_res, 2026, 5);
+executa_sql("DROP TEMPORARY TABLE rateios");
+
+verifica("a sombra sem rat_valor faz o servidor recusar o resultado", $sombra_res);
+verifica("resultado de consulta recusada e null, e nao um nucleo em equilibrio",
+    $r_sem_bd === null, var_export($r_sem_bd, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
