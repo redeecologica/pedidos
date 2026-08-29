@@ -2863,6 +2863,16 @@ verifica("receita total = 60 + 5 + 30 + 25",
     is_array($r) && round($r['receita']['total'], 2) == 120.00,
     is_array($r) ? var_export($r['receita']['total'], true) : '?');
 
+// A assercao que amarra as duas pontas: o total tem de ser a soma das PARTES, e nao um
+// numero calculado a parte. Sem ela, uma linha nova na receita — foi o caso de 'outras'
+// — entra no total sem entrar na conta que a tela mostra.
+$soma_partes = 0.0;
+foreach ($r['receita'] as $k => $v) if ($k !== 'total') $soma_partes = round($soma_partes + $v, 2);
+
+verifica("o total da receita e exatamente a soma das linhas que a compoem",
+    round($soma_partes, 2) == round($r['receita']['total'], 2),
+    "partes=$soma_partes total=" . $r['receita']['total']);
+
 verifica("a despesa propria do nucleo entra no custo, por categoria",
     is_array($r) && round($r['custo']['proprias']['motorista'], 2) == 40.00
                  && round($r['custo']['total_proprias'], 2) == 40.00,
