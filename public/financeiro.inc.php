@@ -2716,3 +2716,152 @@ function lanca_estoque_da_chamada($cha_id)
 	return lanca_transacao($v['dt'], 'estoque', $con_rede, $con_estoque, $falta,
 		$historico, array('cha' => $cha_id));
 }
+
+
+// A conferência de uma chamada: onde a mercadoria entrou e onde saiu, em dinheiro.
+//
+// A mesma mercadoria é medida em três lugares diferentes, e cada distância entre eles
+// significa uma coisa:
+//
+//   A  o que os NÚCLEOS confirmaram receber   (distribuicao.dist_quantidade_recebido)
+//   B  o que FINANÇAS confirmou para a Rede   (chaprod_recebido_confirmado) → paga o produtor
+//   C  o que os CESTANTES receberam           (pedprod_entregue)            → cobra o cestante
+//
+//   A − B  o que Finanças abateu ao ler as justificativas: produto vencido sai da conta
+//          do produtor. É julgamento humano, caso a caso, e já acontece hoje.
+//   B − C  o que a Rede pagou e ninguém foi cobrado. Sobrou, foi doado, estragou depois
+//          de aceito — ou a entrega não foi anotada.
+//
+// TUDO A PREÇO DE VENDA, que é o preço pelo qual o cestante é cobrado: a pergunta aqui é
+// "quanto disto virou dívida de alguém". No razão o estoque é avaliado a preço de COMPRA,
+// porque lá a pergunta é outra — quanto a Rede desembolsou por um ativo que ainda tem.
+//
+// O CONTADOR DE ENTREGAS NÃO REGISTRADAS vem junto de propósito. Sem ele, alguém leria
+// como perda do núcleo o que é apenas entrega que ninguém anotou — e cobraria do núcleo
+// por um erro de digitação. Medido na base: 12,6% das linhas pedidas não têm entrega
+// registrada, contra ~1% de quebra real.
+//
+// CONTRATO: array, ou null quando a chamada não existe ou a consulta não roda.
+function conferencia_da_chamada($cha_id)
+{
+	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
+	     . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
+	     . "WHERE c.cha_id = " . prep_para_bd($cha_id));
+	if (!$res) return null;
+	$cha = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$cha) return null;
+
+	$id = (int)$cha['cha_id'];
+
+	// ---- A: o que cada núcleo confirmou receber ----
+	$sql = "SELECT d.dist_nuc nuc, n.nuc_nome_curto nome, ";
+	$sql.= "SUM(d.dist_quantidade_recebido * p.prod_valor_venda) v ";
+	$sql.= "FROM distribuicao d ";
+	$sql.= "JOIN chamadas c ON c.cha_id = d.dist_cha ";
+	$sql.= "JOIN nucleos n  ON n.nuc_id  = d.dist_nuc ";
+	$sql.= "JOIN produtos p ON p.prod_id = d.dist_prod ";
+	$sql.= "WHERE d.dist_cha = " . prep_para_bd($id) . " ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "GROUP BY d.dist_nuc";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$nucleos = array();
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$nucleos[(int)$r['nuc']] = array(
+			'nuc_id' => (int)$r['nuc'], 'nome' => (string)$r['nome'],
+			'recebeu' => round((float)$r['v'], 2), 'distribuiu' => 0.0, 'sem_registro' => 0);
+
+	// ---- C: o que os cestantes de cada núcleo receberam ----
+	//
+	// O recorte é ped_nuc, e NÃO usr_nuc: quem troca de núcleo deixa os pedidos antigos
+	// no núcleo antigo. Medido — juntar pelo núcleo atual dá números absurdos.
+	$sql = "SELECT ped.ped_nuc nuc, n.nuc_nome_curto nome, ";
+	$sql.= "SUM(pp.pedprod_entregue * p.prod_valor_venda) v, ";
+	$sql.= "SUM(pp.pedprod_quantidade > 0 AND pp.pedprod_entregue IS NULL) sem ";
+	$sql.= "FROM pedidos ped ";
+	$sql.= "JOIN pedidoprodutos pp ON pp.pedprod_ped = ped.ped_id ";
+	$sql.= "JOIN chamadas c  ON c.cha_id  = ped.ped_cha ";
+	$sql.= "JOIN nucleos n   ON n.nuc_id  = ped.ped_nuc ";
+	$sql.= "JOIN produtos p  ON p.prod_id = pp.pedprod_prod ";
+	$sql.= "WHERE ped.ped_cha = " . prep_para_bd($id) . " AND ped.ped_fechado = 1 ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "GROUP BY ped.ped_nuc";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$n = (int)$r['nuc'];
+		// núcleo que entregou sem ter confirmado recebimento também precisa aparecer:
+		// é justamente o caso em que a conta não fecha
+		if (!isset($nucleos[$n]))
+			$nucleos[$n] = array('nuc_id' => $n, 'nome' => (string)$r['nome'],
+			                     'recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0);
+
+		$nucleos[$n]['distribuiu']   = round((float)$r['v'], 2);
+		$nucleos[$n]['sem_registro'] = (int)$r['sem'];
+	}
+
+	$total = array('recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0);
+	foreach ($nucleos as $n => $x)
+	{
+		$nucleos[$n]['diferenca'] = round($x['recebeu'] - $x['distribuiu'], 2);
+		$total['recebeu']      = round($total['recebeu'] + $x['recebeu'], 2);
+		$total['distribuiu']   = round($total['distribuiu'] + $x['distribuiu'], 2);
+		$total['sem_registro'] += $x['sem_registro'];
+	}
+	$total['diferenca'] = round($total['recebeu'] - $total['distribuiu'], 2);
+
+	// ordena por diferença, do maior para o menor: é o que se quer investigar primeiro
+	uasort($nucleos, function ($a, $b) {
+		if (abs($a['diferenca'] - $b['diferenca']) < 0.005) return 0;
+		return ($a['diferenca'] > $b['diferenca']) ? -1 : 1;
+	});
+
+	// ---- B e o estoque, que são da chamada inteira e não de um núcleo ----
+	$sql = "SELECT SUM(cp.chaprod_recebido_confirmado * p.prod_valor_venda) b ";
+	$sql.= "FROM chamadaprodutos cp ";
+	$sql.= "JOIN chamadas c ON c.cha_id = cp.chaprod_cha ";
+	$sql.= "JOIN produtos p ON p.prod_id = cp.chaprod_prod ";
+	$sql.= "WHERE cp.chaprod_cha = " . prep_para_bd($id) . " AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	$confirmado = ($r && $r['b'] !== null) ? round((float)$r['b'], 2) : 0.0;
+
+	$sql = "SELECT SUM(IFNULL(e.est_prod_qtde_antes,0)  * p.prod_valor_venda) antes, ";
+	$sql.= "SUM(IFNULL(e.est_prod_qtde_depois,0) * p.prod_valor_venda) depois ";
+	$sql.= "FROM estoque e ";
+	$sql.= "JOIN chamadas c ON c.cha_id = e.est_cha ";
+	$sql.= "JOIN produtos p ON p.prod_id = e.est_prod ";
+	$sql.= "WHERE e.est_cha = " . prep_para_bd($id) . " ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
+
+	$estoque = array(
+		'antes'  => ($r && $r['antes']  !== null) ? round((float)$r['antes'], 2)  : 0.0,
+		'depois' => ($r && $r['depois'] !== null) ? round((float)$r['depois'], 2) : 0.0,
+	);
+
+	return array(
+		'cha_id'     => $id,
+		'tipo'       => (string)$cha['prodt_nome'],
+		'dt'         => $cha['cha_dt_entrega'],
+		'nucleos'    => array_values($nucleos),
+		'total'      => $total,
+		'confirmado' => $confirmado,
+		'estoque'    => $estoque,
+		// o que a Rede pagou e ninguém foi cobrado, já descontado o que ficou guardado
+		'nao_cobrado' => round($confirmado + $estoque['antes'] - $total['distribuiu'] - $estoque['depois'], 2),
+		// o julgamento de Finanças ao ler as justificativas
+		'abatido'     => round($total['recebeu'] - $confirmado, 2),
+	);
+}
