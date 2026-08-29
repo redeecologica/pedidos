@@ -1762,3 +1762,244 @@ function fluxo_de_caixa_mensal($nuc_id, $ano)
 		'saldo_acumulado' => $acumulado,
 	);
 }
+
+
+// ============================================================================
+// RATEIO DAS DESPESAS DA REDE
+//
+// A Rede tem custos que nenhum núcleo paga sozinho — hospedagem, quem responde por
+// pedidos, quem responde por finanças. Para medir se um núcleo se sustenta, uma parte
+// desses custos é carimbada nele.
+//
+// RATEIO É ATRIBUIÇÃO, NÃO DÍVIDA. Ninguém transfere dinheiro por causa dele: é um
+// custo apontado ao núcleo para o relatório de resultado poder dizer "este núcleo se
+// paga" ou "não se paga". Por isso NÃO é lançamento — mora em `rateios`, tabela
+// própria, e o saldo de caixa de núcleo nenhum se mexe. Foi decisão explícita: o caixa
+// do núcleo tem de continuar significando "quanto dinheiro está comigo".
+//
+// A despesa da Rede em si É lançamento, porque ali dinheiro saiu de verdade.
+// ============================================================================
+
+
+// As áreas da Rede. A categoria aqui não classifica a NATUREZA do gasto (pessoal,
+// infraestrutura, serviço) — classifica a ÁREA a que ele pertence, que é como a
+// planilha da Rede já organiza: "Resp pedidos" é Pedidos, "Resp financeiro" é Finanças.
+// A pergunta que a categoria responde é "de quem é este custo?".
+//
+// Por isso são diferentes das seis do núcleo: hospedagem não é "passagens".
+function categorias_de_despesa_da_rede()
+{
+	return array(
+		'mutirao'   => 'Mutirão',
+		'logistica' => 'Logística',
+		'pedidos'   => 'Pedidos',
+		'financas'  => 'Finanças',
+		'sistemas'  => 'Sistemas',
+		'admin'     => 'Administrativo',
+	);
+}
+
+
+// Quanto cada núcleo pesa no rateio por entrega. Núcleo semanal entrega 4 vezes ao mês
+// e pesa 4; quinzenal 2; mensal 1.
+//
+// A quota sai de DADO em dois níveis, e não de lista escrita aqui: o padrão vem do tipo
+// (`nucleotipos.nuct_quota_rateio`) e a exceção vem do próprio núcleo
+// (`nucleos.nuc_quota_rateio`). Quota 0 fica de fora — é como Logística e Mutirão, que
+// são núcleos sentinela: existem, recebem entrega e não rateiam. Escrever esses dois no
+// código faria o terceiro sentinela nascer sem ninguém lembrar de incluí-lo.
+//
+// CONTRATO: array nuc_id => quota, ou null quando a consulta não roda.
+function quotas_de_rateio()
+{
+	$sql = "SELECT n.nuc_id, IFNULL(n.nuc_quota_rateio, t.nuct_quota_rateio) quota ";
+	$sql.= "FROM nucleos n JOIN nucleotipos t ON t.nuct_id = n.nuc_nuct ";
+	$sql.= "WHERE n.nuc_archive = 0 AND IFNULL(n.nuc_quota_rateio, t.nuct_quota_rateio) > 0 ";
+	$sql.= "ORDER BY n.nuc_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$quotas = array();
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$quotas[(int)$row['nuc_id']] = (float)$row['quota'];
+
+	return $quotas;
+}
+
+
+// A sugestão de rateio. É SUGESTÃO: quem lança confirma linha a linha e pode ajustar —
+// foi decisão explícita, e é o que impede o rateio de virar um número que apareceu do
+// nada na conta do núcleo.
+//
+// DUAS REGRAS, e a categoria não escolhe entre elas. Medido na planilha da Rede:
+// `Logística` aparece nas duas listas — "retorno das embalagens" é custo fixo, "apoio
+// logístico" escala com o número de entregas. Quem escolhe a regra é quem lança, olhando
+// o item.
+//
+//   igual  divide pelo NÚMERO de núcleos; a quota não entra. Hospedagem custa o mesmo
+//          tendo o núcleo uma ou quatro entregas por mês.
+//   quota  proporcional às entregas: semanal paga 4x o que o mensal paga.
+//
+// A SOBRA DE CENTAVOS FICA COM A REDE, por decisão registrada — e é por isso que aqui
+// se TRUNCA em vez de arredondar. Arredondando, a soma atribuída poderia ultrapassar o
+// que a Rede gastou, e algum núcleo seria cobrado por centavo que a divisão não
+// produziu. Truncando, a soma nunca passa do total e a diferença sobra para quem pagou.
+//
+// CONTRATO: array nuc_id => valor · array() quando não há núcleo que rateie ·
+// null quando a regra não existe, o valor não é positivo, ou a consulta não roda.
+function sugere_rateio($valor, $regra)
+{
+	$valor = round((float)$valor, 2);
+	if ($valor <= 0) return null;
+
+	$quotas = quotas_de_rateio();
+	if ($quotas === null) return null;
+	if (!count($quotas)) return array();
+
+	// 1e-6 antes do truncamento: 2530 * 0.5 / 17 em ponto flutuante pode cair em
+	// 74.40999999 em vez de 74.41, e truncar aí tiraria um centavo de quem não devia.
+	$trunca = function ($x) { return floor($x * 100 + 1e-6) / 100; };
+
+	$rateio = array();
+
+	if ($regra === 'igual')
+	{
+		$n = count($quotas);
+		foreach ($quotas as $nuc => $q) $rateio[$nuc] = $trunca($valor / $n);
+		return $rateio;
+	}
+
+	if ($regra === 'quota')
+	{
+		$soma = array_sum($quotas);
+		if ($soma <= 0) return array();
+		foreach ($quotas as $nuc => $q) $rateio[$nuc] = $trunca($valor * $q / $soma);
+		return $rateio;
+	}
+
+	return null;
+}
+
+
+// Lança uma despesa da Rede e grava, na mesma transação, a atribuição já confirmada.
+//
+// As duas coisas juntas de propósito: despesa gravada sem rateio ficaria invisível para
+// os núcleos, e rateio gravado sem despesa seria custo sem origem — e é justamente a
+// origem que o núcleo precisa ver para o rateio não parecer imposto.
+//
+// $rateio é array nuc_id => valor, JÁ CONFIRMADO por quem lança. Pode ser menor que a
+// despesa (a sobra fica com a Rede) e pode ser array() (a Rede absorve tudo). O que não
+// pode é somar MAIS do que a Rede gastou: isso criaria custo do nada, e o resultado do
+// núcleo passaria a acusar prejuízo que ninguém teve.
+//
+// CONTRATO: tra_id, ou null quando não pôde virar lançamento.
+function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico, $rateio)
+{
+	$categorias = categorias_de_despesa_da_rede();
+	$categoria  = (is_string($categoria) || is_int($categoria)) ? trim((string)$categoria) : '';
+	if (!isset($categorias[$categoria])) return null;
+
+	$valor = round((float)$valor, 2);
+	if ($valor <= 0) return null;
+
+	// A conta de origem é de onde o dinheiro saiu, e tem de ser da Rede: uma despesa da
+	// Rede paga da conta de um cestante tiraria dele dinheiro que ele não gastou.
+	if (!is_string($con_origem) && !is_int($con_origem)) return null;
+	$destinos = contas_de_destino();
+	if ($destinos === null)                return null;
+	if (!isset($destinos[$con_origem]))    return null;
+	if (tipo_de_conta($con_origem) !== 'rede') return null;
+
+	$con_rede = conta_da_rede();
+	if (!$con_rede) return null;
+
+	if (!is_array($rateio)) return null;
+
+	// Toda a conferência ANTES de escrever: recusa que já gravou metade deixaria
+	// despesa sem rateio, que é pior do que recusa nenhuma.
+	$quotas = quotas_de_rateio();
+	if ($quotas === null) return null;
+
+	$soma = 0.0;
+	$limpo = array();
+	foreach ($rateio as $nuc => $v)
+	{
+		if (!isset($quotas[(int)$nuc])) return null;   // inclusive sentinela e arquivado
+		$v = round((float)$v, 2);
+		if ($v < 0) return null;
+		if ($v == 0) continue;                        // linha zerada não vira registro
+		$soma += $v;
+		$limpo[(int)$nuc] = $v;
+	}
+	if ($soma > $valor + 0.0001) return null;
+
+	global $conn_link, $financeiro_em_transacao;
+	$nossa = empty($financeiro_em_transacao);
+	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
+
+	// A conta de origem entrega o dinheiro; a conta principal da Rede assume o custo.
+	// É a mesma forma da despesa de núcleo, e por isso mesmo motivo: quem segurava o
+	// dinheiro passa a segurar menos, e quem arca fica com o custo no saldo.
+	$tra = lanca_transacao($dt, 'despesa_rede', $con_rede, $con_origem, $valor, $historico,
+		array('categoria' => $categoria));
+
+	if (!$tra)
+	{
+		if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+		return null;
+	}
+
+	foreach ($limpo as $nuc => $v)
+	{
+		$sql = "INSERT INTO rateios (rat_tra, rat_nuc, rat_valor) VALUES (";
+		$sql.= prep_para_bd($tra) . ", " . prep_para_bd($nuc) . ", " . prep_para_bd($v) . ")";
+		if (!executa_sql($sql))
+		{
+			if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+			return null;
+		}
+	}
+
+	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
+
+	return $tra;
+}
+
+
+// O que foi carimbado num núcleo no período, com a despesa que o originou.
+//
+// A origem vem junto porque é ela que faz o rateio ser lido como conta e não como
+// imposto: o núcleo vê que os R$ 200,75 são hospedagem mais papéis centrais, item por
+// item, e não um número que apareceu.
+//
+// CONTRATO: array (vazio quando não houve rateio), ou null quando a consulta não roda.
+function rateios_do_nucleo($nuc_id, $de, $ate)
+{
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, r.rat_valor ";
+	$sql.= "FROM rateios r JOIN transacoes t ON t.tra_id = r.rat_tra ";
+	$sql.= "WHERE r.rat_nuc = " . prep_para_bd($nuc_id) . " ";
+	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$categorias = categorias_de_despesa_da_rede();
+	$linhas = array();
+
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$cat = trim((string)$row['tra_categoria']);
+		$linhas[] = array(
+			'tra_id'    => (int)$row['tra_id'],
+			'dt'        => $row['tra_dt'],
+			'categoria' => $cat,
+			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : $cat,
+			'historico' => (string)$row['tra_historico'],
+			'valor'     => round((float)$row['rat_valor'], 2),
+		);
+	}
+
+	return $linhas;
+}

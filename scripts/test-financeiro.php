@@ -2527,6 +2527,208 @@ foreach ($papeis_guardados as $p => $v) { if ($v === null) unset($_SESSION[$p]);
 foreach ($sessao_guardada as $k => $v)  { if ($v === null) unset($_SESSION[$k]); else $_SESSION[$k] = $v; }
 
 
+// ---------------------------------------------------------------------------
+echo "\nrateio: quotas\n";
+// ---------------------------------------------------------------------------
+
+// Nucleos de fixture com os tres tipos mais um sentinela, para as contas serem
+// conferiveis sem depender de quantos nucleos a copia de producao tem hoje.
+$tipo_id = array();
+foreach (array('Semanal', 'Quinzenal', 'Mensal') as $nome_tipo)
+    $tipo_id[$nome_tipo] = valor_escalar("SELECT nuct_id FROM nucleotipos WHERE nuct_nome = '$nome_tipo'");
+
+verifica("os tres tipos de nucleo existem no fixture",
+    $tipo_id['Semanal'] && $tipo_id['Quinzenal'] && $tipo_id['Mensal'],
+    json_encode($tipo_id));
+
+verifica("a quota padrao mora no TIPO, como dado e nao como lista em PHP",
+    valor_escalar("SELECT nuct_quota_rateio FROM nucleotipos WHERE nuct_id = " . (int)$tipo_id['Semanal']) == 4.0
+ && valor_escalar("SELECT nuct_quota_rateio FROM nucleotipos WHERE nuct_id = " . (int)$tipo_id['Quinzenal']) == 2.0
+ && valor_escalar("SELECT nuct_quota_rateio FROM nucleotipos WHERE nuct_id = " . (int)$tipo_id['Mensal']) == 1.0);
+
+$quotas_antes = quotas_de_rateio();
+verifica("quotas_de_rateio devolve nucleo => quota",
+    is_array($quotas_antes) && count($quotas_antes) > 0,
+    var_export($quotas_antes === null ? null : count($quotas_antes), true));
+
+// sentinela: existe como nucleo, nao entra no rateio
+$nuc_sent = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct, nuc_quota_rateio)
+    VALUES ('nucsent','Sentinela de teste',0," . (int)$tipo_id['Semanal'] . ",0.0)");
+$quotas = quotas_de_rateio();
+verifica("nucleo com quota 0 fica FORA da lista, mesmo sendo semanal",
+    is_array($quotas) && !isset($quotas[$nuc_sent]),
+    json_encode(array_keys((array)$quotas)));
+
+// excecao por nucleo: popular paga meia quota
+$nuc_pop = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct, nuc_quota_rateio)
+    VALUES ('nucpop','Popular de teste',0," . (int)$tipo_id['Mensal'] . ",0.5)");
+$quotas = quotas_de_rateio();
+verifica("a excecao do nucleo manda sobre o padrao do tipo",
+    is_array($quotas) && isset($quotas[$nuc_pop]) && (float)$quotas[$nuc_pop] == 0.5,
+    var_export(isset($quotas[$nuc_pop]) ? $quotas[$nuc_pop] : null, true));
+
+// nucleo arquivado nao rateia: nao ha entrega para ele
+$nuc_arq = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
+    VALUES ('nucarq','Arquivado de teste',1," . (int)$tipo_id['Semanal'] . ")");
+$quotas = quotas_de_rateio();
+verifica("nucleo arquivado nao entra no rateio",
+    is_array($quotas) && !isset($quotas[$nuc_arq]));
+
+// ---------------------------------------------------------------------------
+echo "\nrateio: as duas regras, e a sobra\n";
+// ---------------------------------------------------------------------------
+
+$quotas = quotas_de_rateio();
+$n      = count($quotas);
+$soma_q = array_sum($quotas);
+
+// REGRA IGUAL: a quota nao entra na conta. E a regra dos custos fixos da Rede —
+// hospedagem custa o mesmo tendo o nucleo uma ou quatro entregas por mes.
+$sug_ig = sugere_rateio(1000.00, 'igual');
+verifica("regra IGUAL divide pelo NUMERO de nucleos, nao pelas quotas",
+    is_array($sug_ig) && count($sug_ig) === $n
+    && abs(reset($sug_ig) - floor(1000.00 / $n * 100) / 100) < 0.005,
+    "n=$n primeiro=" . var_export(reset($sug_ig), true));
+
+verifica("na regra IGUAL todos recebem o mesmo valor",
+    is_array($sug_ig) && count(array_unique(array_map('strval', $sug_ig))) === 1,
+    json_encode(array_unique(array_map('strval', (array)$sug_ig))));
+
+// REGRA POR QUOTA: proporcional as entregas. Semanal paga 4x o que o mensal paga.
+$sug_q = sugere_rateio(2530.00, 'quota');
+verifica("regra QUOTA e proporcional: quem tem 4 paga 4x quem tem 1",
+    is_array($sug_q) && isset($quotas[$nuc_pop])
+    && abs($sug_q[$nuc_pop] - floor(2530.00 * 0.5 / $soma_q * 100) / 100) < 0.005,
+    "soma_quotas=$soma_q popular=" . var_export(isset($sug_q[$nuc_pop]) ? $sug_q[$nuc_pop] : null, true));
+
+// A SOBRA FICA COM A REDE. Truncar em vez de arredondar garante isso sempre: a soma
+// atribuida nunca passa do total, entao nenhum nucleo e cobrado por centavo que a
+// divisao nao produziu. Arredondando, a soma poderia ULTRAPASSAR o gasto real.
+verifica("a soma atribuida nunca passa do valor da despesa",
+    is_array($sug_ig) && array_sum($sug_ig) <= 1000.00 + 0.0001
+ && is_array($sug_q)  && array_sum($sug_q)  <= 2530.00 + 0.0001,
+    "igual=" . array_sum((array)$sug_ig) . " quota=" . array_sum((array)$sug_q));
+
+verifica("e a sobra e de centavos, nao de reais",
+    is_array($sug_q) && (2530.00 - array_sum($sug_q)) < 1.00,
+    "sobra=" . (2530.00 - array_sum((array)$sug_q)));
+
+verifica("regra que nao existe devolve null, e nao um rateio inventado",
+    sugere_rateio(100.00, 'por_simpatia') === null);
+
+verifica("valor zero ou negativo nao gera rateio",
+    sugere_rateio(0, 'igual') === null && sugere_rateio(-5, 'quota') === null);
+
+// ---------------------------------------------------------------------------
+echo "\ndespesa da Rede: lancamento mais atribuicao\n";
+// ---------------------------------------------------------------------------
+
+$cats_rede = categorias_de_despesa_da_rede();
+verifica("as seis areas da Rede estao la",
+    is_array($cats_rede) && count($cats_rede) === 6
+    && isset($cats_rede['mutirao'], $cats_rede['logistica'], $cats_rede['pedidos'],
+             $cats_rede['financas'], $cats_rede['sistemas'], $cats_rede['admin']),
+    json_encode(array_keys((array)$cats_rede)));
+
+$con_origem = cria_conta('rede', array('con_nome' => 'Rede Origem Teste', 'con_chave' => 'rede_origem_teste'));
+if (!$con_origem) $con_origem = valor_escalar("SELECT con_id FROM contas WHERE con_chave = 'rede_origem_teste'");
+$con_rede_pr = conta_da_rede();
+
+$rateio_confirmado = sugere_rateio(302.68, 'igual');
+$tra_rede = lanca_despesa_da_rede('2026-04-05', 'sistemas', 302.68, $con_origem,
+    'Hospedagem, dominio e resp. sistemas', $rateio_confirmado);
+
+verifica("a despesa da Rede vira transacao",
+    $tra_rede > 0, var_export($tra_rede, true));
+
+verifica("com as duas pernas: a conta de origem entrega o dinheiro, a Rede assume o custo",
+    ($p = pernas_de($tra_rede)) && round($p[$con_origem], 2) == 302.68
+                                && round($p[$con_rede_pr], 2) == -302.68,
+    json_encode(pernas_de($tra_rede)));
+
+verifica("e guarda a categoria da area",
+    valor_escalar("SELECT tra_categoria FROM transacoes WHERE tra_id = " . (int)$tra_rede) === 'sistemas');
+
+verifica("a atribuicao fica em `rateios`, uma linha por nucleo",
+    valor_escalar("SELECT COUNT(*) FROM rateios WHERE rat_tra = " . (int)$tra_rede) == count($rateio_confirmado),
+    var_export(valor_escalar("SELECT COUNT(*) FROM rateios WHERE rat_tra = " . (int)$tra_rede), true));
+
+// O PONTO DA DECISAO: rateio e ATRIBUICAO, nao divida. Se ele virasse lancamento, o
+// saldo do nucleo mudaria — e o caixa deixaria de significar "quanto tenho em caixa",
+// que foi o pedido que abriu esta conversa.
+$saldo_nuc_antes = saldo_da_conta($con_caixa);
+lanca_despesa_da_rede('2026-04-06', 'admin', 60.00, $con_origem, 'Despesas bancarias',
+    sugere_rateio(60.00, 'igual'));
+
+verifica("rateio NAO mexe no saldo de caixa de nucleo nenhum",
+    saldo_da_conta($con_caixa) == $saldo_nuc_antes,
+    "antes=$saldo_nuc_antes depois=" . saldo_da_conta($con_caixa));
+
+verifica("e nao quebra o invariante: toda transacao continua somando zero",
+    count(transacoes_desbalanceadas()) === 0,
+    json_encode(transacoes_desbalanceadas()));
+
+// ---------------------------------------------------------------------------
+echo "\ndespesa da Rede: o que e recusado\n";
+// ---------------------------------------------------------------------------
+
+verifica("categoria fora das seis areas e recusada",
+    lanca_despesa_da_rede('2026-04-07', 'churrasco', 10.00, $con_origem, 'x',
+        sugere_rateio(10.00, 'igual')) === null);
+
+verifica("conta de origem que nao e da Rede e recusada",
+    lanca_despesa_da_rede('2026-04-07', 'admin', 10.00, $con_forn_t, 'x',
+        sugere_rateio(10.00, 'igual')) === null);
+
+// Quem lanca pode AJUSTAR a sugestao — foi decisao explicita que o rateio e sempre
+// confirmado a mao. Mas ajustar para mais do que a Rede gastou criaria custo do nada.
+$ajustado_demais = sugere_rateio(100.00, 'igual');
+$primeiro = array_keys($ajustado_demais);
+$ajustado_demais[$primeiro[0]] = 100000.00;
+verifica("atribuir MAIS do que a despesa custou e recusado",
+    lanca_despesa_da_rede('2026-04-07', 'admin', 100.00, $con_origem, 'x', $ajustado_demais) === null);
+
+// Atribuir MENOS e legitimo: a sobra fica com a Rede, por decisao registrada.
+$ajustado_a_menos = array($nuc_pop => 10.00);
+$tra_menos = lanca_despesa_da_rede('2026-04-08', 'admin', 100.00, $con_origem, 'so um nucleo', $ajustado_a_menos);
+verifica("atribuir MENOS e aceito: a sobra fica com a Rede",
+    $tra_menos > 0 && valor_escalar("SELECT COUNT(*) FROM rateios WHERE rat_tra = " . (int)$tra_menos) == 1,
+    var_export($tra_menos, true));
+
+verifica("nucleo que nao rateia nao pode receber atribuicao",
+    lanca_despesa_da_rede('2026-04-09', 'admin', 10.00, $con_origem, 'x',
+        array($nuc_sent => 10.00)) === null);
+
+verifica("valor negativo em atribuicao e recusado",
+    lanca_despesa_da_rede('2026-04-09', 'admin', 10.00, $con_origem, 'x',
+        array($nuc_pop => -10.00)) === null);
+
+// ---------------------------------------------------------------------------
+echo "\nrateio: o que o nucleo ve\n";
+// ---------------------------------------------------------------------------
+
+$vistos = rateios_do_nucleo($nuc_pop, '2026-04-01', '2026-05-01');
+verifica("o nucleo ve os rateios do periodo, com de onde vieram",
+    is_array($vistos) && count($vistos) >= 2
+    && isset($vistos[0]['historico'], $vistos[0]['categoria'], $vistos[0]['valor'], $vistos[0]['dt']),
+    is_array($vistos) ? json_encode($vistos[0]) : var_export($vistos, true));
+
+verifica("fora do periodo nao aparece",
+    is_array($f = rateios_do_nucleo($nuc_pop, '2027-01-01', '2027-02-01')) && count($f) === 0,
+    var_export($f, true));
+
+// CONTRATO da familia: consulta que nao roda devolve null, nao "nenhum rateio".
+executa_sql("CREATE TEMPORARY TABLE rateios (
+    rat_tra int(10) unsigned NOT NULL, rat_nuc mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_rat = (executa_sql("SELECT rat_valor FROM rateios") === false);
+$rat_sem_bd = rateios_do_nucleo($nuc_pop, '2026-04-01', '2026-05-01');
+executa_sql("DROP TEMPORARY TABLE rateios");
+
+verifica("a sombra sem rat_valor faz o servidor recusar a consulta", $sombra_rat);
+verifica("rateio de consulta recusada e null, e nao lista vazia",
+    $rat_sem_bd === null, var_export($rat_sem_bd, true));
+
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag
