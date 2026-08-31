@@ -86,6 +86,24 @@
               $ok ? "Rateio atualizado."
                   : "Não foi possível atualizar o rateio. A soma não pode passar do valor da despesa.");
       }
+      else if ($o_que === "corrigir")
+      {
+          // CORREÇÃO NO LUGAR, e só dentro da janela. Quem decide se pode é
+          // edita_despesa_da_rede(), que confere a data GRAVADA — a tela esconde o botão
+          // fora da janela, mas o POST chega igual.
+          $valor    = valor_digitado(campo("valor"));
+          $data     = date_create_from_format('d/m/Y', campo("dt"));
+          $sugerido = $data ? sugere_rateio($valor, campo("regra")) : null;
+
+          $ok = ($sugerido === null) ? false
+              : edita_despesa_da_rede(campo("tra_id"), date_format($data, 'Y-m-d'),
+                    campo("categoria"), $valor, campo("origem"), campo("historico"), $sugerido);
+
+          adiciona_mensagem_status($ok ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+              $ok ? "Despesa corrigida, e o rateio refeito com o valor novo."
+                  : "Não foi possível corrigir. Despesa de mais de um mês atrás não muda"
+                  . " mais — para corrigi-la, lance um ajuste.");
+      }
       else if ($o_que === "repetir")
       {
           // O mês anterior inteiro, com o que a pessoa ajustou. São as mesmas catorze
@@ -102,9 +120,14 @@
                   $regra    = campo("r_regra", $i);
                   $sugerido = sugere_rateio($valor, $regra);
 
+                  // A CONTA É POR LINHA. Era uma só para todas, e a pessoa que tinha uma
+                  // despesa saindo de outra conta precisava lançá-la à parte — na
+                  // prática, ou lançava tudo errado ou refazia uma no formulário de
+                  // baixo. Cada linha vem preenchida com a conta do mês anterior, que é
+                  // quase sempre a certa.
                   $tra = ($sugerido === null) ? null
                        : lanca_despesa_da_rede(sprintf('%04d-%02d-01', $ano, $mes), $c, $valor,
-                             campo("r_origem"), campo("r_historico", $i), $sugerido);
+                             campo("r_origem", $i), campo("r_historico", $i), $sugerido);
 
                   if ($tra) $criadas++; else $recusadas++;
               }
@@ -141,6 +164,11 @@
 
   $repetir = (request_get("repetir", "") === "1");
 
+  // qual despesa está aberta para correção (diferente de `editar`, que abre só o rateio)
+  $corrigir = request_get("corrigir", "");
+  if (!is_string($corrigir) && !is_int($corrigir)) $corrigir = "";
+  if (!ctype_digit((string)$corrigir)) $corrigir = "";
+
   $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
                     7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
 
@@ -162,7 +190,6 @@
   // outros além destes" —, e repetida seis vezes a sétima área nasceria sem ela.
   foreach ($exemplos as $chave_ex => $texto_ex) $exemplos[$chave_ex] = $texto_ex . ', ...';
 
-  $primeira_cat = key($cats);
 
   escreve_mensagem_status();
 ?>
@@ -219,22 +246,106 @@
   </thead>
   <tbody>
   <?php foreach ($despesas as $d) {
-        $em_edicao = ((string)$d['tra_id'] === (string)$editar);
-        $rat_atual = $em_edicao ? (array)rateio_da_despesa($d['tra_id']) : array(); ?>
-    <tr<?php echo($em_edicao ? ' class="info"' : ''); ?>>
+        $em_edicao   = ((string)$d['tra_id'] === (string)$editar);
+        $em_correcao = ((string)$d['tra_id'] === (string)$corrigir);
+        // A JANELA, decidida pela mesma função que a gravação confere. Despesa recente
+        // ainda está sendo trabalhada e se conserta digitando de novo; velha já entrou em
+        // resultado que o núcleo leu, e ali o certo é lançar um ajuste, que aparece.
+        $pode_corrigir = despesa_da_rede_editavel($d['dt']);
+        $rat_atual = ($em_edicao || $em_correcao) ? (array)rateio_da_despesa($d['tra_id']) : array(); ?>
+    <tr<?php echo(($em_edicao || $em_correcao) ? ' class="info"' : ''); ?>>
       <td><?php echo(h(date('d/m/Y', strtotime($d['dt'])))); ?></td>
       <td><span class="label label-default"><?php echo(h($d['categoria_rotulo'])); ?></span></td>
       <td><?php echo(h($d['historico'])); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($d['valor']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($d['rateado']))); ?></td>
       <td class="text-right<?php echo($d['sobra'] > 0.005 ? ' text-danger' : ''); ?>"><?php echo(h(formata_moeda($d['sobra']))); ?></td>
-      <td class="text-right">
-        <?php if (!$em_edicao) { ?>
+      <td class="text-right text-nowrap">
+        <?php if (!$em_edicao && !$em_correcao) { ?>
         <a class="btn btn-default btn-xs" href="<?php echo(h($volta)); ?>&amp;editar=<?php echo(h($d['tra_id'])); ?>#d<?php echo(h($d['tra_id'])); ?>"
-           title="conferir e ajustar o rateio"><i class="glyphicon glyphicon-pencil"></i> rateio</a>
+           title="conferir e ajustar para quem o custo foi apontado"><i class="glyphicon glyphicon-equalizer"></i> rateio</a>
+        <?php if ($pode_corrigir) { ?>
+        <a class="btn btn-default btn-xs" href="<?php echo(h($volta)); ?>&amp;corrigir=<?php echo(h($d['tra_id'])); ?>#d<?php echo(h($d['tra_id'])); ?>"
+           title="corrigir valor, data, área ou descrição desta despesa"><i class="glyphicon glyphicon-pencil"></i> corrigir</a>
+        <?php } else { ?>
+        <span class="text-muted small" title="despesa de mais de um mês atrás: para corrigir, lance um ajuste">congelada</span>
+        <?php } ?>
         <?php } ?>
       </td>
     </tr>
+
+    <?php if ($em_correcao) { ?>
+    <tr class="info" id="d<?php echo(h($d['tra_id'])); ?>">
+      <td colspan="7">
+        <form method="post" action="despesas_rede.php">
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
+          <input type="hidden" name="o_que" value="corrigir" />
+          <input type="hidden" name="tra_id" value="<?php echo(h($d['tra_id'])); ?>" />
+          <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
+          <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
+
+          <p class="small text-muted" style="margin-bottom:8px;">
+            Corrigindo <strong><?php echo(h($d['historico'] !== '' ? $d['historico'] : 'despesa sem descrição')); ?></strong>.
+            O rateio é <strong>refeito</strong> com o valor novo, pela regra escolhida — e
+            depois pode ser conferido no botão de rateio, como sempre.
+          </p>
+
+          <div class="row">
+            <div class="col-sm-3">
+              <label for="c_categoria">Área</label>
+              <select id="c_categoria" name="categoria" class="form-control" required="required">
+                <option value="">escolha a área</option>
+                <?php foreach ($cats as $ck => $cr) { ?>
+                <option value="<?php echo(h($ck)); ?>"<?php echo($ck === $d['categoria'] ? ' selected' : ''); ?>><?php echo(h($cr)); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label for="c_dt">Data</label>
+              <input type="text" id="c_dt" name="dt" class="form-control data" required="required"
+                     value="<?php echo(h(date('d/m/Y', strtotime($d['dt'])))); ?>" />
+            </div>
+            <div class="col-sm-3">
+              <label for="c_valor">Valor</label>
+              <input type="text" id="c_valor" name="valor" class="form-control numero" required="required"
+                     value="<?php echo(h(formata_moeda($d['valor']))); ?>" />
+            </div>
+            <div class="col-sm-3">
+              <label for="c_regra">Rateio</label>
+              <select id="c_regra" name="regra" class="form-control">
+                <?php foreach ($regras as $rk => $rr) { ?>
+                <option value="<?php echo(h($rk)); ?>"><?php echo(h($rr)); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div class="col-sm-6">
+              <label for="c_historico">Descrição</label>
+              <input type="text" id="c_historico" name="historico" class="form-control" maxlength="200"
+                     value="<?php echo(h($d['historico'])); ?>" />
+            </div>
+            <div class="col-sm-6">
+              <label for="c_origem">Sai da conta</label>
+              <select id="c_origem" name="origem" class="form-control">
+                <?php foreach ($origens as $cid => $rot) { ?>
+                <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+          </div>
+
+          <div class="text-right" style="margin-top:12px;">
+            <a class="btn btn-link" href="<?php echo(h($volta)); ?>">cancelar</a>
+            &nbsp;<button class="btn btn-success" type="submit">
+              <i class="glyphicon glyphicon-ok glyphicon-white"></i> corrigir
+            </button>
+          </div>
+        </form>
+      </td>
+    </tr>
+    <?php } ?>
 
     <?php if ($em_edicao) { ?>
     <tr class="info" id="d<?php echo(h($d['tra_id'])); ?>">
@@ -316,21 +427,8 @@
       <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
       <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
 
-      <div class="form-group">
-        <label for="r_origem">Sai da conta</label>
-        <select id="r_origem" name="r_origem" class="form-control">
-          <?php foreach ($origens as $cid => $rot) { ?>
-          <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
-          <?php } ?>
-        </select>
-        <span class="help-block small">
-          Vale para <strong>todas</strong> as linhas marcadas. Se alguma saiu de outra conta,
-          lance essa à parte no formulário abaixo.
-        </span>
-      </div>
-
       <table class="table table-condensed">
-        <thead><tr><th></th><th>Área</th><th>Descrição</th><th>Valor</th><th>Rateio</th></tr></thead>
+        <thead><tr><th></th><th>Área</th><th>Descrição</th><th>Valor</th><th>Sai da conta</th><th>Rateio</th></tr></thead>
         <tbody>
         <?php foreach ($anteriores as $i => $a) { ?>
           <tr>
@@ -344,6 +442,17 @@
             </td>
             <td><input type="text" name="r_historico[<?php echo($i); ?>]" class="form-control input-sm" maxlength="200" value="<?php echo(h($a['historico'])); ?>" /></td>
             <td><input type="text" name="r_valor[<?php echo($i); ?>]" class="form-control input-sm numero" value="<?php echo(h(formata_moeda($a['valor']))); ?>" /></td>
+            <td>
+              <?php
+                // pré-selecionada com a do mês anterior, que é quase sempre a mesma; se a
+                // conta de então tiver sido arquivada, cai na primeira da lista
+              ?>
+              <select name="r_origem[<?php echo($i); ?>]" class="form-control input-sm">
+                <?php foreach ($origens as $cid => $rot) { ?>
+                <option value="<?php echo(h($cid)); ?>"<?php echo(((int)$cid === (int)$a['origem']) ? ' selected' : ''); ?>><?php echo(h($rot)); ?></option>
+                <?php } ?>
+              </select>
+            </td>
             <td>
               <select name="r_regra[<?php echo($i); ?>]" class="form-control input-sm">
                 <?php foreach ($regras as $rk => $rr) { ?>
@@ -384,7 +493,14 @@
       <div class="row">
         <div class="col-sm-3">
           <label for="categoria">Área</label>
-          <select id="categoria" name="categoria" class="form-control">
+          <?php
+            // SEM ÁREA PRÉ-ESCOLHIDA. O primeiro item da lista vinha selecionado só por
+            // ser o primeiro, e quem não reparasse lançava tudo naquela área — o campo
+            // parecia respondido sem ninguém ter respondido. Agora a escolha é explícita,
+            // e o `required` recusa o envio sem ela.
+          ?>
+          <select id="categoria" name="categoria" class="form-control" required="required">
+            <option value="">escolha a área</option>
             <?php foreach ($cats as $ck => $cr) { ?>
             <option value="<?php echo(h($ck)); ?>"><?php echo(h($cr)); ?></option>
             <?php } ?>
@@ -413,7 +529,7 @@
         <div class="col-sm-6">
           <label for="historico">Descrição</label>
           <input type="text" id="historico" name="historico" class="form-control" maxlength="200"
-                 placeholder="<?php echo(h($exemplos[$primeira_cat])); ?>" />
+                 placeholder="o que foi pago — escolha a área para ver exemplos" />
         </div>
         <div class="col-sm-6">
           <label for="origem">Sai da conta</label>
@@ -442,7 +558,10 @@
   var desc = document.getElementById('historico');
   if (!area || !desc) return;
 
-  area.onchange = function () { desc.placeholder = exemplos[area.value] || ''; };
+  // Sem área escolhida o campo volta a pedir a escolha, em vez de ficar mudo: o
+  // placeholder é a única pista de que a área muda o que se espera aqui.
+  var sem_area = desc.placeholder;
+  area.onchange = function () { desc.placeholder = exemplos[area.value] || sem_area; };
 })();
 
 </script>

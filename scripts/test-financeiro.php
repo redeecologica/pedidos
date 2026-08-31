@@ -2949,6 +2949,16 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
                     && round($so_um['sobra'], 2) == 90.00,
     var_export($so_um, true));
 
+// DE ONDE O DINHEIRO SAIU, por despesa. E o que "repetir o mes anterior" usa para
+// pre-preencher a conta de cada linha: a mesma despesa costuma sair sempre da mesma
+// conta, e reescolher doze vezes e convite a errar numa.
+$com_origem = null;
+foreach ((array)$lista as $l) if ($l['historico'] === 'so um nucleo') $com_origem = $l;
+verifica("a lista diz de qual conta cada despesa saiu",
+    $com_origem !== null && (int)$com_origem['origem'] === (int)$con_origem,
+    "origem=" . var_export($com_origem === null ? null : $com_origem['origem'], true)
+    . " esperado " . (int)$con_origem);
+
 verifica("fora do periodo nao entra",
     is_array($v = despesas_da_rede('2027-01-01', '2027-02-01')) && count($v) === 0);
 
@@ -3086,6 +3096,96 @@ verifica("descricao em branco vira o rotulo padrao, e nao linha sem texto",
  && valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_pp2)
     === 'pagamento a produtor',
     var_export(valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_pp2), true));
+
+
+// ---------------------------------------------------------------------------
+// A JANELA: despesa recente se conserta digitando de novo; velha, so com ajuste.
+//
+// Dois meses, e nao trinta dias: quem fecha o mes trabalha nos primeiros dias do
+// seguinte, e trinta dias fechariam a porta no dia 1o.
+verifica("despesa deste mes e do mes passado sao editaveis",
+    despesa_da_rede_editavel(date('Y-m-d')) === true
+ && despesa_da_rede_editavel(date('Y-m-d', strtotime('first day of last month'))) === true);
+
+// O ULTIMO DIA FORA DA JANELA, calculado em duas etapas de proposito: PHP le
+// 'first day of last month -1 day' como 'first day of last month' e ignora o resto —
+// devolve o dia 1o, nao o dia anterior a ele. A primeira versao deste teste caiu nisso.
+$primeiro_editavel = strtotime('first day of last month');
+$ultimo_congelado  = date('Y-m-d', strtotime('-1 day', $primeiro_editavel));
+
+verifica("despesa de dois meses atras ja esta congelada",
+    despesa_da_rede_editavel($ultimo_congelado) === false
+ && despesa_da_rede_editavel('2019-06-01') === false,
+    "primeiro editavel = " . date('Y-m-d', $primeiro_editavel)
+    . " · ultimo congelado = " . $ultimo_congelado);
+
+verifica("data invalida nao abre a janela",
+    despesa_da_rede_editavel('') === false && despesa_da_rede_editavel('nao e data') === false);
+
+// ---- a edicao no lugar ----
+$dt_agora  = date('Y-m-d');
+$tra_ed = lanca_despesa_da_rede($dt_agora, 'sistemas', 300.00, $con_origem, 'antes da correcao',
+    array($nuc_pop => 100.00));
+verifica("fixture da edicao: a despesa nasce", $tra_ed !== null, var_export($tra_ed, true));
+
+$saldo_orig_ed = saldo_da_conta($con_origem);
+
+verifica("corrige valor, area, descricao e rateio de uma vez",
+    edita_despesa_da_rede($tra_ed, $dt_agora, 'admin', 250.00, $con_origem,
+        'depois da correcao', array($nuc_pop => 50.00)) === true);
+
+$lin_ed = null;
+foreach ((array)despesas_da_rede(date('Y-m-01'), date('Y-m-01', strtotime('+1 month'))) as $l)
+    if ($l['tra_id'] === (int)$tra_ed) $lin_ed = $l;
+
+verifica("a lista ja mostra o valor, a area e a descricao novos",
+    $lin_ed !== null && round($lin_ed['valor'],2) == 250.00
+ && $lin_ed['categoria'] === 'admin' && $lin_ed['historico'] === 'depois da correcao',
+    var_export($lin_ed, true));
+
+// O RATEIO E REFEITO JUNTO: fracao do valor, e o antigo deixaria a despesa sem fechar.
+verifica("e o rateio foi refeito com o valor novo",
+    ($r_ed = rateio_da_despesa($tra_ed)) && count($r_ed) === 1 && round($r_ed[$nuc_pop],2) == 50.00,
+    json_encode($r_ed));
+
+// AS PERNAS acompanham: 300 viraram 250, e a conta de origem sente a diferenca.
+verifica("as duas pernas foram reescritas pelo valor novo",
+    round(saldo_da_conta($con_origem) - $saldo_orig_ed, 2) == -50.00,
+    "delta = " . round(saldo_da_conta($con_origem) - $saldo_orig_ed, 2));
+
+verifica("e a transacao segue com duas pernas somando zero",
+    count(transacoes_desbalanceadas()) === 0, json_encode(transacoes_desbalanceadas()));
+
+// O CARIMBO: sem ele a linha continuaria dizendo que foi registrada por quem a criou,
+// com o valor de outra pessoa.
+verifica("a edicao carimba quando foi alterada",
+    valor_escalar("SELECT tra_dt_alteracao FROM transacoes WHERE tra_id = " . (int)$tra_ed) !== null);
+
+// ---- o que a edicao NAO pode fazer ----
+//
+// FORA DA JANELA. A trava e conferida no BANCO, com a data que esta gravada — a tela
+// esconde o botao, mas o POST chega igual.
+$tra_velha = lanca_despesa_da_rede('2019-06-05', 'admin', 100.00, $con_origem, 'velha', array());
+executa_sql("UPDATE transacoes SET tra_dt = '2019-06-05 00:00:00' WHERE tra_id = " . (int)$tra_velha);
+verifica("despesa velha NAO se edita, mesmo com o POST chegando",
+    edita_despesa_da_rede($tra_velha, '2019-06-05', 'admin', 999.00, $con_origem, 'x', array()) === false
+ && round((float)valor_escalar("SELECT -lan_valor FROM lancamentos WHERE lan_tra = " . (int)$tra_velha
+        . " AND lan_con = " . (int)conta_da_rede()), 2) == 100.00);
+
+verifica("transacao que NAO e despesa da Rede nao se edita por aqui",
+    edita_despesa_da_rede($tra_pp, $dt_agora, 'admin', 10.00, $con_origem, 'x', array()) === false);
+
+verifica("valor nao positivo, area inexistente e origem que nao e da Rede sao recusados",
+    edita_despesa_da_rede($tra_ed, $dt_agora, 'admin',  0.00, $con_origem, 'x', array()) === false
+ && edita_despesa_da_rede($tra_ed, $dt_agora, 'churrasco', 10.00, $con_origem, 'x', array()) === false
+ && edita_despesa_da_rede($tra_ed, $dt_agora, 'admin', 10.00, $con_forn_t, 'x', array()) === false);
+
+// O teto do rateio segue o valor NOVO, e nao o antigo.
+verifica("rateio maior que o valor novo e recusado, e nada e gravado pela metade",
+    edita_despesa_da_rede($tra_ed, $dt_agora, 'admin', 40.00, $con_origem, 'x',
+        array($nuc_pop => 40.01)) === false
+ && ($r2 = rateio_da_despesa($tra_ed)) && round($r2[$nuc_pop],2) == 50.00,
+    json_encode(isset($r2) ? $r2 : null));
 
 
 // ---- reajuste ----
