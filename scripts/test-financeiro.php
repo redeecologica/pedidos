@@ -3413,8 +3413,22 @@ $ped_cf2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, 
     VALUES (" . (int)$cha_cf . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'1')");
 executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
     VALUES (" . (int)$ped_cf2 . "," . (int)$prod_est_id . ",30,30)");
+// Esta linha e de um produto que o nucleo NUNCA confirmou receber. Ela NAO deve entrar
+// no aviso: contribui zero dos dois lados da conta, e contar essas dava a um nucleo com
+// diferenca 0,00 um "29 sem entrega registrada" ao lado.
 executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
     VALUES (" . (int)$ped_cf2 . "," . (int)$prod_cf2_id . ",10,NULL)");
+
+// Ja ESTA outra e o caso que o aviso existe para pegar: outro cestante do mesmo nucleo
+// pediu o produto que o nucleo recebeu, e a entrega dele nao foi anotada. E ela que pode
+// explicar os 100 de diferenca. Precisa de outro cestante porque `pedidos` tem UNIQUE
+// (ped_usr, ped_cha): um pedido por pessoa por chamada.
+$usr_cf2b = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Cf dois b','cf2b','cf2b@teste.local','x','0'," . (int)$nuc_cf2 . ")");
+$ped_cf2b = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_cf . "," . (int)$usr_cf2b . "," . (int)$nuc_cf2 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf2b . "," . (int)$prod_est_id . ",10,NULL)");
 
 $cf = conferencia_da_chamada($cha_cf);
 
@@ -3439,7 +3453,12 @@ verifica("nucleo que recebeu mais do que distribuiu mostra a diferenca",
 
 // O AVISO que impede de cobrar do nucleo um erro de digitacao: sem ele, os 100 acima
 // seriam lidos como perda, quando ha uma linha pedida sem entrega registrada.
-verifica("e avisa quantas linhas ficaram sem entrega registrada",
+//
+// UMA, e nao duas: a linha do outro produto tambem esta em branco, mas o nucleo nunca
+// confirmou ter recebido aquele produto — ela nao pode explicar diferenca nenhuma. Contar
+// as duas era o defeito que fazia um nucleo com diferenca 0,00 aparecer com dezenas de
+// avisos ao lado.
+verifica("avisa so as linhas que PODEM explicar a diferenca",
     ($n = nuc_da_conf($cf, $nuc_cf2)) && $n['sem_registro'] === 1
  && ($n1 = nuc_da_conf($cf, $nuc_cf1)) && $n1['sem_registro'] === 0,
     var_export($n['sem_registro'], true));
@@ -3449,8 +3468,6 @@ verifica("o total soma os nucleos",
  && round($cf['total']['diferenca'],2) == 100.00 && $cf['total']['sem_registro'] === 1,
     json_encode($cf['total']));
 
-// A − B: o julgamento de Financas. Nucleos confirmaram 900, Financas confirmou 900 tambem
-// (90 unidades x 10) — nada abatido.
 verifica("o abatido de Financas e a distancia entre os nucleos e a confirmacao dela",
     round($cf['confirmado'],2) == 900.00 && round($cf['abatido'],2) == 0.00,
     "confirmado=" . $cf['confirmado'] . " abatido=" . $cf['abatido']);
@@ -3491,6 +3508,30 @@ verifica("a lista vem ordenada pela diferenca, do maior para o menor",
     $cf3['nucleos'][0]['diferenca'] >= $cf3['nucleos'][1]['diferenca']
  && $cf3['nucleos'][1]['diferenca'] >= $cf3['nucleos'][2]['diferenca'],
     json_encode(array_map(function($n){ return $n['diferenca']; }, $cf3['nucleos'])));
+
+// O caso que a Rede explicou: repasse entre cestantes. O nucleo recebeu 50, um cestante
+// levou 60 e outro nao levou nada — a conta do nucleo FECHA, e ainda assim ha linha em
+// branco. Nao e erro, e o aviso nao pode acusar como se fosse.
+executa_sql("UPDATE pedidoprodutos SET pedprod_entregue = 60
+    WHERE pedprod_ped = " . (int)$ped_cf1 . " AND pedprod_prod = " . (int)$prod_est_id);
+$usr_cf1b = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_email,usr_senha,usr_archive,usr_nuc)
+    VALUES ('Cf um b','cf1b','cf1b@teste.local','x','0'," . (int)$nuc_cf1 . ")");
+$ped_cf1b = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_cf . "," . (int)$usr_cf1b . "," . (int)$nuc_cf1 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_cf1b . "," . (int)$prod_est_id . ",10,NULL)");
+executa_sql("UPDATE distribuicao SET dist_quantidade_recebido = 60
+    WHERE dist_cha = " . (int)$cha_cf . " AND dist_nuc = " . (int)$nuc_cf1
+        . " AND dist_prod = " . (int)$prod_est_id);
+
+$cf_rep = conferencia_da_chamada($cha_cf);
+verifica("conta que FECHA e mesmo assim tem linha em branco: repasse entre cestantes",
+    ($n = nuc_da_conf($cf_rep, $nuc_cf1)) && abs($n['diferenca']) < 0.005
+                                          && $n['sem_registro'] === 1,
+    var_export($n, true));
+
+// A − B: o julgamento de Financas. Nucleos confirmaram 900, Financas confirmou 900 tambem
+// (90 unidades x 10) — nada abatido.
 
 verifica("chamada que nao existe devolve null",
     conferencia_da_chamada(99999999) === null);
