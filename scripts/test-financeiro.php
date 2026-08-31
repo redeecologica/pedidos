@@ -3573,6 +3573,23 @@ verifica("avisa so as linhas que PODEM explicar a diferenca",
  && ($n1 = nuc_da_conf($cf, $nuc_cf1)) && $n1['sem_registro'] === 0,
     var_export($n['sem_registro'], true));
 
+// A DEMANDA CRUA, e o unico numero da tabela que nao depende de alguem conferir
+// mercadoria. Fixture: nucleo 1 pediu 50 e levou 50; nucleo 2 pediu 30 + 10 do outro
+// produto no mesmo pedido, mais 10 do cf2b. Tudo a preco de venda 10.
+verifica("a conferencia traz o que os cestantes PEDIRAM, e nao so o que levaram",
+    is_array($cf) && ($n = nuc_da_conf($cf, $nuc_cf1)) && round($n['pediu'],2) == 500.00,
+    var_export(isset($n) ? $n : null, true));
+
+// "sem nada abatido": o pedido nao encolhe por causa de estoque, nem de produto que
+// ficou indisponivel. E o que as pessoas pediram, antes de qualquer conferencia.
+verifica("o pedido NAO desconta o produto que ficou indisponivel",
+    is_array($cf) && ($n = nuc_da_conf($cf, $nuc_cf2)) && round($n['pediu'],2) == 500.00,
+    var_export(isset($n) ? $n : null, true));
+
+verifica("e o total soma o pedido de todos os nucleos",
+    is_array($cf) && round($cf['total']['pediu'],2) == 1000.00,
+    var_export(is_array($cf) ? $cf['total']['pediu'] : $cf, true));
+
 verifica("o total soma os nucleos",
     round($cf['total']['recebeu'],2) == 900.00 && round($cf['total']['distribuiu'],2) == 800.00
  && round($cf['total']['diferenca'],2) == 100.00 && $cf['total']['sem_registro'] === 1,
@@ -3613,11 +3630,46 @@ verifica("nucleo que entregou sem confirmar recebimento aparece, com diferenca n
                                        && round($n['diferenca'],2) == -50.00,
     var_export($n, true));
 
-// A ordem serve para investigar: maior diferenca primeiro.
-verifica("a lista vem ordenada pela diferenca, do maior para o menor",
-    $cf3['nucleos'][0]['diferenca'] >= $cf3['nucleos'][1]['diferenca']
- && $cf3['nucleos'][1]['diferenca'] >= $cf3['nucleos'][2]['diferenca'],
-    json_encode(array_map(function($n){ return $n['diferenca']; }, $cf3['nucleos'])));
+// A ORDEM E A MESMA DA CAIXA DE SELECAO de nucleo — ORDER BY nuc_nome_curto, que e o que
+// vinte telas deste sistema usam. Ordenava por diferenca, e quem confere volta a esta
+// tabela chamada apos chamada procurando o SEU nucleo: ele mudava de lugar a cada vez.
+$nomes_ordem = array_map(function ($n) { return $n['nome']; }, $cf3['nucleos']);
+$esperado_ordem = $nomes_ordem;
+usort($esperado_ordem, 'compara_nome_de_nucleo');
+
+verifica("a lista vem em ordem alfabetica, como a caixa de selecao",
+    $nomes_ordem === $esperado_ordem,
+    json_encode($nomes_ordem) . " esperado " . json_encode($esperado_ordem));
+
+// O comparador tem de casar com latin1_swedish_ci, a collation da base: la o u com acento
+// vale u, e nao um caractere depois do z. Em ordem de BYTE "Grajau" acentuado cairia
+// depois de "Santa", porque o acento chega em utf8 (common.inc.php:76) como 0xC3.
+verifica("acento ordena como a letra sem acento, e nao depois do z",
+    compara_nome_de_nucleo('Grajaú', 'Santa') < 0
+ && compara_nome_de_nucleo('Niterói', 'Nova Iguaçu') < 0
+ && compara_nome_de_nucleo('Ubá', 'Ubz') < 0,
+    "Grajau/Santa=" . compara_nome_de_nucleo('Grajaú', 'Santa')
+    . " Niteroi/Nova=" . compara_nome_de_nucleo('Niterói', 'Nova Iguaçu')
+    . " Uba/Ubz=" . compara_nome_de_nucleo('Ubá', 'Ubz'));
+
+// O que importa nao e devolver 0 para 'urca' e 'Urca' — e o nome cair no MESMO LUGAR da
+// lista, seja como for digitado. A assercao e sobre o lugar, e nao sobre o zero: exigir
+// zero brigaria com o desempate de que a estabilidade depende.
+verifica("maiuscula e minuscula nao mudam onde o nome cai na lista",
+    compara_nome_de_nucleo('urca', 'Santa')  > 0
+ && compara_nome_de_nucleo('URCA', 'Santa')  > 0
+ && compara_nome_de_nucleo('urca', 'Vargem') < 0
+ && compara_nome_de_nucleo('URCA', 'Vargem') < 0,
+    "urca/Santa=" . compara_nome_de_nucleo('urca', 'Santa')
+    . " URCA/Vargem=" . compara_nome_de_nucleo('URCA', 'Vargem'));
+
+// Empate depois de tirar o acento nao pode virar 0: uasort com 0 deixa a ordem por conta
+// do algoritmo, e ela mudaria de uma chamada para outra na mesma tela.
+verifica("nomes que so diferem no acento tem ordem estavel, e nao empate",
+    compara_nome_de_nucleo('Sao', 'São') !== 0
+ && (compara_nome_de_nucleo('Sao', 'São') < 0) !== (compara_nome_de_nucleo('São', 'Sao') < 0),
+    "Sao/Sao_til=" . compara_nome_de_nucleo('Sao', 'São')
+    . " invertido=" . compara_nome_de_nucleo('São', 'Sao'));
 
 // O caso que a Rede explicou: repasse entre cestantes. O nucleo recebeu 50, um cestante
 // levou 60 e outro nao levou nada — a conta do nucleo FECHA, e ainda assim ha linha em

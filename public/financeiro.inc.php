@@ -2832,6 +2832,50 @@ function lanca_estoque_da_chamada($cha_id)
 }
 
 
+// Compara dois nomes de núcleo como o BANCO os compararia.
+//
+// POR QUE NÃO strcasecmp() DIRETO: a conexão é utf8 (common.inc.php:76), então "Grajaú"
+// chega com o ú em dois bytes começando por 0xC3 — maior que qualquer letra ASCII. Em
+// ordem de byte todo nome acentuado cairia depois de "z" a partir do acento, e a lista
+// deixaria de bater com a caixa de seleção, que vem ordenada pelo MySQL.
+//
+// latin1_swedish_ci, a collation da base, trata á como a e ç como c. É isso que a tabela
+// abaixo faz — só as letras que o português usa, que são as que aparecem em nome de
+// núcleo. Letra fora dela passa intacta e cai onde o byte mandar, que é o comportamento
+// de antes e não uma regressão nova.
+//
+// SEM mb_*: nenhum outro arquivo deste sistema usa mbstring, então não há evidência de
+// que a extensão esteja ligada na Locaweb — e mb_strtolower ausente é fatal, não aviso:
+// derrubaria a tela inteira por causa de uma ordenação. A tabela cobre maiúscula e
+// minúscula acentuadas, e depois dela só sobra ASCII, onde strtolower é seguro.
+function compara_nome_de_nucleo($a, $b)
+{
+	static $acentos = array(
+		'á'=>'a','à'=>'a','ã'=>'a','â'=>'a','ä'=>'a',
+		'é'=>'e','è'=>'e','ê'=>'e','ë'=>'e',
+		'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i',
+		'ó'=>'o','ò'=>'o','õ'=>'o','ô'=>'o','ö'=>'o',
+		'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u',
+		'ç'=>'c','ñ'=>'n',
+		'Á'=>'a','À'=>'a','Ã'=>'a','Â'=>'a','Ä'=>'a',
+		'É'=>'e','È'=>'e','Ê'=>'e','Ë'=>'e',
+		'Í'=>'i','Ì'=>'i','Î'=>'i','Ï'=>'i',
+		'Ó'=>'o','Ò'=>'o','Õ'=>'o','Ô'=>'o','Ö'=>'o',
+		'Ú'=>'u','Ù'=>'u','Û'=>'u','Ü'=>'u',
+		'Ç'=>'c','Ñ'=>'n',
+	);
+
+	$sa = strtolower(strtr((string)$a, $acentos));
+	$sb = strtolower(strtr((string)$b, $acentos));
+
+	$c = strcmp($sa, $sb);
+	// empate depois de tirar acento — "Sao" e "São" — não pode virar 0: uasort com 0
+	// deixa a ordem por conta do algoritmo, e ela mudaria entre chamadas. O nome cru
+	// desempata e a lista fica estável.
+	return ($c !== 0) ? $c : strcmp((string)$a, (string)$b);
+}
+
+
 // A conferência de uma chamada: onde a mercadoria entrou e onde saiu, em dinheiro.
 //
 // A mesma mercadoria é medida em três lugares diferentes, e cada distância entre eles
@@ -2914,7 +2958,7 @@ function conferencia_da_chamada($cha_id)
 			'enviou_linhas'  => (int)$r['e_linhas'],
 			'recebeu_linhas' => (int)$r['v_linhas'],
 			'justificativas' => (int)$r['just'],
-			'distribuiu' => 0.0, 'sem_registro' => 0);
+			'pediu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0);
 
 	// ---- C: o que os cestantes de cada núcleo receberam ----
 	//
@@ -2922,6 +2966,11 @@ function conferencia_da_chamada($cha_id)
 	// no núcleo antigo. Medido — juntar pelo núcleo atual dá números absurdos.
 	$sql = "SELECT ped.ped_nuc nuc, n.nuc_nome_curto nome, ";
 	$sql.= "SUM(pp.pedprod_entregue * p.prod_valor_venda) v, ";
+	// A DEMANDA CRUA: o que os cestantes pediram, sem nada abatido. É o primeiro número
+	// da corrente e o único que não depende de ninguém conferir nada — todos os outros
+	// são alguém contando mercadoria depois. Sem ele a tabela começa pelo estoque, e não
+	// dá para ver se a chamada atendeu o que foi pedido.
+	$sql.= "SUM(pp.pedprod_quantidade * p.prod_valor_venda) q, ";
 	// SÓ AS LINHAS QUE PODEM EXPLICAR A DIFERENÇA. Contar toda linha pedida sem entrega
 	// registrada incluía produtos que o núcleo nunca confirmou ter recebido — e essas
 	// contribuem zero dos dois lados da conta. O resultado era um núcleo com diferença
@@ -2956,20 +3005,23 @@ function conferencia_da_chamada($cha_id)
 			$nucleos[$n] = array('nuc_id' => $n, 'nome' => (string)$r['nome'],
 			                     'enviou' => 0.0, 'recebeu' => 0.0,
 			                     'enviou_linhas' => 0, 'recebeu_linhas' => 0,
-			                     'justificativas' => 0,
+			                     'justificativas' => 0, 'pediu' => 0.0,
 			                     'distribuiu' => 0.0, 'sem_registro' => 0);
 
+		$nucleos[$n]['pediu']        = ($r['q'] === null) ? 0.0 : round((float)$r['q'], 2);
 		$nucleos[$n]['distribuiu']   = round((float)$r['v'], 2);
 		$nucleos[$n]['sem_registro'] = (int)$r['sem'];
 	}
 
 	$total = array('enviou' => 0.0, 'recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0,
-	               'enviou_linhas' => 0, 'recebeu_linhas' => 0, 'justificativas' => 0);
+	               'enviou_linhas' => 0, 'recebeu_linhas' => 0, 'justificativas' => 0,
+	               'pediu' => 0.0);
 	foreach ($nucleos as $n => $x)
 	{
 		$nucleos[$n]['diferenca'] = round($x['recebeu'] - $x['distribuiu'], 2);
 		// o que saiu do mutirão e o núcleo não confirmou: perdido no caminho, ou não conferido
 		$nucleos[$n]['no_caminho'] = round($x['enviou'] - $x['recebeu'], 2);
+		$total['pediu']        = round($total['pediu'] + $x['pediu'], 2);
 		$total['enviou']       = round($total['enviou'] + $x['enviou'], 2);
 		$total['recebeu']      = round($total['recebeu'] + $x['recebeu'], 2);
 		$total['enviou_linhas']  += $x['enviou_linhas'];
@@ -2981,10 +3033,13 @@ function conferencia_da_chamada($cha_id)
 	$total['diferenca']  = round($total['recebeu'] - $total['distribuiu'], 2);
 	$total['no_caminho'] = round($total['enviou'] - $total['recebeu'], 2);
 
-	// ordena por diferença, do maior para o menor: é o que se quer investigar primeiro
+	// ORDEM ALFABÉTICA, a mesma da caixa de seleção de núcleo em toda tela do sistema
+	// (ORDER BY nuc_nome_curto, em vinte lugares). Ordenava por diferença — o maior
+	// primeiro —, e o argumento era "é o que se quer investigar". Mas quem confere volta
+	// a esta tabela chamada após chamada procurando o SEU núcleo, e ele mudava de lugar a
+	// cada vez. A diferença já salta pelo vermelho da coluna; a ordem serve para achar.
 	uasort($nucleos, function ($a, $b) {
-		if (abs($a['diferenca'] - $b['diferenca']) < 0.005) return 0;
-		return ($a['diferenca'] > $b['diferenca']) ? -1 : 1;
+		return compara_nome_de_nucleo($a['nome'], $b['nome']);
 	});
 
 	// ---- B e o estoque, que são da chamada inteira e não de um núcleo ----
