@@ -39,7 +39,47 @@
       if (!is_string($cha_id) && !is_int($cha_id)) $cha_id = "";
       $o_que  = request_get("o_que", "");
 
-      if ($o_que === "abertura")
+      if ($o_que === "prazo")
+      {
+          // O PRAZO DE REGISTRO DE ENTREGA MORA AQUI, junto do fechamento, porque as duas
+          // decisões são a mesma conversa: até quando a entrega ainda pode mudar, e
+          // quando o número pode ser congelado. Estavam em telas separadas, e quem fechava
+          // não via o prazo que autoriza fechar.
+          //
+          // NÃO SE MEXE DEPOIS DE FECHADA. Mover o prazo de uma chamada já congelada não
+          // desfaz nada — os lançamentos continuam lá — mas passa a sugerir que a entrega
+          // ainda pode mudar, quando ela já virou dívida de cestante. A trava é conferida
+          // AQUI, no servidor, e não só escondendo o botão: a tela esconde, o POST não.
+          $fila_agora = chamadas_a_fechar($de, $ate);
+          $ja_fechada = null;
+          foreach ((array)$fila_agora as $x)
+              if ((string)$x['cha_id'] === (string)$cha_id) $ja_fechada = $x['fechada'];
+
+          $data = date_create_from_format('d/m/Y', trim((string)request_get("prazo", "")));
+          $hora = trim((string)request_get("prazo_hh", ""));
+          if (!preg_match('/^\d{1,2}:\d{2}$/', $hora)) $hora = '23:59';
+
+          if ($fila_agora === null)
+              adiciona_mensagem_status(MSG_TIPO_ERRO, "Não foi possível conferir a situação da chamada.");
+          else if ($ja_fechada === null)
+              adiciona_mensagem_status(MSG_TIPO_ERRO, "Chamada fora da fila deste mês.");
+          else if ($ja_fechada)
+              adiciona_mensagem_status(MSG_TIPO_ERRO,
+                  "Esta chamada já foi fechada — o prazo de registro não muda mais.");
+          else if (!$data)
+              adiciona_mensagem_status(MSG_TIPO_ERRO, "Data inválida. Use dd/mm/aaaa.");
+          else
+          {
+              $ok = executa_sql("UPDATE chamadas SET cha_dt_prazo_contabil = "
+                  . prep_para_bd(date_format($data, 'Y-m-d') . ' ' . $hora . ':00')
+                  . " WHERE cha_id = " . prep_para_bd($cha_id));
+
+              adiciona_mensagem_status($ok ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+                  $ok ? "Prazo de registro de entrega atualizado."
+                      : "Não foi possível atualizar o prazo.");
+          }
+      }
+      else if ($o_que === "abertura")
       {
           $tra = lanca_abertura_do_estoque($cha_id);
 
@@ -88,13 +128,18 @@
   $saldo_est   = ($con_estoque === null) ? null : saldo_da_conta($con_estoque);
 
 
+  // qual chamada está com o prazo aberto para edição
+  $editando_prazo = request_get("prazo_de", "");
+  if (!is_string($editando_prazo) && !is_int($editando_prazo)) $editando_prazo = "";
+  if (!ctype_digit((string)$editando_prazo)) $editando_prazo = "";
+
   $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
                     7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
 
   escreve_mensagem_status();
 ?>
 
-<legend>Fechamento de chamadas &middot; <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?></legend>
+<legend>Fechamento contábil &middot; <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?></legend>
 
 <form class="form-inline hidden-print" method="get" action="fechamento_chamada.php">
   <div class="form-group">
@@ -187,6 +232,7 @@
     <tr>
       <th>Entrega</th>
       <th>Chamada</th>
+      <th>Prazo p/ registro da entrega</th>
       <?php if ($algum_estoque) { ?>
       <th class="text-right">Estoque antes</th>
       <th class="text-right">Estoque depois</th>
@@ -203,6 +249,52 @@
     <tr>
       <td><?php echo(h(date('d/m/Y', strtotime($f['dt'])))); ?></td>
       <td><?php echo(h($f['tipo'])); ?> <small class="text-muted">#<?php echo(h($f['cha_id'])); ?></small></td>
+      <?php
+        // O PRAZO DECIDE SE DÁ PARA FECHAR, e por isso fica na mesma linha do botão de
+        // fechar. Enquanto ele não vence, Finanças olha os números ainda quentes; depois
+        // dele, olha tudo parado e decide congelar. Eram duas telas, e quem fechava não
+        // via o prazo que autoriza fechar.
+        $em_prazo = ((string)$f['cha_id'] === (string)$editando_prazo);
+      ?>
+      <td class="<?php echo($em_prazo ? '' : 'text-nowrap'); ?>">
+        <?php if ($em_prazo) { ?>
+        <form method="post" action="fechamento_chamada.php" class="form-inline">
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
+          <input type="hidden" name="o_que" value="prazo" />
+          <input type="hidden" name="cha_id" value="<?php echo(h($f['cha_id'])); ?>" />
+          <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
+          <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
+          <input type="text" name="prazo" class="form-control input-sm data" style="width:105px;"
+                 required="required" autofocus
+                 value="<?php echo(h($f['prazo'] ? date('d/m/Y', strtotime($f['prazo'])) : '')); ?>" />
+          <input type="text" name="prazo_hh" class="form-control input-sm" style="width:62px;"
+                 value="<?php echo(h($f['prazo'] ? date('H:i', strtotime($f['prazo'])) : '23:59')); ?>" />
+          <button class="btn btn-success btn-xs" type="submit">ok</button>
+          <a class="btn btn-link btn-xs" href="<?php echo(h($volta)); ?>">cancelar</a>
+        </form>
+        <?php } else { ?>
+          <?php if ($f['prazo']) { ?>
+            <?php echo(h(date('d/m/Y H:i', strtotime($f['prazo'])))); ?>
+            <?php if (!$f['congelavel']) { ?>
+              <br><small class="text-muted">a entrega ainda pode mudar</small>
+            <?php } ?>
+          <?php } else { ?>
+            <span class="text-danger">não definido</span>
+            <br><small class="text-muted">sem prazo não há o que congelar</small>
+          <?php } ?>
+          <?php
+            // Fechada não muda mais: mover o prazo não desfaz lançamento nenhum, mas
+            // passaria a sugerir que a entrega ainda pode mudar depois de ela já ter
+            // virado dívida de cestante.
+            if (!$f['fechada']) { ?>
+          &nbsp;<a class="btn btn-default btn-xs hidden-print"
+                   href="<?php echo(h($volta)); ?>&amp;prazo_de=<?php echo(h($f['cha_id'])); ?>"
+                   title="mudar o prazo de registro de entrega desta chamada">
+            <i class="glyphicon glyphicon-pencil"></i>
+          </a>
+          <?php } ?>
+        <?php } ?>
+      </td>
       <?php if ($algum_estoque && !$f['tem_mutirao']) { ?>
       <td class="text-right" colspan="3">
         <span class="text-muted" title="o produtor entrega direto no núcleo: esta chamada não guarda estoque">não guarda estoque</span>
@@ -269,7 +361,7 @@
     </tr>
   <?php } ?>
   <?php if (!count($fila)) { ?>
-    <tr><td colspan="<?php echo($algum_estoque ? 8 : 5); ?>">Nenhuma chamada a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
+    <tr><td colspan="<?php echo($algum_estoque ? 9 : 6); ?>">Nenhuma chamada a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
   <?php } ?>
   </tbody>
 </table>
@@ -279,9 +371,15 @@
   mercadoria que sobrou vira ativo da Rede, mercadoria consumida vira custo da entrega —,
   e <strong>o débito de cada cestante</strong>, que até aqui era calculado a cada leitura e
   passa a ser um lançamento.
-  <br>Congelar o débito só é seguro depois do prazo contábil, e é por isso que o botão só
-  aparece então: antes dele a entrega ainda muda, e um débito gravado cedo vira um retrato
-  que a realidade desmente — sem ninguém perceber, porque ele deixou de acompanhar a entrega.
+  <br>O <strong>prazo para registro da entrega</strong> é o que separa as duas fases, e por
+  isso fica aqui, na mesma linha do botão. Enquanto ele não vence, os núcleos ainda anotam e
+  corrigem entrega; depois dele, os números param e dá para conferir tudo parado antes de
+  congelar. Congelar antes grava um retrato que a realidade desmente — sem ninguém perceber,
+  porque ele deixou de acompanhar a entrega. É por isso que o botão de fechar só aparece
+  depois do prazo.
+  <br>O prazo se muda pelo lápis, enquanto a chamada não estiver fechada. <strong>Depois de
+  fechada, não</strong>: mover o prazo não desfaz lançamento nenhum, mas passaria a sugerir
+  que a entrega ainda pode mudar quando ela já virou dívida de cestante.
   <br>Chamada já fechada continua na lista, marcada — ausência se confunde com esquecimento.
   Se o estoque for corrigido depois, ela reaparece como <em>a fechar</em> e o novo lançamento
   é só a diferença. <strong>Débito já congelado não se refaz</strong>: para corrigir dinheiro

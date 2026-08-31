@@ -2779,6 +2779,9 @@ function chamadas_a_fechar($de, $ate)
 			// podem mudar, e lançar cedo grava um retrato que a entrega ainda desmente
 			'congelavel' => ($row['cha_dt_prazo_contabil'] !== null
 			                 && strtotime($row['cha_dt_prazo_contabil']) <= time()),
+			// a data em si, para a tela mostrar e deixar mexer: quem fecha é quem precisa
+			// saber até quando a entrega ainda pode mudar debaixo do fechamento
+			'prazo'      => $row['cha_dt_prazo_contabil'],
 			'estoque'    => $pend,
 			// quanto esta chamada abriria, se for a primeira da corrente dela
 			'abertura'   => $abertura,
@@ -3032,12 +3035,20 @@ function abas_financeiras_do_grupo($grupo)
 		'hub'        => array('financas.php',            'Finanças da Rede',   ''),
 		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
 		                                                 'Recebimento dos produtores', 'glyphicon-road'),
-		'prazos'     => array('financas_prazos.php',     'Prazos',             'glyphicon-calendar'),
 	);
+
+	// PRAZOS SÓ PARA QUEM AINDA NÃO TEM O FECHAMENTO. O prazo de registro de entrega
+	// passou a ser editado dentro do Fechamento contábil, junto da decisão que ele
+	// autoriza — mas o Fechamento é invisível para quem não alcança o módulo, e para
+	// essa pessoa a tela antiga continua sendo a única forma de definir o prazo.
+	// Tirá-la da barra dos dois lados deixaria RESP_FINANÇAS sem Beta Tester sem
+	// caminho nenhum até ela.
+	if (!pode_ver_financas_da_rede())
+		$abas['prazos'] = array('financas_prazos.php', 'Prazos', 'glyphicon-calendar');
 
 	if (pode_ver_financas_da_rede())
 	{
-		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento de chamadas', 'glyphicon-lock');
+		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento contábil', 'glyphicon-lock');
 		$abas['despesas']   = array('despesas_rede.php',      'Despesas da Rede',   'glyphicon-globe');
 		$abas['quotas']     = array('quotas_rateio.php',      'Quotas de rateio',   'glyphicon-equalizer');
 		$abas['produtores'] = array('contas_produtores.php',  'Produtores',         'glyphicon-leaf');
