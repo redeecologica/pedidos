@@ -2054,6 +2054,58 @@ function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico,
 }
 
 
+// A Rede paga um produtor, direto da conta dela.
+//
+// NÃO É DESPESA, e por isso não passa por lanca_despesa_da_rede(). Despesa da Rede é
+// custo de manter a Rede de pé, e por isso se rateia entre os núcleos. Pagar produtor é
+// quitar o que a Rede JÁ DEVE pela mercadoria que ele entregou — o custo daquela
+// mercadoria já foi para quem a recebeu, no débito do cestante. Rateando, cada núcleo
+// seria cobrado de novo pelo mesmo produto, agora pela conta do produtor.
+//
+// Por isso não grava linha em `rateios`, e por isso o tipo continua sendo
+// 'pagamento_produtor' — o mesmo do caixa do núcleo. O TIPO diz o que o dinheiro é; as
+// CONTAS dizem quem o moveu. despesas_da_rede() filtra por tra_tipo = 'despesa_rede' e
+// não o enxerga; rateios_do_nucleo() lê de `rateios` e também não; fluxo_de_caixa_mensal()
+// e extrato_do_nucleo() são presos à conta do núcleo. Nada disto precisou mudar.
+//
+// A POSIÇÃO DO PRODUTOR pega o lançamento de graça: posicao_dos_produtores() soma o que
+// caiu na conta dele sem olhar tipo nenhum, então pagamento da Rede e pagamento de núcleo
+// abatem o mesmo saldo — que é como o dinheiro se comporta.
+//
+// AS PERNAS: produtor −X, conta de origem +X. Idênticas às do caixa do núcleo, trocando
+// o caixa pela conta da Rede de onde saiu — quem segurava o dinheiro passa a segurar
+// menos, e a conta do produtor registra o que ele recebeu.
+//
+// CONTRATO: tra_id, ou null quando não pôde virar lançamento. A recusa é silenciosa pelo
+// mesmo motivo de lanca_movimento_nucleo(): quem sabe dizer o que faltou é a tela.
+function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_origem, $historico)
+{
+	$valor = round((float)$valor, 2);
+	if ($valor <= 0) return null;
+
+	// Array onde se espera escalar é TypeError dentro do isset() no PHP 8 — a tela
+	// inteira cairia por causa de um `origem[]` no POST. Mesma guarda das irmãs.
+	if (!is_string($con_origem)   && !is_int($con_origem))   return null;
+	if (!is_string($con_produtor) && !is_int($con_produtor)) return null;
+
+	$destinos = contas_de_destino();
+	if ($destinos === null) return null;
+
+	// As duas contas têm de estar na lista de destinos, e ser do tipo que se espera. A
+	// origem da Rede pelo motivo de lanca_despesa_da_rede(): pagar produtor da conta de
+	// um cestante tiraria dele dinheiro que ele não gastou.
+	if (!isset($destinos[$con_origem]))   return null;
+	if (!isset($destinos[$con_produtor])) return null;
+	if (tipo_de_conta($con_origem)   !== 'rede')     return null;
+	if (tipo_de_conta($con_produtor) !== 'produtor') return null;
+
+	$historico = (is_string($historico) || is_int($historico)) ? trim((string)$historico) : '';
+	if ($historico === '') $historico = 'pagamento a produtor';
+
+	return lanca_transacao($dt, 'pagamento_produtor', $con_produtor, $con_origem, $valor, $historico);
+}
+
+
 // O que foi carimbado num núcleo no período, com a despesa que o originou.
 //
 // A origem vem junto porque é ela que faz o rateio ser lido como conta e não como
@@ -2836,6 +2888,10 @@ function conferencia_da_chamada($cha_id)
 	$sql.= "SUM(d.dist_quantidade * p.prod_valor_venda) e, ";
 	$sql.= "SUM(d.dist_quantidade > 0) e_linhas, ";
 	$sql.= "SUM(d.dist_quantidade_recebido > 0) v_linhas, ";
+	// quantas divergências deste núcleo alguém já explicou por escrito. É o contrapeso
+	// do aviso de linhas em branco: uma coisa é o núcleo dever explicação, outra é ele
+	// já ter explicado — e sem este número as duas apareciam iguais na tela.
+	$sql.= "SUM(d.dist_just_dif_entrega IS NOT NULL AND TRIM(d.dist_just_dif_entrega) <> '') just, ";
 	$sql.= "SUM(d.dist_quantidade_recebido * p.prod_valor_venda) v ";
 	$sql.= "FROM distribuicao d ";
 	$sql.= "JOIN chamadas c ON c.cha_id = d.dist_cha ";
@@ -2857,6 +2913,7 @@ function conferencia_da_chamada($cha_id)
 			// quantas linhas trazem cada número: o "enviou" costuma ser bem menor
 			'enviou_linhas'  => (int)$r['e_linhas'],
 			'recebeu_linhas' => (int)$r['v_linhas'],
+			'justificativas' => (int)$r['just'],
 			'distribuiu' => 0.0, 'sem_registro' => 0);
 
 	// ---- C: o que os cestantes de cada núcleo receberam ----
@@ -2899,6 +2956,7 @@ function conferencia_da_chamada($cha_id)
 			$nucleos[$n] = array('nuc_id' => $n, 'nome' => (string)$r['nome'],
 			                     'enviou' => 0.0, 'recebeu' => 0.0,
 			                     'enviou_linhas' => 0, 'recebeu_linhas' => 0,
+			                     'justificativas' => 0,
 			                     'distribuiu' => 0.0, 'sem_registro' => 0);
 
 		$nucleos[$n]['distribuiu']   = round((float)$r['v'], 2);
@@ -2906,7 +2964,7 @@ function conferencia_da_chamada($cha_id)
 	}
 
 	$total = array('enviou' => 0.0, 'recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0,
-	               'enviou_linhas' => 0, 'recebeu_linhas' => 0);
+	               'enviou_linhas' => 0, 'recebeu_linhas' => 0, 'justificativas' => 0);
 	foreach ($nucleos as $n => $x)
 	{
 		$nucleos[$n]['diferenca'] = round($x['recebeu'] - $x['distribuiu'], 2);
@@ -2916,6 +2974,7 @@ function conferencia_da_chamada($cha_id)
 		$total['recebeu']      = round($total['recebeu'] + $x['recebeu'], 2);
 		$total['enviou_linhas']  += $x['enviou_linhas'];
 		$total['recebeu_linhas'] += $x['recebeu_linhas'];
+		$total['justificativas'] += $x['justificativas'];
 		$total['distribuiu']   = round($total['distribuiu'] + $x['distribuiu'], 2);
 		$total['sem_registro'] += $x['sem_registro'];
 	}
