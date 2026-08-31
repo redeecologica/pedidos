@@ -183,3 +183,6 @@ info-*.php
 
 # Arquivo de workspace do editor (local, por máquina)
 *.code-workspace
+
+# Artefatos do Playwright (snapshots e logs de sessão de teste em navegador)
+.playwright-mcp/

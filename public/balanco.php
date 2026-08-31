@@ -475,6 +475,13 @@
   <thead>
     <tr>
       <th>Núcleo</th>
+      <?php
+        // A DEMANDA VEM PRIMEIRO, logo depois do nome, porque é o começo da história:
+        // tudo o que vem à direita é o que aconteceu com aquilo que se pediu. Sem ela a
+        // linha começa pelo meio, e não dá para ver o núcleo que pediu muito e recebeu
+        // pouco — que é diferente do que pediu pouco e recebeu tudo.
+      ?>
+      <th class="text-right">Pediu</th>
       <?php if ($tem_mutirao) { ?><th class="text-right">Mutirão enviou</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregou aos cestantes</th>
@@ -507,6 +514,7 @@
         <?php } ?>
         <?php echo(h($n['nome'])); ?>
       </td>
+      <td class="text-right"><?php echo(h(formata_moeda($n['pediu']))); ?></td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
         <?php
@@ -560,17 +568,18 @@
       // seção no fim da página, e quem clicava perdia de vista a linha que tinha clicado.
       if ($tem_detalhe) { ?>
     <tr class="detalhe-nucleo" data-nuc="<?php echo(h($n['nuc_id'])); ?>"<?php echo($aberto ? '' : ' style="display:none;"'); ?>>
-      <td colspan="<?php echo($tem_mutirao ? 6 : 5); ?>" style="padding:0 0 0 24px; background:#f7f7f7;">
+      <td colspan="<?php echo($tem_mutirao ? 7 : 6); ?>" style="padding:0 0 0 24px; background:#f7f7f7;">
         <?php tabela_detalhe($detalhes_nuc[(int)$n['nuc_id']], $tem_mutirao); ?>
       </td>
     </tr>
     <?php } ?>
   <?php } ?>
   <?php if (!count($conf['nucleos'])) { ?>
-    <tr><td colspan="<?php echo($tem_mutirao ? 6 : 5); ?>">Nenhum núcleo movimentou esta chamada.</td></tr>
+    <tr><td colspan="<?php echo($tem_mutirao ? 7 : 6); ?>">Nenhum núcleo movimentou esta chamada.</td></tr>
   <?php } else { ?>
     <tr class="active">
       <th>total</th>
+      <th class="text-right"><?php echo(h(formata_moeda($conf['total']['pediu']))); ?></th>
       <?php if ($tem_mutirao) { ?><th class="text-right"><?php echo(h(formata_moeda($conf['total']['enviou']))); ?></th><?php } ?>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></th>
