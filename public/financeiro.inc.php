@@ -3205,9 +3205,9 @@ function abas_financeiras_do_grupo($grupo)
 	// para quem chega nelas. Oferecer link que a tela vai recusar é pior do que não
 	// oferecer — a pessoa clica, leva "sem permissão" e volta para a página inicial.
 	$abas = array(
-		'hub'        => array('financas.php',            'Finanças da Rede',   ''),
+		'hub'        => array('financas.php',            'Finanças',           ''),
 		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
-		                                                 'Recebimento dos produtores', 'glyphicon-road'),
+		                                                 'Recebido dos produtores', 'glyphicon-road'),
 	);
 
 	// PRAZOS SÓ PARA QUEM AINDA NÃO TEM O FECHAMENTO. O prazo de registro de entrega
