@@ -11,6 +11,20 @@
       exit();
   }
 
+  function campo_prod($nome)
+  {
+      $v = request_get($nome, "");
+      return (is_string($v) || is_int($v) || is_float($v)) ? trim((string)$v) : "";
+  }
+
+  // valor digitado como 1.234,56 vira float — mesma conversão de despesas_rede.php
+  function valor_digitado_prod($txt)
+  {
+      $txt = trim((string)$txt);
+      if ($txt === "") return 0.0;
+      return (float)str_replace(',', '.', str_replace('.', '', $txt));
+  }
+
   $mes = (int)request_get("mes", date('n'));
   $ano = (int)request_get("ano", date('Y'));
   if ($mes < 1 || $mes > 12)      $mes = (int)date('n');
@@ -20,8 +34,48 @@
   $ate = ($mes == 12) ? sprintf('%04d-01-01 00:00:00', $ano + 1)
                       : sprintf('%04d-%02d-01 00:00:00', $ano, $mes + 1);
 
+  // O PAGAMENTO MORA AQUI, e não em Despesas da Rede, onde esteve primeiro. Esta tela já
+  // mostra quanto falta para cada produtor — que é a informação sem a qual não se decide
+  // pagar. Lá a pessoa precisava chegar com nome e valor trazidos de outra tela, e o
+  // lançamento ainda exigia um parágrafo explicando que não era despesa e não se rateava.
+  //
+  // NÃO É DESPESA: quita o que a Rede já deve pelo produto entregue, cujo custo já foi
+  // para quem o recebeu. Ratear cobraria o mesmo produto duas vezes, e por isso
+  // lanca_pagamento_a_produtor_da_rede() não escreve em `rateios`.
+  if (request_get("action", "") == ACAO_SALVAR)
+  {
+      $data = date_create_from_format('d/m/Y', campo_prod("dt"));
+
+      $tra = !$data ? null
+           : lanca_pagamento_a_produtor_da_rede(date_format($data, 'Y-m-d'),
+                 campo_prod("con_produtor"), valor_digitado_prod(campo_prod("valor")),
+                 campo_prod("origem"), campo_prod("historico"));
+
+      adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+          $tra ? "Pagamento lançado na conta do produtor."
+               : "Não foi possível lançar o pagamento. Confira a data, o valor, o produtor"
+               . " e a conta de origem.");
+
+      // POST-redirect-GET: volta para o mês em que se estava, e um F5 não repete o
+      // pagamento — que aqui seria pagar duas vezes.
+      redireciona("contas_produtores.php?ano=" . urlencode($ano) . "&mes=" . urlencode($mes));
+      exit();
+  }
+
   top();
   abas_financeiras('rede', 'produtores');
+
+  // o produtor cuja linha está aberta para pagamento
+  $pagar = request_get("pagar", "");
+  if (!is_string($pagar) && !is_int($pagar)) $pagar = "";
+  if (!ctype_digit((string)$pagar) || (int)$pagar <= 0) $pagar = "";
+
+  $origens = contas_de_destino_do_tipo('rede');
+  // conta de cada produtor, para o formulário saber onde lançar
+  $conta_de = array();
+  $res_cp = executa_sql("SELECT con_id, con_forn FROM contas WHERE con_tipo = 'produtor'");
+  while ($res_cp && $rcp = mysqli_fetch_array($res_cp, MYSQLI_ASSOC))
+      $conta_de[(int)$rcp['con_forn']] = (int)$rcp['con_id'];
 
   $mesa  = posicao_dos_produtores($de, $ate);
   // desde a data de corte: a posição acumulada, que é a fila de quem espera receber
@@ -71,6 +125,7 @@
   <thead>
     <tr>
       <th rowspan="2">Produtor</th>
+      <th rowspan="2" class="hidden-print"></th>
       <th colspan="3" class="text-center">No mês</th>
       <th colspan="3" class="text-center">Acumulado desde <?php echo(h(date('m/Y', strtotime(DATA_CORTE_FINANCEIRO)))); ?></th>
     </tr>
@@ -93,10 +148,32 @@
         $t['r'] += $f['a_receber']; $t['p'] += $f['pago'];
         $t['ar'] += $a['a_receber']; $t['ap'] += $a['pago'];
   ?>
-    <tr<?php echo($f['arquivado'] ? ' class="text-muted"' : ''); ?>>
+    <?php
+      $em_pagamento = ((string)$f['forn_id'] === (string)$pagar);
+      $tem_conta    = isset($conta_de[(int)$f['forn_id']]);
+      // O QUE FALTA é o acumulado, não o do mês: é a fila de quem espera receber, e é
+      // esse o número que se paga. Vem sugerido no campo, para a pessoa conferir em vez
+      // de transcrever de outra tela — mas segue editável, porque pagamento parcial e
+      // adiantamento existem.
+      $sugerido_pg = ($a['saldo'] > 0.005) ? formata_moeda($a['saldo']) : '';
+    ?>
+    <tr<?php echo($em_pagamento ? ' class="info"' : ($f['arquivado'] ? ' class="text-muted"' : '')); ?>>
       <td>
         <?php echo(h($f['nome'])); ?>
         <?php if ($f['arquivado']) { ?>&nbsp;<span class="label label-default">arquivado</span><?php } ?>
+      </td>
+      <td class="hidden-print text-right">
+        <?php if (!$tem_conta) { ?>
+          <span class="text-muted small" title="produtor sem conta no razão: crie em Contas, no botão de criar as que faltam">sem conta</span>
+        <?php } else if ($em_pagamento) { ?>
+          <a class="btn btn-default btn-xs" href="contas_produtores.php?ano=<?php echo(h($ano)); ?>&amp;mes=<?php echo(h($mes)); ?>">cancelar</a>
+        <?php } else { ?>
+          <a class="btn btn-default btn-xs"
+             href="contas_produtores.php?ano=<?php echo(h($ano)); ?>&amp;mes=<?php echo(h($mes)); ?>&amp;pagar=<?php echo(h($f['forn_id'])); ?>#pg"
+             title="lançar um pagamento a este produtor">
+            <i class="glyphicon glyphicon-usd"></i> pagar
+          </a>
+        <?php } ?>
       </td>
       <td class="text-right"><?php echo(h(formata_moeda($f['a_receber']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($f['pago']))); ?></td>
@@ -107,12 +184,71 @@
         <strong><?php echo(h(formata_moeda($a['saldo']))); ?></strong>
       </td>
     </tr>
+    <?php if ($em_pagamento && $tem_conta) { ?>
+    <tr id="pg">
+      <td colspan="8" style="background:#f7f7f7;">
+        <?php if (!count((array)$origens)) { ?>
+          <div class="alert alert-warning" style="margin:8px 0;">
+            <strong>Nenhuma conta da Rede cadastrada.</strong><br>
+            Todo pagamento sai de uma conta, e sem nenhuma cadastrada não há de onde
+            lançar. Cadastre em <a href="contas.php">Contas</a>.
+          </div>
+        <?php } else { ?>
+        <form method="post" action="contas_produtores.php" style="margin:8px 0;">
+          <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
+          <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
+          <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
+          <input type="hidden" name="con_produtor" value="<?php echo(h($conta_de[(int)$f['forn_id']])); ?>" />
+
+          <div class="row">
+            <div class="col-sm-3">
+              <label for="pg_dt">Data</label>
+              <input type="text" id="pg_dt" name="dt" class="form-control data" required="required"
+                     value="<?php echo(h(date('d/m/Y'))); ?>" />
+            </div>
+            <div class="col-sm-3">
+              <label for="pg_valor">Valor</label>
+              <input type="text" id="pg_valor" name="valor" class="form-control numero" required="required"
+                     value="<?php echo(h($sugerido_pg)); ?>" autofocus />
+              <span class="help-block small">
+                <?php echo($sugerido_pg !== '' ? 'Vem preenchido com o que falta — confira e ajuste.'
+                                               : 'Nada consta em aberto para este produtor.'); ?>
+              </span>
+            </div>
+            <div class="col-sm-6">
+              <label for="pg_origem">Sai da conta</label>
+              <select id="pg_origem" name="origem" class="form-control">
+                <?php foreach ($origens as $cid => $rot) { ?>
+                <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
+                <?php } ?>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:8px;">
+            <div class="col-sm-9">
+              <label for="pg_historico">Descrição</label>
+              <input type="text" id="pg_historico" name="historico" class="form-control" maxlength="200"
+                     placeholder="Referente a que entrega, ou o mês pago" />
+            </div>
+            <div class="col-sm-3" style="padding-top:24px;">
+              <button class="btn btn-success" type="submit">
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> lançar pagamento
+              </button>
+            </div>
+          </div>
+        </form>
+        <?php } ?>
+      </td>
+    </tr>
+    <?php } ?>
   <?php } ?>
   <?php if (!count($mesa)) { ?>
-    <tr><td colspan="7">Nenhum produtor com entrega ou pagamento em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
+    <tr><td colspan="8">Nenhum produtor com entrega ou pagamento em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
   <?php } else { ?>
     <tr class="active">
       <th>total</th>
+      <th class="hidden-print"></th>
       <th class="text-right"><?php echo(h(formata_moeda($t['r']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($t['p']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($t['r'] - $t['p']))); ?></th>
