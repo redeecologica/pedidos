@@ -2571,10 +2571,23 @@ function lanca_abertura_do_estoque($cha_id)
 	$con_rede    = conta_da_rede();
 	if (!$con_estoque || !$con_rede) return null;
 
-	$res = executa_sql("SELECT COUNT(*) n FROM lancamentos WHERE lan_con = " . prep_para_bd($con_estoque));
+	// A GUARDA É POR CORRENTE, e não pela conta inteira. Secos e Secos Bimestral são duas
+	// correntes de estoque independentes: get_chamada_anterior() (common.inc.php:568)
+	// filtra por cha_prodt, então o estoque anterior de uma Secos vem da Secos anterior,
+	// nunca da Bimestral.
+	//
+	// Guardando pela conta, abrir a primeira corrente trancava a segunda para sempre, e o
+	// estoque inicial dela nunca entrava — a conta ficaria a menos, em silêncio, sem nada
+	// reclamando. Cada corrente abre a sua uma vez.
+	$sql = "SELECT COUNT(*) n FROM transacoes t ";
+	$sql.= "JOIN chamadas c  ON c.cha_id = t.tra_cha ";
+	$sql.= "WHERE t.tra_tipo = 'estoque_abertura' ";
+	$sql.= "AND c.cha_prodt = (SELECT cha_prodt FROM chamadas WHERE cha_id = " . prep_para_bd($cha_id) . ")";
+
+	$res = executa_sql($sql);
 	if (!$res) return null;
 	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
-	if (!$row || (int)$row['n'] > 0) return 0;      // já aberta — ver o CONTRATO
+	if (!$row || (int)$row['n'] > 0) return 0;      // esta corrente já foi aberta
 
 	if ($v['antes'] <= 0) return 0;                 // nada guardado no ponto de partida
 
