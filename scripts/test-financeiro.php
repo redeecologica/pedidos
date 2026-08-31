@@ -2993,6 +2993,84 @@ verifica("e a fixture de tres pernas se limpa, para o invariante seguir conferiv
     count(transacoes_desbalanceadas()) === 0,
     json_encode(transacoes_desbalanceadas()));
 
+// ---------------------------------------------------------------------------
+// A Rede paga produtor direto — nao e despesa, e nao se rateia.
+//
+// A Rede quita o que JA DEVE pela mercadoria entregue. O custo dela ja foi para quem a
+// recebeu, no debito do cestante; rateando, cada nucleo seria cobrado de novo pelo mesmo
+// produto. Por isso funcao propria, e nao mais uma area de despesa.
+$saldo_forn_antes = saldo_da_conta($con_forn_t);
+$saldo_orig_antes = saldo_da_conta($con_origem);
+
+$tra_pp = lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 250.00, $con_origem,
+    'pagamento do mel de marco');
+
+verifica("a Rede consegue pagar um produtor direto da conta dela",
+    $tra_pp !== null, var_export($tra_pp, true));
+
+// As pernas sao as mesmas do caixa do nucleo, trocando o caixa pela conta da Rede: quem
+// segurava o dinheiro passa a segurar menos, e a conta do produtor registra o recebido.
+verifica("as pernas sao produtor -250 e conta de origem +250",
+    round(saldo_da_conta($con_forn_t) - $saldo_forn_antes, 2) == -250.00
+ && round(saldo_da_conta($con_origem) - $saldo_orig_antes, 2) ==  250.00,
+    "produtor=" . round(saldo_da_conta($con_forn_t) - $saldo_forn_antes, 2)
+    . " origem=" . round(saldo_da_conta($con_origem) - $saldo_orig_antes, 2));
+
+verifica("e a transacao tem exatamente duas pernas somando zero",
+    count(transacoes_desbalanceadas()) === 0,
+    json_encode(transacoes_desbalanceadas()));
+
+// O ponto INTEIRO da funcao separada: nenhum nucleo carrega isto.
+verifica("nao grava rateio nenhum: pagar produtor nao e custo a repartir",
+    is_array($r_pp = rateio_da_despesa($tra_pp)) && count($r_pp) === 0,
+    var_export($r_pp, true));
+
+verifica("e nao aparece entre as despesas da Rede do mes",
+    count(array_filter((array)despesas_da_rede('2026-04-01','2026-05-01'),
+        function ($x) use ($tra_pp) { return $x['tra_id'] === (int)$tra_pp; })) === 0,
+    json_encode(array_map(function ($x) { return $x['tra_id']; },
+        (array)despesas_da_rede('2026-04-01','2026-05-01'))));
+
+// A posicao do produtor soma o que caiu na conta dele sem olhar tipo nenhum, entao o
+// pagamento da Rede abate o mesmo saldo que o pagamento de nucleo abateria.
+$pos_pp = posicao_dos_produtores('2026-04-01', '2026-05-01');
+$linha_pp = null;
+foreach ((array)$pos_pp as $x) if ((int)$x['forn_id'] === (int)$forn_livre[2]) $linha_pp = $x;
+verifica("e a posicao do produtor ja conta esse pagamento, sem precisar saber quem pagou",
+    $linha_pp !== null && round($linha_pp['pago'], 2) == 250.00,
+    var_export($linha_pp, true));
+
+// ---- o que NAO pode virar pagamento ----
+verifica("valor zero ou negativo nao vira pagamento",
+    lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 0, $con_origem, 'x') === null
+ && lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, -5, $con_origem, 'x') === null);
+
+// Pagar produtor da conta de um cestante tiraria dele dinheiro que ele nao gastou.
+verifica("a origem tem de ser conta da REDE, nao de cestante nem de produtor",
+    lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 10.00, $con_forn_t, 'x') === null
+ && lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 10.00, $con_t, 'x') === null);
+
+// O destino e a conta de um produtor. Mandar a conta da Rede faria a Rede pagar a si
+// mesma, e o saldo do produtor seguiria dizendo que ela deve.
+verifica("o destino tem de ser conta de PRODUTOR",
+    lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_origem, 10.00, $con_origem, 'x') === null
+ && lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_t, 10.00, $con_origem, 'x') === null);
+
+// Array onde se espera escalar e TypeError dentro do isset() no PHP 8: a tela inteira
+// cairia por causa de um `origem[]` no POST. Mesma guarda das irmas.
+verifica("array no lugar de conta e recusa, e nao pagina em branco",
+    lanca_pagamento_a_produtor_da_rede('2026-04-15', array($con_forn_t), 10.00, $con_origem, 'x') === null
+ && lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 10.00, array($con_origem), 'x') === null);
+
+// Descricao vazia nao deixa a linha do extrato muda.
+$tra_pp2 = lanca_pagamento_a_produtor_da_rede('2026-04-16', $con_forn_t, 10.00, $con_origem, '   ');
+verifica("descricao em branco vira o rotulo padrao, e nao linha sem texto",
+    $tra_pp2 !== null
+ && valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_pp2)
+    === 'pagamento a produtor',
+    var_export(valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_pp2), true));
+
+
 // ---- reajuste ----
 $antes_rat = rateio_da_despesa($tra_rede);
 verifica("rateio_da_despesa devolve nucleo => valor",
@@ -3574,6 +3652,30 @@ verifica("conta que FECHA e mesmo assim tem linha em branco: repasse entre cesta
 executa_sql("UPDATE distribuicao SET dist_just_dif_entrega = 'chegou quebrado'
     WHERE dist_cha = " . (int)$cha_cf . " AND dist_nuc = " . (int)$nuc_cf2
         . " AND dist_prod = " . (int)$prod_est_id);
+
+// O contrapeso do aviso de linhas em branco: uma coisa e o nucleo dever explicacao,
+// outra e ele ja ter explicado. Sem este numero as duas apareciam iguais na tela.
+$cf_just = conferencia_da_chamada($cha_cf);
+verifica("a conferencia conta as divergencias que o nucleo ja explicou por escrito",
+    is_array($cf_just) && ($n = nuc_da_conf($cf_just, $nuc_cf2)) && $n['justificativas'] === 1,
+    json_encode(is_array($cf_just) ? $cf_just['nucleos'] : $cf_just));
+
+verifica("nucleo que nao escreveu nenhuma justificativa conta zero",
+    is_array($cf_just) && ($n = nuc_da_conf($cf_just, $nuc_cf1)) && $n['justificativas'] === 0,
+    json_encode(is_array($cf_just) ? $cf_just['nucleos'] : $cf_just));
+
+verifica("e o total soma as justificativas dos nucleos",
+    is_array($cf_just) && $cf_just['total']['justificativas'] === 1,
+    json_encode(is_array($cf_just) ? $cf_just['total'] : $cf_just));
+
+// Justificativa em BRANCO nao conta: a coluna existe na linha desde que alguem salvou
+// qualquer coisa nela, e string vazia diria que houve explicacao onde nao houve.
+executa_sql("UPDATE distribuicao SET dist_just_dif_entrega = '   '
+    WHERE dist_cha = " . (int)$cha_cf . " AND dist_nuc = " . (int)$nuc_cf1);
+$cf_vazia = conferencia_da_chamada($cha_cf);
+verifica("justificativa so com espacos nao conta como explicada",
+    is_array($cf_vazia) && ($n = nuc_da_conf($cf_vazia, $nuc_cf1)) && $n['justificativas'] === 0,
+    json_encode(is_array($cf_vazia) ? $cf_vazia['nucleos'] : $cf_vazia));
 
 $det = detalhe_do_nucleo_na_chamada($cha_cf, $nuc_cf2);
 

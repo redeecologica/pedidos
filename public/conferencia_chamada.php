@@ -213,15 +213,25 @@
           // aviso de "29 sem entrega registrada" ao lado.
           //
           // O texto muda com a diferença, porque as duas situações são diferentes. SEM
-          // diferença a conta do núcleo fecha, e a causa mais comum é repasse entre
-          // cestantes: alguém desiste e outro leva. Isso é normal e não se acusa —
-          // apenas se diz o que aconteceu, para quem confere decidir se vale olhar.
+          // diferença a conta do núcleo fecha, e as duas causas comuns são repasse entre
+          // cestantes (alguém desiste e outro leva) e entrega parcial anotada em outra
+          // linha. Isso é normal e não se acusa — apenas se diz o que aconteceu, para
+          // quem confere decidir se vale olhar.
           if ($n['sem_registro'] > 0) {
               $tem_dif = (abs($n['diferenca']) > 0.005); ?>
           <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> em branco</span>
           <small class="text-muted">&nbsp;<?php
             echo($tem_dif ? 'clique no núcleo para ver quais'
-                          : 'a conta fecha — pode ser repasse entre cestantes'); ?></small>
+                          : '(mas a conta fecha, então pode ser repasse entre cestantes'
+                          . ' ou entrega parcial)'); ?></small>
+        <?php }
+          // O contrapeso do aviso: uma coisa é o núcleo dever explicação, outra é ele já
+          // ter explicado. Sem este número as duas apareciam iguais aqui, e o núcleo que
+          // escreveu cada justificativa ficava indistinguível do que não escreveu nenhuma.
+          if ($n['justificativas'] > 0) { ?>
+          <?php if ($n['sem_registro'] > 0) { ?><br><?php } ?>
+          <span class="label label-info"><?php echo(h($n['justificativas'])); ?> justificada<?php echo($n['justificativas'] > 1 ? 's' : ''); ?></span>
+          <small class="text-muted">&nbsp;divergência<?php echo($n['justificativas'] > 1 ? 's' : ''); ?> que o núcleo já explicou por escrito</small>
         <?php } ?>
       </td>
     </tr>
@@ -235,7 +245,12 @@
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['diferenca']))); ?></th>
-      <th></th>
+      <th><small class="text-muted"><?php
+        $partes_tot = array();
+        if ($conf['total']['sem_registro'] > 0)   $partes_tot[] = h($conf['total']['sem_registro']) . ' em branco';
+        if ($conf['total']['justificativas'] > 0) $partes_tot[] = h($conf['total']['justificativas']) . ' justificada(s)';
+        echo(implode(' &middot; ', $partes_tot));
+      ?></small></th>
     </tr>
   <?php } ?>
   </tbody>
@@ -382,13 +397,11 @@
   O aviso <strong>sem entrega registrada</strong> conta só as linhas que podem explicar a
   conta: pedido feito, entrega não anotada, num produto que o núcleo confirmou ter recebido.
   Havendo diferença, ela pode ser só isso — não cobre do núcleo antes de conferir. Sem
-  diferença, a conta fecha e a causa mais comum é <strong>repasse entre cestantes</strong>:
-  alguém desiste e outro leva.
+  diferença, a conta fecha, e aí as causas comuns são <strong>repasse entre cestantes</strong>
+  — alguém desiste e outro leva — e <strong>entrega parcial</strong> anotada em outra linha.
   <br>Diferença <strong>positiva</strong>: o núcleo confirmou receber mais do que entregou.
   <strong>Negativa</strong>: entregou sem ter confirmado o recebimento — a conta não fecha
   por falta de registro, não por falta de mercadoria.
-  <br>Para ver produto a produto e a justificativa de cada divergência, use
-  <a href="entrega_divergencias.php">Divergências</a>.
 </p>
 
 <?php } ?>
