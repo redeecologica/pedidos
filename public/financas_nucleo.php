@@ -41,7 +41,7 @@
       </li>
       <br>
       <li>
-        <strong>Resultado</strong> — a pergunta que o caixa não responde: <em>este núcleo se
+        <strong>Equilíbrio</strong> — a pergunta que o caixa não responde: <em>este núcleo se
         paga?</em> De um lado o que ele contribui (associação, taxa, doações); de outro os
         custos dele, incluindo a parte que lhe cabe dos custos da Rede.
         Fechar um mês no negativo não é erro — é o sinal de onde trabalhar.
