@@ -72,10 +72,20 @@
 
   $origens = contas_de_destino_do_tipo('rede');
   // conta de cada produtor, para o formulário saber onde lançar
-  $conta_de = array();
-  $res_cp = executa_sql("SELECT con_id, con_forn FROM contas WHERE con_tipo = 'produtor'");
+  // O NOME COMPLETO vem junto: no quadro de pagamento ele é o que confirma que se está
+  // pagando quem se pretendia. A tabela mostra o nome curto, que é ambíguo entre
+  // produtores parecidos — e um pagamento no produtor errado é dos erros mais caros de
+  // desfazer, porque some do saldo de um e aparece no de outro.
+  $conta_de   = array();
+  $completo_de = array();
+  $res_cp = executa_sql("SELECT c.con_id, c.con_forn, f.forn_nome_completo "
+          . "FROM contas c JOIN fornecedores f ON f.forn_id = c.con_forn "
+          . "WHERE c.con_tipo = 'produtor'");
   while ($res_cp && $rcp = mysqli_fetch_array($res_cp, MYSQLI_ASSOC))
-      $conta_de[(int)$rcp['con_forn']] = (int)$rcp['con_id'];
+  {
+      $conta_de[(int)$rcp['con_forn']]    = (int)$rcp['con_id'];
+      $completo_de[(int)$rcp['con_forn']] = (string)$rcp['forn_nome_completo'];
+  }
 
   $mesa  = posicao_dos_produtores($de, $ate);
   // desde a data de corte: a posição acumulada, que é a fila de quem espera receber
@@ -170,8 +180,8 @@
         <?php } else { ?>
           <a class="btn btn-default btn-xs"
              href="contas_produtores.php?ano=<?php echo(h($ano)); ?>&amp;mes=<?php echo(h($mes)); ?>&amp;pagar=<?php echo(h($f['forn_id'])); ?>#pg"
-             title="lançar um pagamento a este produtor">
-            <i class="glyphicon glyphicon-usd"></i> pagar
+             title="registrar um pagamento JÁ FEITO a este produtor — o sistema anota, não transfere">
+            <i class="glyphicon glyphicon-pencil"></i> registrar
           </a>
         <?php } ?>
       </td>
@@ -194,6 +204,20 @@
             lançar. Cadastre em <a href="contas.php">Contas</a>.
           </div>
         <?php } else { ?>
+        <?php
+          // QUEM SE ESTÁ PAGANDO, dito por extenso e em destaque. A linha da tabela traz
+          // só o nome curto, e entre produtores parecidos ele é ambíguo — pagamento
+          // lançado no produtor errado some do saldo de um e aparece no de outro, e
+          // desfazer exige dois lançamentos e a explicação dos dois.
+          $nome_completo_pg = isset($completo_de[(int)$f['forn_id']]) ? $completo_de[(int)$f['forn_id']] : '';
+        ?>
+        <p style="margin:4px 0 10px;">
+          Registrando pagamento a
+          <strong style="font-size:larger;"><?php echo(h($f['nome'])); ?></strong>
+          <?php if ($nome_completo_pg !== '' && $nome_completo_pg !== $f['nome']) { ?>
+          <span class="text-muted">&mdash; <?php echo(h($nome_completo_pg)); ?></span>
+          <?php } ?>
+        </p>
         <form method="post" action="contas_produtores.php" style="margin:8px 0;">
           <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
           <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
@@ -207,7 +231,7 @@
                      value="<?php echo(h(date('d/m/Y'))); ?>" />
             </div>
             <div class="col-sm-3">
-              <label for="pg_valor">Valor</label>
+              <label for="pg_valor">Valor pago a <?php echo(h($f['nome'])); ?></label>
               <input type="text" id="pg_valor" name="valor" class="form-control numero" required="required"
                      value="<?php echo(h($sugerido_pg)); ?>" autofocus />
               <span class="help-block small">
@@ -227,13 +251,13 @@
 
           <div class="row" style="margin-top:8px;">
             <div class="col-sm-9">
-              <label for="pg_historico">Descrição</label>
+              <label for="pg_historico">Descrição do pagamento a <?php echo(h($f['nome'])); ?></label>
               <input type="text" id="pg_historico" name="historico" class="form-control" maxlength="200"
                      placeholder="Referente a que entrega, ou o mês pago" />
             </div>
             <div class="col-sm-3" style="padding-top:24px;">
               <button class="btn btn-success" type="submit">
-                <i class="glyphicon glyphicon-ok glyphicon-white"></i> lançar pagamento
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar
               </button>
             </div>
           </div>
