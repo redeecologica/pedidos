@@ -548,18 +548,34 @@
           // contribuem zero dos dois lados, o que dava a um núcleo com diferença 0,00 um
           // aviso de "29 sem entrega registrada" ao lado.
           //
-          // O texto muda com a diferença, porque as duas situações são diferentes. SEM
-          // diferença a conta do núcleo fecha, e as duas causas comuns são repasse entre
-          // cestantes (alguém desiste e outro leva) e entrega parcial anotada em outra
-          // linha. Isso é normal e não se acusa — apenas se diz o que aconteceu, para
-          // quem confere decidir se vale olhar.
+          // O TEXTO MUDA CONFORME AS LINHAS EM BRANCO POSSAM OU NÃO EXPLICAR ALGUMA
+          // COISA — e a pergunta é POR PRODUTO, não pelo total do núcleo. Um núcleo pode
+          // ter diferença e ainda assim ter todas as linhas em branco em produto que
+          // fechou certo: aí a diferença vem de outro produto, que em geral já tem
+          // justificativa escrita, e mandar "abrir os detalhes para ver quais" manda
+          // procurar onde não há o que achar.
+          //
+          // A conta sai do detalhe que a página já carregou, sem consulta nova: basta ver
+          // se alguma linha em branco cai em produto cuja diferença não fechou.
+          //
+          // Quando não cai em nenhum, isso é normal e não se acusa. As duas causas comuns
+          // são repasse entre cestantes (alguém desiste e outro leva) e entrega parcial
+          // anotada em outra linha — apenas se diz o que aconteceu, para quem confere
+          // decidir se vale olhar.
+          // Sem o detalhe carregado não dá para afirmar nem uma coisa nem outra, e o
+          // texto tranquilizador seria um palpite: aí ele não aparece.
           if ($n['sem_registro'] > 0) {
-              $tem_dif = (abs($n['diferenca']) > 0.005); ?>
+              $sabe_detalhe   = isset($detalhes_nuc[(int)$n['nuc_id']]);
+              $branco_explica = $sabe_detalhe
+                              && brancos_explicam_diferenca($detalhes_nuc[(int)$n['nuc_id']]);
+        ?>
           <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> em branco</span>
           <small class="text-muted">&nbsp;<?php
-            echo($tem_dif ? 'abra os detalhes para ver quais'
-                          : '(mas a conta fecha, então pode ser repasse entre cestantes'
-                          . ' ou entrega parcial)'); ?></small>
+            if (!$sabe_detalhe)          echo('');
+            else if ($branco_explica)    echo('abra os detalhes para ver quais');
+            else                         echo('(mas todas em produto que fechou certo, então pode ser'
+                                            . ' repasse entre cestantes ou entrega parcial)');
+          ?></small>
         <?php }
           // O contrapeso do aviso: uma coisa é o núcleo dever explicação, outra é ele já
           // ter explicado. Sem este número as duas apareciam iguais aqui, e o núcleo que
