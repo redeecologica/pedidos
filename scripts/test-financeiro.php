@@ -3712,6 +3712,44 @@ verifica("e distingue quem nao teve entrega ANOTADA de quem levou zero",
     && round($det[0]['cestantes'][1]['pediu'], 2) == 10.00,
     json_encode($det[0]['cestantes']));
 
+// A linha que existe SO pela justificativa. entrega_divergencia_justificativa.php:65
+// cria assim quando ainda nao havia linha: grava o texto e deixa dist_quantidade_recebido
+// NULL. Sao 93 na base, com texto como "fracao da saca de 20kg que foi entregue para
+// Santa Teresa" — a justificativa existe JUSTAMENTE porque nao houve recebimento.
+//
+// Sem esta linha no detalhe, o aviso "1 justificada" da tabela de cima contava uma
+// explicacao que o clique nao mostrava: o mesmo defeito do aviso de linhas em branco,
+// um nivel abaixo.
+executa_sql("INSERT INTO distribuicao (dist_cha, dist_nuc, dist_prod, dist_just_dif_entrega)
+    VALUES (" . (int)$cha_cf . "," . (int)$nuc_cf2 . "," . (int)$prod_cf2_id
+        . ",'fracao da saca que foi para outro nucleo')");
+
+$det_just = detalhe_do_nucleo_na_chamada($cha_cf, $nuc_cf2);
+$so_just = null;
+foreach ((array)$det_just as $x) if ($x['nome'] === 'Segundo produto') $so_just = $x;
+
+verifica("linha que existe so pela justificativa aparece no detalhe",
+    $so_just !== null && $so_just['justificativa'] === 'fracao da saca que foi para outro nucleo',
+    json_encode(array_map(function ($x) { return $x['nome']; }, (array)$det_just)));
+
+// null e 0 de novo: o nucleo nao confirmou recebimento NENHUM, e 0,00 diria que
+// confirmou zero. O que a tela nao pode e quebrar com o NULL.
+verifica("e o recebido dela vem zerado, sem quebrar no NULL",
+    $so_just !== null && round($so_just['recebeu'], 2) == 0.00,
+    var_export($so_just, true));
+
+// E o aviso de cima passa a bater com o que o clique mostra.
+$cf_bate = conferencia_da_chamada($cha_cf);
+verifica("o numero de justificativas do aviso bate com o que o detalhe mostra",
+    is_array($cf_bate) && ($n = nuc_da_conf($cf_bate, $nuc_cf2))
+    && $n['justificativas'] === count(array_filter((array)$det_just,
+           function ($x) { return $x['justificativa'] !== ''; })),
+    "aviso=" . (isset($n) ? $n['justificativas'] : '?')
+    . " detalhe=" . count(array_filter((array)$det_just, function ($x) { return $x['justificativa'] !== ''; })));
+
+executa_sql("DELETE FROM distribuicao WHERE dist_cha = " . (int)$cha_cf
+    . " AND dist_nuc = " . (int)$nuc_cf2 . " AND dist_prod = " . (int)$prod_cf2_id);
+
 // Produto que o nucleo NAO recebeu nao entra: nao ha o que explicar nele.
 verifica("produto que o nucleo nao recebeu fica de fora do detalhe",
     is_array($det) && count(array_filter($det, function ($x) { return $x['nome'] === 'Segundo produto'; })) === 0,

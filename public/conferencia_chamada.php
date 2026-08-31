@@ -110,14 +110,12 @@
         <tr><td>enviado aos núcleos <small class="text-muted">&mdash; o que saiu do mutirão</small>
               <?php marca_parcial($conf["total"]["enviou_linhas"], $conf["total"]["recebeu_linhas"]); ?></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['enviou']))); ?></td></tr>
+        <tr><td>estoque no fim</td><td class="text-right"><?php echo(h(formata_moeda($conf['estoque']['depois']))); ?></td></tr>
         <?php } ?>
         <tr><td>confirmado pelos núcleos <small class="text-muted">&mdash; o que chegou lá</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></td></tr>
         <tr><td>entregue aos cestantes <small class="text-muted">&mdash; cobra o cestante</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></td></tr>
-        <?php if ($tem_mutirao) { ?>
-        <tr><td>estoque no fim</td><td class="text-right"><?php echo(h(formata_moeda($conf['estoque']['depois']))); ?></td></tr>
-        <?php } ?>
         <?php
           // Finanças confirma POR ÚLTIMO, e a ordem da tabela diz isso: ela olha as
           // justificativas que os núcleos escreveram depois da entrega, e só então fecha o
@@ -136,11 +134,58 @@
     </table>
   </div>
   <div class="col-sm-5">
+    <?php
+      // A CONTA, aberta. "Pago e não cobrado 5.036,80" ao lado de uma diferença direta de
+      // 2.776,80 faz quem lê desconfiar do número — e a explicação em prosa dizia só
+      // metade da verdade: que o estoque desconta. Ele entra NOS DOIS SENTIDOS, e nesta
+      // chamada somou, porque a entrega consumiu mercadoria que já estava guardada.
+      $dif_direta  = round($conf['confirmado'] - $conf['total']['distribuiu'], 2);
+      // positivo = o estoque encolheu, ou seja, saiu mercadoria guardada sem ser cobrada
+      $mov_estoque = round($conf['estoque']['antes'] - $conf['estoque']['depois'], 2);
+    ?>
+    <table class="table table-condensed" style="margin-bottom:10px;">
+      <tbody>
+        <tr>
+          <td class="small">a Rede pagou ao produtor</td>
+          <td class="text-right small"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td>
+        </tr>
+        <tr>
+          <td class="small">menos o que foi cobrado dos cestantes</td>
+          <td class="text-right small"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></td>
+        </tr>
+        <tr>
+          <td class="small"><em>diferença</em></td>
+          <td class="text-right small"><em><?php echo(h(formata_moeda($dif_direta))); ?></em></td>
+        </tr>
+        <?php if ($tem_mutirao && abs($mov_estoque) > 0.005) { ?>
+        <tr>
+          <td class="small">
+            <?php echo($mov_estoque > 0 ? 'mais o estoque que a entrega <strong>consumiu</strong>'
+                                        : 'menos o estoque que a entrega <strong>guardou</strong>'); ?>
+          </td>
+          <td class="text-right small"><?php echo(h(formata_moeda(abs($mov_estoque)))); ?></td>
+        </tr>
+        <?php } ?>
+        <tr class="active">
+          <th class="small">pago e não cobrado</th>
+          <th class="text-right small"><?php echo(h(formata_moeda($conf['nao_cobrado']))); ?></th>
+        </tr>
+      </tbody>
+    </table>
+
     <p class="small text-muted">
       <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
-      cobrado<?php if ($tem_mutirao) { ?> — já descontado o que ficou guardado em
-      estoque<?php } ?>. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi
-      anotada.
+      cobrado. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi anotada.
+      <?php if ($tem_mutirao) { ?>
+      <br><br>
+      O <strong>estoque entra nos dois sentidos</strong>, e é aí que o número costuma
+      surpreender. Se a chamada <strong>consumiu</strong> do que estava guardado, aquela
+      mercadoria também saiu sem ninguém ser cobrado por ela, e <strong>soma</strong>. Se a
+      chamada <strong>deixou</strong> mercadoria guardada, aquilo não saiu, ainda é da Rede,
+      e <strong>desconta</strong>. Só a diferença direta entre as duas primeiras linhas já
+      responde "pagamos mais do que cobramos?" — o estoque responde a pergunta seguinte,
+      "e do que a Rede já tinha, quanto saiu?".
+      <?php } ?>
       <br><br>
       <?php if ($tem_mutirao) { ?>
       A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente diferente, e cada

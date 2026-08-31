@@ -46,9 +46,9 @@
   escreve_mensagem_status();
 ?>
 
-<legend>Resultado do núcleo <?php echo(h($nucleo['nuc_nome_curto'])); ?></legend>
+<legend>Equilíbrio do núcleo <?php echo(h($nucleo['nuc_nome_curto'])); ?></legend>
 
-<form class="form-inline hidden-print" method="get" action="resultado_nucleo.php">
+<form class="form-inline hidden-print" method="get" action="equilibrio.php">
   <?php if ($manda_em_todos) { ?>
   <div class="form-group">
     <label for="nuc_id">Núcleo:&nbsp;</label>
@@ -82,7 +82,7 @@
 <?php if ($r === null) { ?>
 
   <div class="alert alert-danger">
-    <strong>Não foi possível montar o resultado.</strong><br>
+    <strong>Não foi possível calcular o equilíbrio.</strong><br>
     Nenhum número pode ser mostrado agora. Tente de novo daqui a alguns minutos.
   </div>
 
@@ -97,7 +97,7 @@
   // dado em acusação. O número colorido em texto diz a mesma coisa sem levantar a voz.
 ?>
 <p style="font-size:larger; margin-bottom:14px;">
-  Resultado de <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>:
+  Equilíbrio de <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>:
   <?php if ($r['situacao'] === 'deficitario') { ?>
     <strong class="text-danger">&minus;R$ <?php echo(h(formata_moeda(-$r['resultado']))); ?></strong>
     <small class="text-muted">&nbsp;&mdash;&nbsp;os custos do núcleo passaram o que ele contribuiu neste mês</small>

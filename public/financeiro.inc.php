@@ -3234,19 +3234,33 @@ function abas_financeiras_do_grupo($grupo)
 			'pagamentos' => array('conta_pagamentos.php', 'Pagamentos',         'glyphicon-piggy-bank'),
 			'caixa'      => array('conta_nucleo.php',     'Caixa',              'glyphicon-inbox'),
 			'fluxo'      => array('fluxo_caixa.php',      'Fluxo de caixa',     'glyphicon-stats'),
-			'resultado'  => array('resultado_nucleo.php', 'Resultado',          'glyphicon-scale'),
+			// "Equilíbrio", e não "Resultado": a pergunta que o núcleo faz é se ele se
+			// paga, não quanto lucrou. O ícone é o ponteiro, e não a balança — esta é
+			// da Conferência em R$, e duas abas com o mesmo desenho no mesmo sistema
+			// deixam de identificar qualquer uma das duas.
+			'resultado'  => array('equilibrio.php',      'Equilíbrio',         'glyphicon-dashboard'),
 		);
 
-	return array(
+	// AS TRÊS PRIMEIRAS SÃO ANTERIORES AO MÓDULO, e quem tem RESP_FINANÇAS as alcança
+	// mesmo sem Beta Tester. Por isso a barra se divide: as antigas sempre, as novas só
+	// para quem chega nelas. Oferecer link que a tela vai recusar é pior do que não
+	// oferecer — a pessoa clica, leva "sem permissão" e volta para a página inicial.
+	$abas = array(
 		'hub'        => array('financas.php',            'Finanças da Rede',   ''),
 		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
 		                                                 'Recebimento dos produtores', 'glyphicon-road'),
-		'fechamento' => array('fechamento_chamada.php',  'Fechamento de chamadas', 'glyphicon-lock'),
-		'despesas'   => array('despesas_rede.php',       'Despesas da Rede',   'glyphicon-globe'),
-		'quotas'     => array('quotas_rateio.php',       'Quotas de rateio',   'glyphicon-equalizer'),
-		'produtores' => array('contas_produtores.php',   'Produtores',         'glyphicon-leaf'),
 		'prazos'     => array('financas_prazos.php',     'Prazos',             'glyphicon-calendar'),
 	);
+
+	if (pode_ver_financas_da_rede())
+	{
+		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento de chamadas', 'glyphicon-lock');
+		$abas['despesas']   = array('despesas_rede.php',      'Despesas da Rede',   'glyphicon-globe');
+		$abas['quotas']     = array('quotas_rateio.php',      'Quotas de rateio',   'glyphicon-equalizer');
+		$abas['produtores'] = array('contas_produtores.php',  'Produtores',         'glyphicon-leaf');
+	}
+
+	return $abas;
 }
 
 
@@ -3447,7 +3461,16 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	$sql.= "  AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
 	$sql.= "WHERE d.dist_cha = " . prep_para_bd($cha_id) . " ";
 	$sql.= "AND d.dist_nuc = " . prep_para_bd($nuc_id) . " ";
-	$sql.= "AND d.dist_quantidade_recebido > 0 ";
+	// Recebido, OU explicado por escrito. Exigir só o recebido deixava de fora a
+	// justificativa que existe justamente porque não houve recebimento — e são 93 linhas
+	// na base, com texto como "fração da saca de 20kg que foi entregue para Santa
+	// Teresa". A tela contava essas no aviso "1 justificada" e não mostrava nenhuma ao
+	// clicar: o mesmo defeito do aviso de linhas em branco, um nível abaixo.
+	//
+	// entrega_divergencia_justificativa.php:65 é quem cria a linha assim — o INSERT dela
+	// grava só a justificativa, e dist_quantidade_recebido fica NULL.
+	$sql.= "AND (d.dist_quantidade_recebido > 0 ";
+	$sql.= "     OR (d.dist_just_dif_entrega IS NOT NULL AND TRIM(d.dist_just_dif_entrega) <> '')) ";
 	$sql.= "ORDER BY p.prod_nome";
 
 	$res = executa_sql($sql);
@@ -3461,7 +3484,9 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 			'unidade'      => (string)$r['unidade'],
 			'preco'        => round((float)$r['preco'], 2),
 			'enviou'       => ($r['enviou'] === null) ? 0.0 : round((float)$r['enviou'], 2),
-			'recebeu'      => round((float)$r['recebeu'], 2),
+			// NULL quando a linha só existe pela justificativa: o núcleo não confirmou
+			// recebimento nenhum daquele produto, e 0,00 diria que confirmou zero.
+			'recebeu'      => ($r['recebeu'] === null) ? 0.0 : round((float)$r['recebeu'], 2),
 			'entregue'     => 0.0,
 			'justificativa'=> trim((string)$r['justificativa']),
 			'em_branco'    => array(),
