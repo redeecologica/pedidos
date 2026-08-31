@@ -2949,6 +2949,46 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
                     && round($so_um['sobra'], 2) == 90.00,
     var_export($so_um, true));
 
+// COMPROVANTE DA DESPESA, opcional de verdade: a despesa se lanca quando se monta o mes,
+// e o extrato aparece depois. Exigir na criacao faria inventar algo, ou adiar o
+// lancamento — e lancamento adiado e o que nao acontece.
+//
+// Data de HOJE porque o teste da correcao adiante depende da janela de edicao, e a
+// janela e sobre o mes gravado. (O $dt_agora do bloco da janela nasce mais abaixo.)
+$dt_hoje_comp = date('Y-m-d');
+$tra_sc = lanca_despesa_da_rede($dt_hoje_comp, 'admin', 80.00, $con_origem, 'sem comprovante', array());
+verifica("despesa nasce sem comprovante, e o campo fica NULL",
+    $tra_sc !== null
+ && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_sc) === null);
+
+$tra_cc = lanca_despesa_da_rede($dt_hoje_comp, 'admin', 80.00, $con_origem, 'com comprovante', array(),
+    'https://banco.exemplo/e/7');
+verifica("e aceita comprovante na criacao, quando ja se tem",
+    valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_cc)
+    === 'https://banco.exemplo/e/7');
+
+// E ELE CHEGA DEPOIS, pela correcao — que e o caminho normal.
+verifica("a correcao preenche o comprovante que faltava",
+    edita_despesa_da_rede($tra_sc, $dt_hoje_comp, 'admin', 80.00, $con_origem, 'sem comprovante',
+        array(), 'https://banco.exemplo/e/9') === true
+ && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_sc)
+    === 'https://banco.exemplo/e/9');
+
+// Apagar tem de ser possivel: comprovante colado errado nao pode ficar preso. E vazio
+// grava NULL, nao string vazia — "ainda nao veio" e "veio em branco" seriam iguais na
+// tela, mas so a primeira e verdade.
+verifica("e apaga quando se manda vazio, gravando NULL",
+    edita_despesa_da_rede($tra_sc, $dt_hoje_comp, 'admin', 80.00, $con_origem, 'x', array(), '') === true
+ && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_sc) === null);
+
+// E a lista devolve, para a tela mostrar o link e o formulario pre-preencher.
+$com_comp = null;
+foreach ((array)despesas_da_rede(date('Y-m-01'), date('Y-m-01', strtotime('+1 month'))) as $l)
+    if ($l['tra_id'] === (int)$tra_cc) $com_comp = $l;
+verifica("a lista devolve o comprovante de cada despesa",
+    $com_comp !== null && $com_comp['comprovante'] === 'https://banco.exemplo/e/7',
+    var_export($com_comp === null ? null : $com_comp['comprovante'], true));
+
 // A REGRA DE RATEIO NAO FICA GRAVADA — so o resultado dela. Como sugere_rateio() e
 // deterministica, a regra se descobre perguntando a ela o que cada uma daria.
 verifica("a regra se descobre a partir do rateio gravado",
