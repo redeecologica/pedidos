@@ -347,6 +347,27 @@ function balanco_da_chamada($cha_id)
 }
 
 
+// As linhas em branco deste núcleo podem explicar a diferença dele?
+//
+// A PERGUNTA É POR PRODUTO, e não pelo total. Um núcleo pode ter diferença e ainda assim
+// ter todas as linhas em branco em produto que fechou certo — aí a diferença vem de outro
+// produto, que em geral já tem justificativa escrita, e mandar "abrir os detalhes para
+// ver quais" manda procurar onde não há o que achar. Foi o que a tela fazia.
+//
+// Mora aqui, e não dentro do HTML, porque é julgamento: decide o que a tela AFIRMA a quem
+// confere, e afirmação errada aqui já mandou gente procurar problema duas vezes.
+//
+// Recebe o que detalhe_do_nucleo_na_chamada() devolve. Lista vazia é "não há branco que
+// explique", que é o mesmo que a resposta false.
+function brancos_explicam_diferenca($linhas)
+{
+	foreach ((array)$linhas as $d)
+		if (count($d['em_branco']) && abs($d['diferenca']) > 0.005) return true;
+
+	return false;
+}
+
+
 // O detalhe de um núcleo numa chamada: produto a produto, com a justificativa que alguém
 // já escreveu e as linhas em branco nomeadas.
 //

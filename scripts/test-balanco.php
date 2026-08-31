@@ -421,6 +421,38 @@ verifica("o numero de justificativas do aviso bate com o que o detalhe mostra",
 executa_sql("DELETE FROM distribuicao WHERE dist_cha = " . (int)$cha_cf
     . " AND dist_nuc = " . (int)$nuc_cf2 . " AND dist_prod = " . (int)$prod_cf2_id);
 
+// ---- as linhas em branco explicam a diferenca deste nucleo? ----
+//
+// A pergunta e POR PRODUTO. O nucleo 2 do fixture tem diferenca E uma linha em branco no
+// MESMO produto, entao ali o branco pode mesmo ser a explicacao: a tela manda abrir.
+verifica("branco no produto que diverge PODE explicar, e a tela manda abrir",
+    brancos_explicam_diferenca($det) === true,
+    json_encode(array_map(function ($x) {
+        return array($x['nome'], $x['diferenca'], count($x['em_branco'])); }, (array)$det)));
+
+// O caso que motivou a mudanca: ha diferenca, mas TODA linha em branco esta em produto
+// que fechou certo. A diferenca vem de outro produto — em geral um que ja tem
+// justificativa —, e mandar procurar nas linhas em branco manda procurar onde nao ha
+// nada. Visto na base: acontece em nucleo real, e a tela dizia "abra os detalhes para
+// ver quais" mesmo assim.
+$so_fechados = array(
+    array('nome' => 'diverge sem branco', 'diferenca' => 12.00, 'em_branco' => array()),
+    array('nome' => 'branco que fecha',   'diferenca' =>  0.00, 'em_branco' => array(array('nome' => 'alguem', 'pediu' => 1))),
+);
+verifica("branco so em produto que fechou NAO explica diferenca nenhuma",
+    brancos_explicam_diferenca($so_fechados) === false);
+
+// Centavos nao contam como diferenca, pela mesma tolerancia do resto do modulo.
+verifica("diferenca menor que meio centavo nao faz o branco explicar nada",
+    brancos_explicam_diferenca(array(
+        array('nome' => 'x', 'diferenca' => 0.004, 'em_branco' => array(array('nome' => 'a', 'pediu' => 1)))
+    )) === false);
+
+// Lista vazia e "nao ha branco que explique" — mesma resposta, sem quebrar.
+verifica("lista vazia devolve false, e nao erro",
+    brancos_explicam_diferenca(array()) === false
+ && brancos_explicam_diferenca(null) === false);
+
 // Produto que o nucleo NAO recebeu nao entra: nao ha o que explicar nele.
 verifica("produto que o nucleo nao recebeu fica de fora do detalhe",
     is_array($det) && count(array_filter($det, function ($x) { return $x['nome'] === 'Segundo produto'; })) === 0,
