@@ -152,7 +152,7 @@ if (!defined('CONTA_CHAVE_ESTOQUE')) define('CONTA_CHAVE_ESTOQUE', 'estoque');
 // cestante, com o saldo que o núcleo informar.
 //
 // Sem esse piso o extrato mostra a dívida desde 2013 e a soma não quer dizer nada:
-// o cestante 101 aparece devendo R$ 120.071,96, e o painel de um núcleo, -1,2 milhão.
+// um cestante aparece devendo uma fortuna, e o painel de um núcleo, um negativo enorme.
 // Números certos pelo contrato do módulo e falsos como frase sobre a vida de alguém.
 //
 // !!! PROVISÓRIA !!! 2026-05-01 é valor de TESTE LOCAL, escolhido por cair limpo
@@ -665,7 +665,7 @@ function extrato_do_cestante($usr_id)
 	// valor derivado já sai de dois round(...,2) — toda parcela entra na soma com no
 	// máximo duas casas, e o round de cada passo reencaixa na grade antes que sobre
 	// deriva para acumular. Divergência exatamente 0,0 somando 411 parcelas (o cestante
-	// 379 da cópia de produção) e também 200.000, com magnitude até 99.999.999,99.
+	// a cópia de produção tem) e também um teto folgado, com magnitude até 99.999.999,99.
 	//
 	// Como nenhuma entrada alcançável distingue as duas, nenhum teste desta suíte as
 	// distingue. Fica registrado como escolha deliberada e SEM guarda automática, em vez
@@ -2116,7 +2116,7 @@ function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_ori
 // O que foi carimbado num núcleo no período, com a despesa que o originou.
 //
 // A origem vem junto porque é ela que faz o rateio ser lido como conta e não como
-// imposto: o núcleo vê que os R$ 200,75 são hospedagem mais papéis centrais, item por
+// imposto: o núcleo vê que aquela parcela é hospedagem mais papéis centrais, item por
 // item, e não um número que apareceu.
 //
 // CONTRATO: array (vazio quando não houve rateio), ou null quando a consulta não roda.
@@ -2162,8 +2162,8 @@ function rateios_do_nucleo($nuc_id, $de, $ate)
 //   margem não assoc.   prod_valor_venda_margem menos a compra, para quem não é sócio
 //   margem no produto   venda menos compra; quase sempre zero, porque a Rede repassa a custo
 //
-// Medido na base em 12 meses: associação R$ 75.005 e taxa R$ 27.421 sustentam o
-// sistema; as duas margens de produto somam R$ 644 no ano inteiro.
+// Medido na base em 12 meses: associação e taxa sustentam o sistema; as duas margens
+// de produto somam quase nada no ano inteiro.
 //
 // CUSTO tem duas metades: as despesas que o próprio núcleo lançou (motorista,
 // passagens) e o RATEIO — a parte dos custos fixos da Rede carimbada nele.
@@ -2545,7 +2545,7 @@ function define_quotas_de_rateio($quotas)
 // parece lucro. Nenhuma das duas leituras é verdade.
 //
 // Medido na cópia de produção, chamada 1159: sem o estoque a conta acusava R$ 3.741 de
-// "perda"; com ele, R$ 247 — 1,1% do recebido. O resto era mercadoria guardada.
+// "perda"; com ele, uma fração pequena do recebido. O resto era mercadoria guardada.
 //
 // A PREÇO DE COMPRA, por decisão da Rede: é o que ela desembolsou, que é o que ativo
 // significa. A preço de venda embutiria margem ainda não realizada.

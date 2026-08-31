@@ -234,7 +234,7 @@
         <?php if ($f['fechada']) { ?>
           <span class="text-success"><i class="glyphicon glyphicon-ok"></i> fechada</span>
           <?php
-            // O sinal do que foi lançado não diz nada sozinho: "-2.260,00 no razão" faz
+            // O sinal do que foi lançado não diz nada sozinho: um negativo no razão faz
             // quem lê parar para decidir se aquilo é bom ou ruim. As palavras dizem.
             if (abs($e['lancado']) > 0.005) { ?>
             <small class="text-muted">&middot;
