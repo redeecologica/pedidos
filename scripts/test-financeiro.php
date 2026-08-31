@@ -2949,6 +2949,30 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
                     && round($so_um['sobra'], 2) == 90.00,
     var_export($so_um, true));
 
+// A REGRA DE RATEIO NAO FICA GRAVADA — so o resultado dela. Como sugere_rateio() e
+// deterministica, a regra se descobre perguntando a ela o que cada uma daria.
+verifica("a regra se descobre a partir do rateio gravado",
+    regra_do_rateio(300.00, sugere_rateio(300.00, 'igual')) === 'igual'
+ && regra_do_rateio(300.00, sugere_rateio(300.00, 'quota')) === 'quota',
+    "igual->" . regra_do_rateio(300.00, sugere_rateio(300.00, 'igual'))
+    . " quota->" . regra_do_rateio(300.00, sugere_rateio(300.00, 'quota')));
+
+// '' QUANDO NAO DA PARA SABER, e isso nao e falha: rateio ajustado a mao perdeu a regra,
+// e chutar uma faria a tela afirmar uma escolha que ninguem fez.
+$mao = sugere_rateio(300.00, 'igual');
+$um_nuc = array_keys($mao)[0];
+$mao[$um_nuc] = round($mao[$um_nuc] + 7.00, 2);
+verifica("rateio ajustado a mao nao finge ter regra",
+    regra_do_rateio(300.00, $mao) === '', var_export(regra_do_rateio(300.00, $mao), true));
+
+verifica("rateio vazio ou ausente tambem devolve vazio",
+    regra_do_rateio(300.00, array()) === ''
+ && regra_do_rateio(300.00, null) === '');
+
+// Atribuicao so para UM nucleo nao veio de sugestao nenhuma: as duas espalham por todos.
+verifica("rateio parcial nao e confundido com sugestao",
+    regra_do_rateio(300.00, array($um_nuc => 300.00)) === '');
+
 // A ORDEM: por AREA, na sequencia que a caixa de selecao oferece, e depois por
 // descricao. Por data as mesmas linhas apareciam embaralhadas todo mes, e a lista e
 // conferida contra a planilha da Rede, que agrupa por area.

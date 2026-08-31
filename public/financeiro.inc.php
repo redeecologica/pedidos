@@ -2396,6 +2396,44 @@ function rateio_da_despesa($tra_id)
 }
 
 
+// Qual regra de rateio produziu esta atribuição.
+//
+// A REGRA NÃO FICA GRAVADA — só o resultado dela. Guardá-la exigiria uma coluna nova, e
+// não é preciso: sugere_rateio() é determinística, então basta perguntar a ela o que cada
+// regra daria para este valor e ver qual bate com o que está gravado.
+//
+// DEVOLVE '' QUANDO NÃO DÁ PARA SABER, e isso não é falha: acontece quando alguém
+// ajustou o rateio à mão, quando as quotas mudaram desde o lançamento, ou quando a
+// despesa não foi rateada. Nesses casos a regra de fato se perdeu, e chutar uma faria a
+// tela afirmar uma escolha que ninguém fez — o mesmo defeito da área que vinha
+// pré-selecionada só por ser a primeira da lista.
+//
+// Quando as duas regras dão o mesmo resultado — todos os núcleos com a mesma quota — a
+// primeira ganha. As duas estariam certas, e a diferença não existe.
+function regra_do_rateio($valor, $rateio)
+{
+	if (!is_array($rateio) || !count($rateio)) return '';
+
+	foreach (array('igual', 'quota') as $regra)
+	{
+		$esperado = sugere_rateio($valor, $regra);
+		if (!is_array($esperado)) continue;
+
+		$bate = true;
+		foreach ($esperado as $nuc => $v)
+		{
+			$gravado = isset($rateio[$nuc]) ? (float)$rateio[$nuc] : 0.0;
+			if (abs($gravado - (float)$v) > 0.005) { $bate = false; break; }
+		}
+		// atribuição que carrega núcleo fora da sugestão não veio da sugestão
+		if ($bate && count($rateio) === count(array_filter($esperado, function ($v) { return $v > 0; })))
+			return $regra;
+	}
+
+	return '';
+}
+
+
 // Até quando uma despesa da Rede ainda pode ser corrigida no lugar.
 //
 // DO PRIMEIRO DIA DO MÊS ANTERIOR EM DIANTE. A janela existe porque as duas situações

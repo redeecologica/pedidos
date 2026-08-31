@@ -312,11 +312,26 @@
             </div>
             <div class="col-sm-3">
               <label for="c_regra">Rateio</label>
-              <select id="c_regra" name="regra" class="form-control">
+              <?php
+                // Herdada do rateio atual, pelo mesmo caminho de "repetir": corrigir o
+                // valor de uma despesa não costuma vir junto com mudar a regra, e fazer a
+                // pessoa reescolher convida a trocar sem querer.
+                $regra_atual = regra_do_rateio($d['valor'], $rat_atual);
+              ?>
+              <select id="c_regra" name="regra" class="form-control" required="required">
+                <?php if ($regra_atual === '') { ?>
+                <option value="">escolha</option>
+                <?php } ?>
                 <?php foreach ($regras as $rk => $rr) { ?>
-                <option value="<?php echo(h($rk)); ?>"><?php echo(h($rr)); ?></option>
+                <option value="<?php echo(h($rk)); ?>"<?php echo($rk === $regra_atual ? ' selected' : ''); ?>><?php echo(h($rr)); ?></option>
                 <?php } ?>
               </select>
+              <?php if ($regra_atual === '') { ?>
+              <span class="help-block small">
+                O rateio atual não veio de nenhuma das regras — foi ajustado à mão. Escolher
+                uma aqui vai <strong>refazê-lo</strong>.
+              </span>
+              <?php } ?>
             </div>
           </div>
 
@@ -454,9 +469,23 @@
               </select>
             </td>
             <td>
-              <select name="r_regra[<?php echo($i); ?>]" class="form-control input-sm">
+              <?php
+                // A REGRA VEM HERDADA, descoberta a partir do rateio gravado — ela não
+                // fica guardada na despesa, só o resultado dela, e sugere_rateio() é
+                // determinística o bastante para o caminho de volta.
+                //
+                // Quando não dá para saber — rateio ajustado à mão, ou quotas que mudaram
+                // desde então — a linha vem SEM escolha, e o `required` obriga a decidir.
+                // É o mesmo princípio da área: campo que parece respondido sem ninguém
+                // ter respondido é pior do que campo em branco.
+                $regra_herdada = regra_do_rateio($a['valor'], (array)rateio_da_despesa($a['tra_id']));
+              ?>
+              <select name="r_regra[<?php echo($i); ?>]" class="form-control input-sm" required="required">
+                <?php if ($regra_herdada === '') { ?>
+                <option value="">escolha</option>
+                <?php } ?>
                 <?php foreach ($regras as $rk => $rr) { ?>
-                <option value="<?php echo(h($rk)); ?>"><?php echo(h($rr)); ?></option>
+                <option value="<?php echo(h($rk)); ?>"<?php echo($rk === $regra_herdada ? ' selected' : ''); ?>><?php echo(h($rr)); ?></option>
                 <?php } ?>
               </select>
             </td>
@@ -466,9 +495,13 @@
       </table>
 
       <p class="small text-muted">
-        A regra de rateio <strong>não</strong> vem do mês anterior: ela não fica gravada na
-        despesa, só o resultado dela. Confira linha a linha — na planilha da Rede a mesma
-        área aparece nas duas regras, então a área não decide sozinha.
+        A regra de rateio vem <strong>descoberta</strong> a partir do rateio do mês
+        anterior: ela não fica gravada na despesa, só o resultado dela, e daí se deduz qual
+        regra o produziu. Confira mesmo assim — na planilha da Rede a mesma área aparece
+        nas duas regras, então a área não decide sozinha.
+        <br>Linha cujo rateio foi ajustado à mão vem <strong>sem regra escolhida</strong>:
+        ali ela se perdeu de verdade, e escolher uma por você seria afirmar o que ninguém
+        decidiu.
       </p>
 
       <div class="text-right">
