@@ -2,18 +2,12 @@
   require  "common.inc.php";
   require_once(__DIR__ . "/balanco.inc.php");
 
-  verifica_seguranca();
-
-  // Mesma audiência de entrega_divergencias.php — é a continuação daquela tela, com o
-  // dinheiro ao lado das quantidades. Mais a trava do módulo, que não passa por
-  // verifica_seguranca(): aquela função valida qualquer chamada de PAP_ADM sem olhar o
-  // parâmetro (common.inc.php:103-110).
-  if (!pode_ver_balanco())
-  {
-      adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
-      redireciona(PAGINAPRINCIPAL);
-      exit();
-  }
+  // A MESMA LINHA das outras abas de Entregas — entrega_divergencias.php,
+  // entrega_nucleos_consolidado.php e as demais usam exatamente esta. O Balanço é a
+  // continuação daquelas telas, com o dinheiro ao lado das quantidades, e nada aqui
+  // justifica uma regra própria: regra própria numa tela só é o que faz duas telas
+  // irmãs divergirem sem ninguém decidir que deviam.
+  verifica_seguranca($_SESSION[PAP_RESP_ENTREGA] || $_SESSION[PAP_RESP_FINANCAS]);
 
   // A chamada em foco é lembrada entre as telas de entrega, como em
   // entrega_divergencias.php:8-15 — quem está conferindo uma chamada não quer
@@ -184,15 +178,35 @@
     <select id="cha_id" name="cha_id" class="form-control" onchange="this.form.submit();">
       <option value="-1">escolha uma chamada</option>
       <?php
-        // TODAS as chamadas, da mais recente para a mais antiga. Sem recorte por data:
-        // o Balanço é diagnóstico, e olhar uma chamada de dois anos atrás para entender
-        // um padrão é uso legítimo. São 1.170 na base, e a ordem decrescente põe as que
-        // interessam no topo.
-        $res_cha = executa_sql(
-            "SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
-          . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
-          . "ORDER BY c.cha_dt_entrega DESC, c.cha_id DESC");
-        while ($res_cha && $rc = mysqli_fetch_array($res_cha, MYSQLI_ASSOC)) {
+        // AS ÚLTIMAS VINTE, da mais recente para a mais antiga. São 1.170 chamadas na
+        // base, desde 2013, e uma lista com todas é rolagem que ninguém percorre — as
+        // de 2015 não são conferidas por ninguém.
+        //
+        // LIMIT, e não recorte por data: vinte é vinte em qualquer semana do ano, e uma
+        // janela de tempo encolheria a lista justamente depois de um período parado, que
+        // é quando alguém volta querendo olhar o que ficou para trás.
+        //
+        // A CHAMADA EM FOCO ENTRA MESMO FORA DAS VINTE. Ela é lembrada na sessão entre
+        // as telas de entrega, e pode vir de um link antigo — sem esta condição o
+        // seletor mostraria "escolha uma chamada" com a tabela dela cheia logo abaixo,
+        // que é a tela se contradizendo.
+        $sql_cha = "SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
+                 . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
+                 . "ORDER BY (c.cha_id = " . prep_para_bd((int)$cha_id) . ") DESC, "
+                 . "c.cha_dt_entrega DESC, c.cha_id DESC LIMIT 20";
+
+        $res_cha = executa_sql($sql_cha);
+
+        // reordena para a data voltar a mandar: o DESC acima só serviu para a chamada em
+        // foco sobreviver ao LIMIT, e deixá-la no topo bagunçaria a leitura da lista
+        $opcoes = array();
+        while ($res_cha && $rc = mysqli_fetch_array($res_cha, MYSQLI_ASSOC)) $opcoes[] = $rc;
+        usort($opcoes, function ($a, $b) {
+            if ($a['cha_dt_entrega'] === $b['cha_dt_entrega']) return (int)$b['cha_id'] - (int)$a['cha_id'];
+            return strcmp($b['cha_dt_entrega'], $a['cha_dt_entrega']);
+        });
+
+        foreach ($opcoes as $rc) {
       ?>
       <option value="<?php echo(h($rc['cha_id'])); ?>"<?php echo(((string)$rc['cha_id'] === (string)$cha_id) ? ' selected' : ''); ?>>
         <?php echo(h($rc['prodt_nome'] . ' — ' . date('d/m/Y', strtotime($rc['cha_dt_entrega'])))); ?>

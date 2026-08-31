@@ -17,27 +17,14 @@
 // exatamente a mentira que ela existe para não contar. executa_sql() não aborta —
 // devolve false quando o servidor recusa —, então cada chamada é conferida.
 //
-// A TELA É PARA QUEM JÁ CUIDA DE ENTREGA, e não para um grupo restrito de testadores. O
-// papel Beta Tester chegou a ser exigido e saiu: quem confere entrega é justamente quem
-// vai reconhecer um número errado, e trancar a tela para meia dúzia de pessoas atrasaria
-// a validação em vez de proteger alguém. Ela não grava nada — só lê e soma —, então o
-// risco de deixá-la aberta a essa audiência é ler um número, não estragar um dado.
+// QUEM VÊ é quem já cuida de entrega — a mesma audiência das outras abas, pela mesma
+// linha que elas usam: verifica_seguranca($_SESSION[PAP_RESP_ENTREGA] ||
+// $_SESSION[PAP_RESP_FINANCAS]). Sem regra própria: o Balanço é a continuação de
+// entrega_divergencias.php, com o dinheiro ao lado das quantidades, e uma regra só dele
+// é o que faria duas telas irmãs divergirem sem ninguém decidir que deviam.
 //
 // O aviso de "funcionalidade em teste" fica na própria tela, ao lado do seletor de
 // chamada, onde quem for usar já está olhando.
-
-// Quem alcança o Balanço: quem já cuida de entrega ou de dinheiro. É a mesma audiência de
-// entrega_divergencias.php, que esta tela continua — com o dinheiro ao lado das quantidades.
-//
-// A trava NÃO passa por verifica_seguranca(): aquela função valida qualquer chamada de
-// PAP_ADM sem olhar o parâmetro (common.inc.php:103-110), então `verifica_seguranca(...)`
-// não distinguiria papel nenhum.
-function pode_ver_balanco()
-{
-	return !empty($_SESSION['usr.id'])
-	    && (!empty($_SESSION[PAP_RESP_ENTREGA]) || !empty($_SESSION[PAP_RESP_FINANCAS])
-	        || !empty($_SESSION[PAP_ADM]));
-}
 
 
 // A barra de abas de ENTREGAS, com o Balanço no fim quando quem olha o alcança.
@@ -58,10 +45,12 @@ function abas_entregas($ativa)
 		'nucleos'      => array('entrega_nucleos_consolidado.php',    'Recebido pelo Núcleo',   'glyphicon-road'),
 		'cestantes'    => array('entrega_cestantes_consolidado.php',  'Entregue aos Cestantes', 'glyphicon-grain'),
 		'divergencias' => array('entrega_divergencias.php',           'Divergências',           'glyphicon-eye-open'),
+		// SEM CONDIÇÃO. Toda tela que desenha esta barra já passou pela mesma
+		// verifica_seguranca() que o Balanço exige, então quem chega aqui alcança as
+		// cinco abas. Uma condição a mais só criaria a chance de a barra mostrar
+		// aba que a tela recusa, ou de esconder aba que ela aceita.
+		'balanco'      => array('balanco.php',                        'Balanço',                'glyphicon-scale'),
 	);
-
-	if (pode_ver_balanco())
-		$abas['balanco'] = array('balanco.php', 'Balanço', 'glyphicon-scale');
 
 	echo('<ul class="nav nav-tabs">' . "\n");
 
