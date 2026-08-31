@@ -94,6 +94,47 @@
   $acum = array();
   foreach ((array)$desde as $d) $acum[$d['forn_id']] = $d;
 
+  // QUEM TEM CONTA ABERTA APARECE, mesmo sem movimento no mês escolhido. A pergunta que
+  // esta tela responde é "a quem devemos", e ela não é sobre o mês: produtor que entregou
+  // em maio e não foi pago segue esperando em agosto, e some da lista justamente quando
+  // já esperou demais. O contrário também conta — pago a mais é dinheiro que saiu e não
+  // voltou, e sumir de vista é como ele vira prejuízo.
+  //
+  // Entram com as colunas do MÊS zeradas, que é a verdade: no mês não houve nada.
+  $tem_no_mes = array();
+  foreach ((array)$mesa as $m) $tem_no_mes[$m['forn_id']] = true;
+
+  $pendentes = array();
+  foreach ((array)$desde as $d)
+  {
+      if (isset($tem_no_mes[$d['forn_id']]))  continue;
+      if (abs($d['saldo']) < 0.005)           continue;
+
+      $pendentes[] = array(
+          'forn_id'   => $d['forn_id'],
+          'nome'      => $d['nome'],
+          'arquivado' => $d['arquivado'],
+          'a_receber' => 0.0,
+          'pago'      => 0.0,
+          'saldo'     => 0.0,
+          // marca a linha: sem isso ela se lê como "entregou nada e recebeu nada neste
+          // mês", que é verdade mas não é o motivo de ela estar aqui
+          'so_pendencia' => true,
+      );
+  }
+
+  if (is_array($mesa) && count($pendentes))
+  {
+      $mesa = array_merge($mesa, $pendentes);
+      // a fila de quem espera primeiro, e o resto pela ordem que já vinha
+      usort($mesa, function ($a, $b) use ($acum) {
+          $sa = isset($acum[$a['forn_id']]) ? $acum[$a['forn_id']]['saldo'] : 0.0;
+          $sb = isset($acum[$b['forn_id']]) ? $acum[$b['forn_id']]['saldo'] : 0.0;
+          if (abs($sa - $sb) < 0.005) return strcasecmp($a['nome'], $b['nome']);
+          return ($sa > $sb) ? -1 : 1;
+      });
+  }
+
   $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
                     7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
 
@@ -171,6 +212,9 @@
       <td>
         <?php echo(h($f['nome'])); ?>
         <?php if ($f['arquivado']) { ?>&nbsp;<span class="label label-default">arquivado</span><?php } ?>
+        <?php if (!empty($f['so_pendencia'])) { ?>
+        <br><small class="text-muted">sem movimento no mês &mdash; está aqui pelo acumulado</small>
+        <?php } ?>
       </td>
       <td class="hidden-print text-right">
         <?php if (!$tem_conta) { ?>

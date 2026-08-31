@@ -1988,7 +1988,8 @@ function sugere_rateio($valor, $regra)
 // núcleo passaria a acusar prejuízo que ninguém teve.
 //
 // CONTRATO: tra_id, ou null quando não pôde virar lançamento.
-function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico, $rateio)
+function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico, $rateio,
+                              $comprovante = null)
 {
 	$categorias = categorias_de_despesa_da_rede();
 	$categoria  = (is_string($categoria) || is_int($categoria)) ? trim((string)$categoria) : '';
@@ -2035,8 +2036,15 @@ function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico,
 	// A conta de origem entrega o dinheiro; a conta principal da Rede assume o custo.
 	// É a mesma forma da despesa de núcleo, e por isso mesmo motivo: quem segurava o
 	// dinheiro passa a segurar menos, e quem arca fica com o custo no saldo.
-	$tra = lanca_transacao($dt, 'despesa_rede', $con_rede, $con_origem, $valor, $historico,
-		array('categoria' => $categoria));
+	// COMPROVANTE OPCIONAL, e opcional de verdade: a despesa costuma ser lançada quando
+	// se monta o mês, e o extrato aparece depois. Exigir na criação faria a pessoa
+	// inventar algo para o campo, ou adiar o lançamento — e lançamento adiado é o que
+	// não acontece. Preenche-se depois, pela correção.
+	$extras = array('categoria' => $categoria);
+	$comprovante = (is_string($comprovante) || is_int($comprovante)) ? trim((string)$comprovante) : '';
+	if ($comprovante !== '') $extras['comprovante'] = $comprovante;
+
+	$tra = lanca_transacao($dt, 'despesa_rede', $con_rede, $con_origem, $valor, $historico, $extras);
 
 	if (!$tra)
 	{
@@ -2321,7 +2329,7 @@ function despesas_da_rede($de, $ate)
 	$con_rede = conta_da_rede();
 	if (!$con_rede) return null;
 
-	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, ";
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, t.tra_comprovante, ";
 	$sql.= "ABS(l.lan_valor) valor, ";
 	$sql.= "(SELECT IFNULL(SUM(r.rat_valor),0) FROM rateios r WHERE r.rat_tra = t.tra_id) rateado, ";
 	// DE ONDE O DINHEIRO SAIU: é a outra perna, a que não é a conta principal da Rede.
@@ -2368,6 +2376,7 @@ function despesas_da_rede($de, $ate)
 			'categoria' => $cat,
 			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : $cat,
 			'historico' => (string)$row['tra_historico'],
+			'comprovante' => (string)$row['tra_comprovante'],
 			// null quando a outra perna não existe — transação de três pernas, ou meia
 			// gravada. A tela cai no primeiro destino em vez de mostrar campo vazio.
 			'origem'    => ($row['origem'] === null) ? null : (int)$row['origem'],
@@ -2473,7 +2482,8 @@ function despesa_da_rede_editavel($tra_dt)
 //
 // CONTRATO: true, ou false quando não pôde — fora da janela, transação que não é despesa
 // da Rede, valor não positivo, conta de origem inválida, rateio maior que o valor.
-function edita_despesa_da_rede($tra_id, $dt, $categoria, $valor, $con_origem, $historico, $rateio)
+function edita_despesa_da_rede($tra_id, $dt, $categoria, $valor, $con_origem, $historico, $rateio,
+                              $comprovante = null)
 {
 	if (!is_numeric($tra_id) || (int)$tra_id <= 0) return false;
 	$tra_id = (int)$tra_id;
@@ -2537,8 +2547,14 @@ function edita_despesa_da_rede($tra_id, $dt, $categoria, $valor, $con_origem, $h
 
 	$falhou = false;
 
+	// O comprovante costuma chegar DEPOIS da despesa, e é por aqui que ele entra. Vazio
+	// grava NULL, e não string vazia: "ainda não veio" e "veio em branco" seriam a mesma
+	// coisa na tela, mas só a primeira é verdade.
+	$comprovante = (is_string($comprovante) || is_int($comprovante)) ? trim((string)$comprovante) : '';
+
 	$sql = "UPDATE transacoes SET tra_dt = " . prep_para_bd($dt) . ", ";
 	$sql.= "tra_historico = " . prep_para_bd(trim((string)$historico)) . ", ";
+	$sql.= "tra_comprovante = " . ($comprovante === '' ? "NULL" : prep_para_bd($comprovante)) . ", ";
 	$sql.= "tra_categoria = " . prep_para_bd($categoria) . ", ";
 	$sql.= "tra_usr_alteracao = " . $usr . ", tra_dt_alteracao = NOW() ";
 	$sql.= "WHERE tra_id = " . prep_para_bd($tra_id);
@@ -3277,7 +3293,7 @@ function abas_financeiras_do_grupo($grupo)
 		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento contábil', 'glyphicon-lock');
 		$abas['despesas']   = array('despesas_rede.php',      'Despesas da Rede',   'glyphicon-globe');
 		$abas['quotas']     = array('quotas_rateio.php',      'Quotas de rateio',   'glyphicon-equalizer');
-		$abas['produtores'] = array('contas_produtores.php',  'Produtores',         'glyphicon-leaf');
+		$abas['produtores'] = array('contas_produtores.php',  'Caixa Produtores',   'glyphicon-leaf');
 	}
 
 	return $abas;

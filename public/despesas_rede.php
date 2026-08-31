@@ -266,7 +266,21 @@
         // "parcial" sair da conferência.
       ?>
       <td><?php echo(h($d['categoria_rotulo'])); ?></td>
-      <td><?php echo(h($d['historico'])); ?></td>
+      <td>
+        <?php echo(h($d['historico'])); ?>
+        <?php
+          // O comprovante vira link só quando é http/https — comprovante_como_link() é
+          // quem decide. Texto que não é endereço aparece como texto, no title.
+          if (trim($d['comprovante']) !== '') {
+              $lk = comprovante_como_link($d['comprovante']); ?>
+          <?php if ($lk !== '') { ?>
+          &nbsp;<a href="<?php echo(h($lk)); ?>" target="_blank" rel="noopener noreferrer"
+                   title="<?php echo(h($d['comprovante'])); ?>"><small><i class="glyphicon glyphicon-link"></i></small></a>
+          <?php } else { ?>
+          &nbsp;<small class="text-muted" title="<?php echo(h($d['comprovante'])); ?>"><i class="glyphicon glyphicon-paperclip"></i></small>
+          <?php } ?>
+        <?php } ?>
+      </td>
       <td class="text-right"><?php echo(h(formata_moeda($d['valor']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($d['rateado']))); ?></td>
       <td class="text-right<?php echo($d['sobra'] > 0.005 ? ' text-danger' : ''); ?>"><?php echo(h(formata_moeda($d['sobra']))); ?></td>
@@ -284,7 +298,19 @@
       </td>
     </tr>
 
-    <?php if ($em_correcao) { ?>
+    <?php if ($em_correcao && !$pode_corrigir) { ?>
+    <tr class="warning" id="d<?php echo(h($d['tra_id'])); ?>">
+      <?php
+        // O `corrigir=` na URL abre o formulário sem passar pelo botão, e o botão é o que
+        // some fora da janela. Sem esta guarda a pessoa preencheria tudo para levar a
+        // recusa no fim — o servidor barra de qualquer jeito, mas depois do trabalho.
+      ?>
+      <td colspan="7">
+        Esta despesa é de mais de um mês atrás e não muda mais. Para corrigi-la, lance um
+        ajuste — assim a correção aparece, em vez de reescrever um número que o núcleo já leu.
+      </td>
+    </tr>
+    <?php } else if ($em_correcao) { ?>
     <tr class="info" id="d<?php echo(h($d['tra_id'])); ?>">
       <td colspan="7">
         <form method="post" action="despesas_rede.php">
@@ -351,13 +377,24 @@
               <input type="text" id="c_historico" name="historico" class="form-control" maxlength="200"
                      value="<?php echo(h($d['historico'])); ?>" />
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-3">
               <label for="c_origem">Sai da conta</label>
               <select id="c_origem" name="origem" class="form-control">
                 <?php foreach ($origens as $cid => $rot) { ?>
-                <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
+                <option value="<?php echo(h($cid)); ?>"<?php echo(((int)$cid === (int)$d['origem']) ? ' selected' : ''); ?>><?php echo(h($rot)); ?></option>
                 <?php } ?>
               </select>
+            </div>
+            <div class="col-sm-3">
+              <?php
+                // É AQUI que o comprovante costuma entrar: a despesa foi lançada quando se
+                // montou o mês, e o extrato chegou depois. Vazio apaga — comprovante colado
+                // errado não pode ficar preso.
+              ?>
+              <label for="c_comprovante">Comprovante <small class="text-muted">(opcional)</small></label>
+              <input type="text" id="c_comprovante" name="comprovante" class="form-control" maxlength="300"
+                     placeholder="link, ou como achá-lo"
+                     value="<?php echo(h($d['comprovante'])); ?>" />
             </div>
           </div>
 
@@ -574,13 +611,24 @@
           <input type="text" id="historico" name="historico" class="form-control" maxlength="200"
                  placeholder="o que foi pago — escolha a área para ver exemplos" />
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-3">
           <label for="origem">Sai da conta</label>
           <select id="origem" name="origem" class="form-control">
             <?php foreach ($origens as $cid => $rot) { ?>
             <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
             <?php } ?>
           </select>
+        </div>
+        <div class="col-sm-3">
+          <?php
+            // OPCIONAL DE VERDADE. A despesa se lança quando se monta o mês, e o extrato
+            // costuma aparecer depois — exigir aqui faria inventar algo para o campo, ou
+            // adiar o lançamento, e lançamento adiado é o que não acontece. Preenche-se
+            // depois, pelo botão de corrigir.
+          ?>
+          <label for="comprovante">Comprovante <small class="text-muted">(opcional)</small></label>
+          <input type="text" id="comprovante" name="comprovante" class="form-control" maxlength="300"
+                 placeholder="link, ou como achá-lo — pode vir depois" />
         </div>
       </div>
 
