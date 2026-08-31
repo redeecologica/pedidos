@@ -2548,6 +2548,40 @@ function valor_do_estoque_da_chamada($cha_id)
 }
 
 
+// Quanto esta chamada abriria de estoque, se alguém mandasse. Zero quando a corrente dela
+// já foi aberta, ou quando não havia nada guardado no ponto de partida.
+//
+// A PERGUNTA É POR CORRENTE, e não pela conta inteira. Secos e Secos Bimestral são duas
+// correntes independentes: get_chamada_anterior() (common.inc.php:568) filtra por
+// cha_prodt, então o estoque anterior de uma Secos vem da Secos anterior, nunca da
+// Bimestral. Perguntando pela conta, abrir a primeira corrente trancava a segunda para
+// sempre, e o estoque inicial dela nunca entrava — a conta ficava a menos, em silêncio.
+//
+// Mora numa função porque a TELA faz a mesma pergunta para decidir se pede a abertura, e
+// duas cópias dela divergiriam — foi exatamente o que aconteceu na primeira versão.
+//
+// CONTRATO: float (0 quando não há o que abrir), ou null quando a chamada não existe ou a
+// consulta não roda.
+function abertura_pendente_da_chamada($cha_id)
+{
+	$v = valor_do_estoque_da_chamada($cha_id);
+	if ($v === null) return null;
+	if ($v['antes'] <= 0) return 0.0;
+
+	$sql = "SELECT COUNT(*) n FROM transacoes t ";
+	$sql.= "JOIN chamadas c ON c.cha_id = t.tra_cha ";
+	$sql.= "WHERE t.tra_tipo = 'estoque_abertura' ";
+	$sql.= "AND c.cha_prodt = (SELECT cha_prodt FROM chamadas WHERE cha_id = " . prep_para_bd($cha_id) . ")";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$row) return null;
+
+	return ((int)$row['n'] > 0) ? 0.0 : $v['antes'];
+}
+
+
 // A ABERTURA do estoque: o que já estava guardado antes de o módulo começar a lançar.
 //
 // Sem ela a conta guarda só a SOMA DAS VARIAÇÕES, que é o quanto o estoque mudou desde
@@ -2571,25 +2605,9 @@ function lanca_abertura_do_estoque($cha_id)
 	$con_rede    = conta_da_rede();
 	if (!$con_estoque || !$con_rede) return null;
 
-	// A GUARDA É POR CORRENTE, e não pela conta inteira. Secos e Secos Bimestral são duas
-	// correntes de estoque independentes: get_chamada_anterior() (common.inc.php:568)
-	// filtra por cha_prodt, então o estoque anterior de uma Secos vem da Secos anterior,
-	// nunca da Bimestral.
-	//
-	// Guardando pela conta, abrir a primeira corrente trancava a segunda para sempre, e o
-	// estoque inicial dela nunca entrava — a conta ficaria a menos, em silêncio, sem nada
-	// reclamando. Cada corrente abre a sua uma vez.
-	$sql = "SELECT COUNT(*) n FROM transacoes t ";
-	$sql.= "JOIN chamadas c  ON c.cha_id = t.tra_cha ";
-	$sql.= "WHERE t.tra_tipo = 'estoque_abertura' ";
-	$sql.= "AND c.cha_prodt = (SELECT cha_prodt FROM chamadas WHERE cha_id = " . prep_para_bd($cha_id) . ")";
-
-	$res = executa_sql($sql);
-	if (!$res) return null;
-	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
-	if (!$row || (int)$row['n'] > 0) return 0;      // esta corrente já foi aberta
-
-	if ($v['antes'] <= 0) return 0;                 // nada guardado no ponto de partida
+	$pend = abertura_pendente_da_chamada($cha_id);
+	if ($pend === null) return null;
+	if ($pend <= 0)     return 0;                   // já aberta, ou nada a abrir
 
 	// TIPO PRÓPRIO, e não 'estoque'. A abertura carrega o mesmo tra_cha do lançamento de
 	// variação daquela chamada — sem tipos distintos, a consulta de idempotência somaria
@@ -2650,7 +2668,8 @@ function estoque_pendente_da_chamada($cha_id)
 // não roda.
 function chamadas_a_fechar($de, $ate)
 {
-	$sql = "SELECT c.cha_id, c.cha_dt_entrega, c.cha_dt_prazo_contabil, pt.prodt_nome ";
+	$sql = "SELECT c.cha_id, c.cha_dt_entrega, c.cha_dt_prazo_contabil, pt.prodt_nome, ";
+	$sql.= "pt.prodt_mutirao ";
 	$sql.= "FROM chamadas c JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt ";
 	$sql.= "WHERE c.cha_dt_entrega >= " . prep_para_bd($de) . " ";
 	$sql.= "AND c.cha_dt_entrega < " . prep_para_bd($ate) . " ";
@@ -2669,6 +2688,9 @@ function chamadas_a_fechar($de, $ate)
 
 		$deb = debitos_a_materializar($id);
 		if ($deb === null) return null;
+
+		$abertura = abertura_pendente_da_chamada($id);
+		if ($abertura === null) return null;
 
 		$a_lancar = 0; $ja = 0; $valor = 0.0;
 		foreach ($deb as $d)
@@ -2689,12 +2711,18 @@ function chamadas_a_fechar($de, $ate)
 		$lista[] = array(
 			'cha_id'     => $id,
 			'tipo'       => (string)$row['prodt_nome'],
+			// chamada que não passa pelo mutirão não guarda estoque: o produtor entrega
+			// direto no núcleo. As colunas de estoque dela não são zero medido, são
+			// pergunta que não se faz — e a tela mostra travessão, não 0,00.
+			'tem_mutirao' => ((int)$row['prodt_mutirao'] === 1),
 			'dt'         => $row['cha_dt_entrega'],
 			// o prazo contábil é o que autoriza congelar: antes dele os insumos ainda
 			// podem mudar, e lançar cedo grava um retrato que a entrega ainda desmente
 			'congelavel' => ($row['cha_dt_prazo_contabil'] !== null
 			                 && strtotime($row['cha_dt_prazo_contabil']) <= time()),
 			'estoque'    => $pend,
+			// quanto esta chamada abriria, se for a primeira da corrente dela
+			'abertura'   => $abertura,
 			'debitos'    => array('a_lancar' => $a_lancar, 'ja_lancados' => $ja, 'valor' => $valor),
 			// fechada só quando NÃO SOBRA NADA dos dois lados: estoque conciliado e
 			// nenhum cestante por congelar
@@ -2778,7 +2806,8 @@ function lanca_estoque_da_chamada($cha_id)
 // CONTRATO: array, ou null quando a chamada não existe ou a consulta não roda.
 function conferencia_da_chamada($cha_id)
 {
-	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
+	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome, pt.prodt_mutirao "
+	     . "FROM chamadas c "
 	     . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
 	     . "WHERE c.cha_id = " . prep_para_bd($cha_id));
 	if (!$res) return null;
@@ -2787,8 +2816,26 @@ function conferencia_da_chamada($cha_id)
 
 	$id = (int)$cha['cha_id'];
 
-	// ---- A: o que cada núcleo confirmou receber ----
+	// prodt_mutirao diz se este tipo de chamada passa pelo mutirão. Quando NÃO passa
+	// (Frescos e afins), o produtor entrega direto no núcleo: não há contagem central,
+	// não há remessa do mutirão para o núcleo e não há estoque entre chamadas. Medido:
+	// nas 839 chamadas sem mutirão da base não existe UMA linha de estoque. Mostrar
+	// essas medidas zeradas ali seria inventar etapa que não aconteceu.
+	$tem_mutirao = ((int)$cha['prodt_mutirao'] === 1);
+
+	// ---- o que o mutirão ENVIOU e o que o núcleo CONFIRMOU receber ----
+	//
+	// São duas colunas diferentes da mesma tabela, e a distância entre elas é o que se
+	// perdeu no caminho — antes de o núcleo sequer abrir a caixa. dist_quantidade é o
+	// que saiu do mutirão; dist_quantidade_recebido é o que o núcleo confirmou.
+	// A COBERTURA vem junto, e não é detalhe. dist_quantidade é preenchida em 26% das
+	// linhas em que dist_quantidade_recebido é — medido em 12 meses: 3.507 contra 13.246.
+	// Sem dizer isso, "enviou 4.171" ao lado de "recebeu 6.584" parece a corrente
+	// quebrada, quando é só coluna não preenchida. O número é PISO, não total.
 	$sql = "SELECT d.dist_nuc nuc, n.nuc_nome_curto nome, ";
+	$sql.= "SUM(d.dist_quantidade * p.prod_valor_venda) e, ";
+	$sql.= "SUM(d.dist_quantidade > 0) e_linhas, ";
+	$sql.= "SUM(d.dist_quantidade_recebido > 0) v_linhas, ";
 	$sql.= "SUM(d.dist_quantidade_recebido * p.prod_valor_venda) v ";
 	$sql.= "FROM distribuicao d ";
 	$sql.= "JOIN chamadas c ON c.cha_id = d.dist_cha ";
@@ -2805,7 +2852,12 @@ function conferencia_da_chamada($cha_id)
 	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
 		$nucleos[(int)$r['nuc']] = array(
 			'nuc_id' => (int)$r['nuc'], 'nome' => (string)$r['nome'],
-			'recebeu' => round((float)$r['v'], 2), 'distribuiu' => 0.0, 'sem_registro' => 0);
+			'enviou'  => ($r['e'] === null) ? 0.0 : round((float)$r['e'], 2),
+			'recebeu' => ($r['v'] === null) ? 0.0 : round((float)$r['v'], 2),
+			// quantas linhas trazem cada número: o "enviou" costuma ser bem menor
+			'enviou_linhas'  => (int)$r['e_linhas'],
+			'recebeu_linhas' => (int)$r['v_linhas'],
+			'distribuiu' => 0.0, 'sem_registro' => 0);
 
 	// ---- C: o que os cestantes de cada núcleo receberam ----
 	//
@@ -2845,21 +2897,30 @@ function conferencia_da_chamada($cha_id)
 		// é justamente o caso em que a conta não fecha
 		if (!isset($nucleos[$n]))
 			$nucleos[$n] = array('nuc_id' => $n, 'nome' => (string)$r['nome'],
-			                     'recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0);
+			                     'enviou' => 0.0, 'recebeu' => 0.0,
+			                     'enviou_linhas' => 0, 'recebeu_linhas' => 0,
+			                     'distribuiu' => 0.0, 'sem_registro' => 0);
 
 		$nucleos[$n]['distribuiu']   = round((float)$r['v'], 2);
 		$nucleos[$n]['sem_registro'] = (int)$r['sem'];
 	}
 
-	$total = array('recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0);
+	$total = array('enviou' => 0.0, 'recebeu' => 0.0, 'distribuiu' => 0.0, 'sem_registro' => 0,
+	               'enviou_linhas' => 0, 'recebeu_linhas' => 0);
 	foreach ($nucleos as $n => $x)
 	{
 		$nucleos[$n]['diferenca'] = round($x['recebeu'] - $x['distribuiu'], 2);
+		// o que saiu do mutirão e o núcleo não confirmou: perdido no caminho, ou não conferido
+		$nucleos[$n]['no_caminho'] = round($x['enviou'] - $x['recebeu'], 2);
+		$total['enviou']       = round($total['enviou'] + $x['enviou'], 2);
 		$total['recebeu']      = round($total['recebeu'] + $x['recebeu'], 2);
+		$total['enviou_linhas']  += $x['enviou_linhas'];
+		$total['recebeu_linhas'] += $x['recebeu_linhas'];
 		$total['distribuiu']   = round($total['distribuiu'] + $x['distribuiu'], 2);
 		$total['sem_registro'] += $x['sem_registro'];
 	}
-	$total['diferenca'] = round($total['recebeu'] - $total['distribuiu'], 2);
+	$total['diferenca']  = round($total['recebeu'] - $total['distribuiu'], 2);
+	$total['no_caminho'] = round($total['enviou'] - $total['recebeu'], 2);
 
 	// ordena por diferença, do maior para o menor: é o que se quer investigar primeiro
 	uasort($nucleos, function ($a, $b) {
@@ -2868,7 +2929,13 @@ function conferencia_da_chamada($cha_id)
 	});
 
 	// ---- B e o estoque, que são da chamada inteira e não de um núcleo ----
-	$sql = "SELECT SUM(cp.chaprod_recebido_confirmado * p.prod_valor_venda) b ";
+	// As duas confirmações da mesma entrega do produtor: chaprod_recebido é a contagem do
+	// MUTIRÃO no dia; chaprod_recebido_confirmado é o que FINANÇAS aceitou depois de ler
+	// as justificativas. recebimento.php:27 escolhe entre as duas pelo modo da tela.
+	$sql = "SELECT SUM(cp.chaprod_recebido * p.prod_valor_venda) m, ";
+	$sql.= "SUM(cp.chaprod_recebido > 0) m_linhas, ";
+	$sql.= "SUM(cp.chaprod_recebido_confirmado > 0) b_linhas, ";
+	$sql.= "SUM(cp.chaprod_recebido_confirmado * p.prod_valor_venda) b ";
 	$sql.= "FROM chamadaprodutos cp ";
 	$sql.= "JOIN chamadas c ON c.cha_id = cp.chaprod_cha ";
 	$sql.= "JOIN produtos p ON p.prod_id = cp.chaprod_prod ";
@@ -2879,31 +2946,48 @@ function conferencia_da_chamada($cha_id)
 	if (!$res) return null;
 	$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
 	$confirmado = ($r && $r['b'] !== null) ? round((float)$r['b'], 2) : 0.0;
+	$mutirao    = ($r && $r['m'] !== null) ? round((float)$r['m'], 2) : 0.0;
+	// guardados AGORA porque $r é reaproveitado pela consulta de estoque logo abaixo
+	$mutirao_linhas    = $r ? (int)$r['m_linhas'] : 0;
+	$confirmado_linhas = $r ? (int)$r['b_linhas'] : 0;
 
-	$sql = "SELECT SUM(IFNULL(e.est_prod_qtde_antes,0)  * p.prod_valor_venda) antes, ";
-	$sql.= "SUM(IFNULL(e.est_prod_qtde_depois,0) * p.prod_valor_venda) depois ";
-	$sql.= "FROM estoque e ";
-	$sql.= "JOIN chamadas c ON c.cha_id = e.est_cha ";
-	$sql.= "JOIN produtos p ON p.prod_id = e.est_prod ";
-	$sql.= "WHERE e.est_cha = " . prep_para_bd($id) . " ";
-	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega";
+	$estoque = array('antes' => 0.0, 'depois' => 0.0);
 
-	$res = executa_sql($sql);
-	if (!$res) return null;
-	$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if ($tem_mutirao)
+	{
+		$sql = "SELECT SUM(IFNULL(e.est_prod_qtde_antes,0)  * p.prod_valor_venda) antes, ";
+		$sql.= "SUM(IFNULL(e.est_prod_qtde_depois,0) * p.prod_valor_venda) depois ";
+		$sql.= "FROM estoque e ";
+		$sql.= "JOIN chamadas c ON c.cha_id = e.est_cha ";
+		$sql.= "JOIN produtos p ON p.prod_id = e.est_prod ";
+		$sql.= "WHERE e.est_cha = " . prep_para_bd($id) . " ";
+		$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega";
 
-	$estoque = array(
-		'antes'  => ($r && $r['antes']  !== null) ? round((float)$r['antes'], 2)  : 0.0,
-		'depois' => ($r && $r['depois'] !== null) ? round((float)$r['depois'], 2) : 0.0,
-	);
+		$res = executa_sql($sql);
+		if (!$res) return null;
+		$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
+
+		$estoque = array(
+			'antes'  => ($r && $r['antes']  !== null) ? round((float)$r['antes'], 2)  : 0.0,
+			'depois' => ($r && $r['depois'] !== null) ? round((float)$r['depois'], 2) : 0.0,
+		);
+	}
 
 	return array(
 		'cha_id'     => $id,
 		'tipo'       => (string)$cha['prodt_nome'],
+		// quem lê a tela decide por aqui o que sequer existe nesta chamada:
+		// sem mutirão não há contagem central, remessa aos núcleos, nem estoque
+		'tem_mutirao' => $tem_mutirao,
 		'dt'         => $cha['cha_dt_entrega'],
 		'nucleos'    => array_values($nucleos),
 		'total'      => $total,
 		'confirmado' => $confirmado,
+		// o que o mutirão contou chegar dos produtores, antes do julgamento de Finanças.
+		// Preenchido em 19% das linhas que Finanças confirma — é piso, não total.
+		'mutirao'    => $mutirao,
+		'mutirao_linhas'    => $mutirao_linhas,
+		'confirmado_linhas' => $confirmado_linhas,
 		'estoque'    => $estoque,
 		// o que a Rede pagou e ninguém foi cobrado, já descontado o que ficou guardado
 		'nao_cobrado' => round($confirmado + $estoque['antes'] - $total['distribuiu'] - $estoque['depois'], 2),
@@ -3274,4 +3358,118 @@ function abas_entregas($ativa)
 	}
 
 	echo('</ul>' . "\n");
+}
+
+
+// O detalhe de um núcleo numa chamada: produto a produto, com a justificativa que alguém
+// já escreveu e as linhas em branco nomeadas.
+//
+// EXISTE PORQUE O NÚMERO SOZINHO MANDA PROCURAR NO LUGAR ERRADO. Medido em Santa, Secos
+// de 09/05/2026: o resumo dizia "6 sem entrega registrada" ao lado de uma diferença de
+// R$ 49,00. Das seis, UMA era a diferença — o mel, que chegou quebrado, e cuja
+// justificativa já estava escrita. As outras cinco eram produto inteiramente distribuído
+// com a linha de alguém em branco, que não muda a conta.
+//
+// A JUSTIFICATIVA VEM JUNTO, e não é enfeite: ela responde a pergunta antes de alguém
+// abrir outra tela. Está em distribuicao.dist_just_dif_entrega, preenchida em 91,7% das
+// divergências do último ano — o hábito existe e funciona; faltava trazê-lo para cá.
+//
+// CONTRATO: array de produtos (vazio quando nada diverge), ou null quando a consulta não
+// roda.
+function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
+{
+	$sql = "SELECT p.prod_id, p.prod_nome nome, p.prod_unidade unidade, ";
+	$sql.= "p.prod_valor_venda preco, d.dist_quantidade enviou, ";
+	$sql.= "d.dist_quantidade_recebido recebeu, ";
+	$sql.= "d.dist_just_dif_entrega justificativa ";
+	$sql.= "FROM distribuicao d ";
+	$sql.= "JOIN chamadas c ON c.cha_id = d.dist_cha ";
+	$sql.= "JOIN produtos p ON p.prod_id = d.dist_prod ";
+	$sql.= "  AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "WHERE d.dist_cha = " . prep_para_bd($cha_id) . " ";
+	$sql.= "AND d.dist_nuc = " . prep_para_bd($nuc_id) . " ";
+	$sql.= "AND d.dist_quantidade_recebido > 0 ";
+	$sql.= "ORDER BY p.prod_nome";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$produtos = array();
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$produtos[(int)$r['prod_id']] = array(
+			'prod_id'      => (int)$r['prod_id'],
+			'nome'         => (string)$r['nome'],
+			'unidade'      => (string)$r['unidade'],
+			'preco'        => round((float)$r['preco'], 2),
+			'enviou'       => ($r['enviou'] === null) ? 0.0 : round((float)$r['enviou'], 2),
+			'recebeu'      => round((float)$r['recebeu'], 2),
+			'entregue'     => 0.0,
+			'justificativa'=> trim((string)$r['justificativa']),
+			'em_branco'    => array(),
+			// TODA linha de cestante deste produto, e não só as em branco: é o registro
+			// que deu origem à nota. Quem lê "chegou quebrado no núcleo · R$ 49,00"
+			// precisa poder ver de quem era o mel, quem pediu e quem levou — sem isso a
+			// justificativa é palavra sem lastro, e conferir vira abrir outra tela.
+			'cestantes'    => array());
+
+	if (!count($produtos)) return array();
+
+	// quanto os cestantes deste núcleo receberam de cada produto, e quem ficou em branco
+	$sql = "SELECT pp.pedprod_prod prod, u.usr_nome_curto nome, ";
+	$sql.= "pp.pedprod_quantidade pediu, pp.pedprod_entregue entregue ";
+	$sql.= "FROM pedidos ped ";
+	$sql.= "JOIN pedidoprodutos pp ON pp.pedprod_ped = ped.ped_id ";
+	$sql.= "JOIN usuarios u        ON u.usr_id = ped.ped_usr ";
+	$sql.= "WHERE ped.ped_cha = " . prep_para_bd($cha_id) . " ";
+	$sql.= "AND ped.ped_nuc = " . prep_para_bd($nuc_id) . " AND ped.ped_fechado = 1 ";
+	$sql.= "ORDER BY u.usr_nome_curto";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$id = (int)$r['prod'];
+		if (!isset($produtos[$id])) continue;   // produto que o núcleo não recebeu
+
+		$pediu    = round((float)$r['pediu'], 2);
+		$entregue = ($r['entregue'] === null) ? null : round((float)$r['entregue'], 2);
+
+		// cestante que não pediu e nada recebeu não é registro, é linha de grade
+		if ($pediu > 0 || ($entregue !== null && $entregue > 0))
+			$produtos[$id]['cestantes'][] = array(
+				'nome'     => (string)$r['nome'],
+				'pediu'    => $pediu,
+				// null é "ninguém anotou", e 0 é "anotaram que não levou". A tela
+				// distingue os dois, e é a distinção que o aviso em branco conta.
+				'entregue' => $entregue);
+
+		if ($entregue === null)
+		{
+			if ($pediu > 0)
+				$produtos[$id]['em_branco'][] = array('nome' => (string)$r['nome'], 'pediu' => $pediu);
+		}
+		else
+			$produtos[$id]['entregue'] = round($produtos[$id]['entregue'] + $entregue, 2);
+	}
+
+	// só o que tem algo a dizer: diferença, ou linha em branco, ou justificativa escrita
+	$linhas = array();
+	foreach ($produtos as $x)
+	{
+		$x['diferenca'] = round(($x['recebeu'] - $x['entregue']) * $x['preco'], 2);
+
+		if (abs($x['diferenca']) < 0.005 && !count($x['em_branco']) && $x['justificativa'] === '')
+			continue;
+
+		$linhas[] = $x;
+	}
+
+	// maior diferença primeiro: é o que explica a conta
+	usort($linhas, function ($a, $b) {
+		if (abs(abs($a['diferenca']) - abs($b['diferenca'])) < 0.005) return strcasecmp($a['nome'], $b['nome']);
+		return (abs($a['diferenca']) > abs($b['diferenca'])) ? -1 : 1;
+	});
+
+	return $linhas;
 }

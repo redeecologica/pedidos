@@ -3406,8 +3406,13 @@ $usr_cf2 = insere("INSERT INTO usuarios (usr_nome_completo,usr_nome_curto,usr_em
     VALUES ('Cf dois','cf2','cf2@teste.local','x','0'," . (int)$nuc_cf2 . ")");
 
 // produto: compra 8, venda 10 — a conferencia e a preco de VENDA
+//
+// cha_prodt = 2 (Secos) e nao 1 (Frescos): so tipo com prodt_mutirao = 1 guarda estoque,
+// e metade dos testes daqui para baixo mede justamente o estoque. Com Frescos a
+// conferencia devolve estoque zerado de proposito — o produtor entrega direto no nucleo —
+// e o teste do 'nao cobrado' passaria a medir outra coisa.
 $cha_cf = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
-    VALUES (1,'2026-07-18 23:59:59','2026-07-01 00:00:00','2026-07-14 23:59:59',0.00)");
+    VALUES (2,'2026-07-18 23:59:59','2026-07-01 00:00:00','2026-07-14 23:59:59',0.00)");
 executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade, chaprod_recebido_confirmado)
     VALUES (" . (int)$cha_cf . "," . (int)$prod_est_id . ",1,90)");
 
@@ -3559,6 +3564,121 @@ verifica("conta que FECHA e mesmo assim tem linha em branco: repasse entre cesta
 
 // A − B: o julgamento de Financas. Nucleos confirmaram 900, Financas confirmou 900 tambem
 // (90 unidades x 10) — nada abatido.
+
+// ---- o DETALHE, produto a produto ----
+//
+// Existe porque o numero sozinho manda procurar no lugar errado. Medido em Santa, Secos de
+// 09/05/2026: "6 sem entrega registrada" ao lado de R$ 49,00 de diferenca. Das seis, UMA
+// era a diferenca — o mel, que chegou quebrado — e as outras cinco eram produto
+// inteiramente distribuido com a linha de alguem em branco.
+executa_sql("UPDATE distribuicao SET dist_just_dif_entrega = 'chegou quebrado'
+    WHERE dist_cha = " . (int)$cha_cf . " AND dist_nuc = " . (int)$nuc_cf2
+        . " AND dist_prod = " . (int)$prod_est_id);
+
+$det = detalhe_do_nucleo_na_chamada($cha_cf, $nuc_cf2);
+
+verifica("o detalhe traz o produto que diverge, com a justificativa ja escrita",
+    is_array($det) && count($det) >= 1
+    && $det[0]['nome'] === 'Secos do estoque'
+    && round($det[0]['diferenca'], 2) == 100.00
+    && $det[0]['justificativa'] === 'chegou quebrado',
+    is_array($det) ? json_encode($det) : var_export($det, true));
+
+// Os nomes sao o que torna a linha investigavel: "4 em branco" manda abrir outra tela.
+verifica("e NOMEIA quem ficou em branco, com o que cada um pediu",
+    is_array($det) && count($det[0]['em_branco']) === 1
+    && $det[0]['em_branco'][0]['nome'] === 'cf2b'
+    && round($det[0]['em_branco'][0]['pediu'], 2) == 10.00,
+    json_encode($det[0]['em_branco']));
+
+// Os REGISTROS que deram origem a nota. A justificativa sozinha e palavra sem lastro:
+// "chegou quebrado, R$ 100,00" nao diz de quem era, quem pediu, quem levou. Sem isso,
+// conferir obriga a abrir outra tela.
+verifica("o detalhe traz TODA linha de cestante do produto, e nao so as em branco",
+    is_array($det) && count($det[0]['cestantes']) === 2,
+    json_encode($det[0]['cestantes']));
+
+// null e 0 sao coisas diferentes na base — 6,6 milhoes de linhas NULL contra 41 mil
+// zeros —, e a distincao e justamente o que o aviso "em branco" conta. Achatar as duas
+// em 0,00 apagaria a diferenca entre "ninguem anotou" e "anotaram que nao levou".
+verifica("e distingue quem nao teve entrega ANOTADA de quem levou zero",
+    is_array($det)
+    && $det[0]['cestantes'][0]['nome'] === 'cf2'
+    && round($det[0]['cestantes'][0]['entregue'], 2) == 30.00
+    && $det[0]['cestantes'][1]['nome'] === 'cf2b'
+    && $det[0]['cestantes'][1]['entregue'] === null
+    && round($det[0]['cestantes'][1]['pediu'], 2) == 10.00,
+    json_encode($det[0]['cestantes']));
+
+// Produto que o nucleo NAO recebeu nao entra: nao ha o que explicar nele.
+verifica("produto que o nucleo nao recebeu fica de fora do detalhe",
+    is_array($det) && count(array_filter($det, function ($x) { return $x['nome'] === 'Segundo produto'; })) === 0,
+    json_encode(array_map(function ($x) { return $x['nome']; }, (array)$det)));
+
+// Nucleo sem nada a explicar devolve lista vazia, e nao null.
+verifica("nucleo sem divergencia e sem linha em branco devolve lista vazia",
+    is_array($d0 = detalhe_do_nucleo_na_chamada($cha_cf, $nuc_cf3)) && count($d0) === 0,
+    var_export($d0, true));
+
+executa_sql("CREATE TEMPORARY TABLE distribuicao (
+    dist_cha mediumint(6) unsigned NOT NULL, dist_nuc mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_d = (executa_sql("SELECT dist_just_dif_entrega FROM distribuicao") === false);
+$d_sem_bd = detalhe_do_nucleo_na_chamada($cha_cf, $nuc_cf2);
+executa_sql("DROP TEMPORARY TABLE distribuicao");
+
+verifica("a sombra faz o servidor recusar o detalhe", $sombra_d);
+verifica("detalhe de consulta recusada e null, e nao 'nada a explicar'",
+    $d_sem_bd === null, var_export($d_sem_bd, true));
+
+// ---- chamada que NAO passa pelo mutirao ----
+//
+// Frescos e afins: o produtor entrega direto no nucleo. Nao ha contagem central, remessa
+// a caminho nem estoque guardado entre chamadas — medido na base, as 839 chamadas com
+// prodt_mutirao = 0 nao tem UMA linha de estoque. A tela le esta flag para nao mostrar
+// linha, coluna nem explicacao de etapa que nunca aconteceu.
+verifica("chamada de tipo com mutirao se declara como tal",
+    is_array($cf) && $cf['tem_mutirao'] === true,
+    var_export(is_array($cf) ? $cf['tem_mutirao'] : $cf, true));
+
+$cha_sm = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-07-25 23:59:59','2026-07-01 00:00:00','2026-07-21 23:59:59',0.00)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade, chaprod_recebido_confirmado)
+    VALUES (" . (int)$cha_sm . "," . (int)$prod_est_id . ",1,20)");
+executa_sql("INSERT INTO distribuicao (dist_cha, dist_nuc, dist_prod, dist_quantidade, dist_quantidade_recebido)
+    VALUES (" . (int)$cha_sm . "," . (int)$nuc_cf1 . "," . (int)$prod_est_id . ",20,20)");
+// linha de estoque PLANTADA de proposito: em producao ela nunca existe para este tipo, e
+// o teste prova que a conferencia nem pergunta — nao que o banco esteja vazio por sorte.
+executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+    VALUES (" . (int)$cha_sm . "," . (int)$prod_est_id . ",7,9)");
+
+$cf_sm = conferencia_da_chamada($cha_sm);
+
+verifica("chamada de tipo SEM mutirao se declara como tal",
+    is_array($cf_sm) && $cf_sm['tem_mutirao'] === false,
+    var_export(is_array($cf_sm) ? $cf_sm['tem_mutirao'] : $cf_sm, true));
+
+verifica("e o estoque dela vem zerado, mesmo havendo linha de estoque gravada",
+    is_array($cf_sm) && round($cf_sm['estoque']['antes'],2) == 0.00
+                     && round($cf_sm['estoque']['depois'],2) == 0.00,
+    json_encode(is_array($cf_sm) ? $cf_sm['estoque'] : $cf_sm));
+
+// O 'nao cobrado' dela e so B − C: sem estoque nos dois extremos, nao ha o que descontar.
+verifica("o nao cobrado dela e a distancia entre Financas e o cestante, sem estoque",
+    is_array($cf_sm) && round($cf_sm['nao_cobrado'],2) == 200.00,
+    var_export(is_array($cf_sm) ? $cf_sm['nao_cobrado'] : $cf_sm, true));
+
+// A fila de fechamento carrega a mesma flag, para nao mostrar 0,00 onde a pergunta nao
+// se faz — travessao diz "nao guarda estoque", 0,00 diz "medimos e deu zero".
+$fila_sm = chamadas_a_fechar('2026-07-01', '2026-08-01');
+$acha_fila = function ($fila, $id) {
+    foreach ((array)$fila as $f) if ((int)$f['cha_id'] === (int)$id) return $f;
+    return null;
+};
+verifica("a fila de fechamento diz, por chamada, se ela guarda estoque",
+    is_array($fila_sm)
+    && ($f_mut = $acha_fila($fila_sm, $cha_cf))  && $f_mut['tem_mutirao'] === true
+    && ($f_sem = $acha_fila($fila_sm, $cha_sm))  && $f_sem['tem_mutirao'] === false,
+    json_encode(array_map(function ($f) { return array($f['cha_id'], $f['tem_mutirao']); }, (array)$fila_sm)));
 
 verifica("chamada que nao existe devolve null",
     conferencia_da_chamada(99999999) === null);

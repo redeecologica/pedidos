@@ -87,15 +87,6 @@
   $con_estoque = conta_de_estoque();
   $saldo_est   = ($con_estoque === null) ? null : saldo_da_conta($con_estoque);
 
-  // A abertura só existe uma vez, e sem ela a conta guarda a soma das variações em vez
-  // do valor do estoque. Enquanto não houver lançamento nenhum, a tela pede por ela.
-  $precisa_abertura = false;
-  if ($con_estoque)
-  {
-      $r = executa_sql("SELECT COUNT(*) n FROM lancamentos WHERE lan_con = " . prep_para_bd($con_estoque));
-      $rw = $r ? mysqli_fetch_array($r, MYSQLI_ASSOC) : null;
-      $precisa_abertura = ($rw && (int)$rw['n'] === 0);
-  }
 
   $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
                     7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
@@ -138,50 +129,69 @@
 <?php } else { ?>
 
 <?php
-  // A abertura vem antes de tudo, e só quando a conta está vazia. Fechar chamadas sem
-  // ela deixaria o estoque valendo a soma das variações — o quanto mudou, não quanto é.
-  $primeira = null;
-  foreach ($fila as $f) { if (abs($f['estoque']['antes']) > 0.005) { $primeira = $f; break; } }
+  // A abertura vem antes de tudo. UMA POR CORRENTE, não uma por conta: Secos e Secos
+  // Bimestral guardam estoques independentes, e abrir só a primeira deixaria a outra
+  // fora do razão para sempre — a conta ficaria a menos, em silêncio.
+  //
+  // Mostra a chamada mais antiga de cada corrente que ainda tem abertura pendente. Quem
+  // decide o que está pendente é abertura_pendente_da_chamada(), a mesma função que o
+  // lançamento usa: aqui a tela só pergunta, não repete a regra.
+  $abrir = array();
+  foreach ($fila as $f)
+      if ($f['abertura'] > 0.005 && !isset($abrir[$f['tipo']])) $abrir[$f['tipo']] = $f;
 
-  if ($precisa_abertura && $primeira !== null) { ?>
+  foreach ($abrir as $tipo => $f) { ?>
   <div class="panel panel-warning">
-    <div class="panel-heading">Antes de fechar a primeira chamada</div>
+    <div class="panel-heading">Antes de fechar a primeira chamada de <?php echo(h($tipo)); ?></div>
     <div class="panel-body">
       <p>
-        O estoque nunca foi lançado no razão. Sem esse primeiro lançamento a conta de
-        estoque passa a guardar <strong>o quanto o estoque mudou</strong>, e não quanto ele
-        vale — as duas coisas só coincidem se ele tivesse partido de zero, e não parte.
+        O estoque de <strong><?php echo(h($tipo)); ?></strong> nunca foi lançado no razão. Sem
+        esse primeiro lançamento a conta passa a guardar <strong>o quanto o estoque mudou</strong>,
+        e não quanto ele vale — as duas coisas só coincidem se ele tivesse partido de zero, e
+        não parte.
       </p>
       <p>
-        A chamada mais antiga desta lista, <strong><?php echo(h($primeira['tipo'] . ' de ' . date('d/m/Y', strtotime($primeira['dt'])))); ?></strong>,
-        começou com <strong>R$ <?php echo(h(formata_moeda($primeira['estoque']['antes']))); ?></strong>
+        A chamada mais antiga desta lista, <strong><?php echo(h($tipo . ' de ' . date('d/m/Y', strtotime($f['dt'])))); ?></strong>,
+        começou com <strong>R$ <?php echo(h(formata_moeda($f['abertura']))); ?></strong>
         guardados. É esse o ponto de partida.
       </p>
       <form method="post" action="fechamento_chamada.php">
         <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
         <input type="hidden" name="o_que" value="abertura" />
-        <input type="hidden" name="cha_id" value="<?php echo(h($primeira['cha_id'])); ?>" />
+        <input type="hidden" name="cha_id" value="<?php echo(h($f['cha_id'])); ?>" />
         <input type="hidden" name="ano" value="<?php echo(h($ano)); ?>" />
         <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
         <button class="btn btn-warning" type="submit">
-          <i class="glyphicon glyphicon-flag"></i> lançar o estoque de abertura
+          <i class="glyphicon glyphicon-flag"></i> lançar o estoque de abertura de <?php echo(h($tipo)); ?>
         </button>
         <span class="help-block small">
-          Acontece uma vez só. Depois disto, cada fechamento lança apenas o que a chamada mudou.
+          Acontece uma vez por tipo de chamada. Depois disto, cada fechamento lança apenas o
+          que a chamada mudou.
         </span>
       </form>
     </div>
   </div>
 <?php } ?>
 
+<?php
+  // As colunas de estoque só existem se ALGUMA chamada do mês guardar estoque. Um mês só
+  // de Frescos não tem o que mostrar ali, e três colunas de 0,00 fazem quem lê procurar o
+  // que nunca foi registrado. Num mês misto as colunas ficam, e a chamada sem mutirão
+  // mostra travessão: é pergunta que não se faz, não zero medido.
+  $algum_estoque = false;
+  foreach ($fila as $f) if ($f['tem_mutirao']) { $algum_estoque = true; break; }
+?>
+
 <table class="table table-bordered table-condensed table-striped">
   <thead>
     <tr>
       <th>Entrega</th>
       <th>Chamada</th>
+      <?php if ($algum_estoque) { ?>
       <th class="text-right">Estoque antes</th>
       <th class="text-right">Estoque depois</th>
       <th class="text-right">Estoque a lançar</th>
+      <?php } ?>
       <th class="text-right">Débitos a congelar</th>
       <th>Situação</th>
       <th></th>
@@ -193,6 +203,11 @@
     <tr>
       <td><?php echo(h(date('d/m/Y', strtotime($f['dt'])))); ?></td>
       <td><?php echo(h($f['tipo'])); ?> <small class="text-muted">#<?php echo(h($f['cha_id'])); ?></small></td>
+      <?php if ($algum_estoque && !$f['tem_mutirao']) { ?>
+      <td class="text-right" colspan="3">
+        <span class="text-muted" title="o produtor entrega direto no núcleo: esta chamada não guarda estoque">não guarda estoque</span>
+      </td>
+      <?php } else if ($algum_estoque) { ?>
       <td class="text-right"><?php echo(h(formata_moeda($e['antes']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($e['depois']))); ?></td>
       <td class="text-right">
@@ -203,6 +218,7 @@
           <br><small class="text-muted"><?php echo($e['falta'] > 0 ? 'a guardar' : 'a consumir'); ?></small>
         <?php } ?>
       </td>
+      <?php } ?>
       <td class="text-right">
         <?php $d = $f['debitos']; if ($d['a_lancar'] === 0) { ?>
           <span class="text-muted">&ndash;</span>
@@ -253,7 +269,7 @@
     </tr>
   <?php } ?>
   <?php if (!count($fila)) { ?>
-    <tr><td colspan="8">Nenhuma chamada a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
+    <tr><td colspan="<?php echo($algum_estoque ? 8 : 5); ?>">Nenhuma chamada a fechar em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</td></tr>
   <?php } ?>
   </tbody>
 </table>

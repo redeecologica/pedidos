@@ -28,6 +28,36 @@
   $conf = (ctype_digit((string)$cha_id) && (int)$cha_id > 0)
         ? conferencia_da_chamada($cha_id) : null;
 
+  // Chamada que não passa pelo mutirão não tem etapa intermediária nenhuma: o produtor
+  // entrega direto no núcleo. Sem contagem central, sem remessa do mutirão, sem estoque
+  // guardado entre chamadas — e nenhuma linha, coluna ou explicação sobre eles. Mostrar
+  // "estoque no começo 0,00" numa chamada de Frescos inventa uma etapa que não existe e
+  // faz quem lê procurar o que nunca foi registrado.
+  $tem_mutirao = ($conf !== null && $conf['tem_mutirao']);
+
+  // Núcleo aberto: o número sozinho manda procurar no lugar errado. Em Santa, "6 sem
+  // entrega registrada" ao lado de R$ 49,00 — e das seis, uma era a diferença.
+  $nuc_id = request_get("nuc_id", "");
+  if (!is_string($nuc_id) && !is_int($nuc_id)) $nuc_id = "";
+  if (!ctype_digit((string)$nuc_id) || (int)$nuc_id <= 0) $nuc_id = "";
+
+  $detalhe = ($conf !== null && $nuc_id !== "")
+           ? detalhe_do_nucleo_na_chamada($cha_id, $nuc_id) : null;
+
+  $nome_nuc = '';
+  foreach ((array)($conf ? $conf['nucleos'] : array()) as $x)
+      if ((string)$x['nuc_id'] === (string)$nuc_id) $nome_nuc = $x['nome'];
+
+  // Diz quando um número é PISO e não total. As duas colunas do mutirão são preenchidas
+  // em uma fração das linhas — 26% e 19% no último ano —, e sem isso "enviou 4.171" ao
+  // lado de "recebeu 6.584" parece a corrente quebrada, quando é só coluna vazia.
+  function marca_parcial($linhas, $de)
+  {
+      if ($de <= 0 || $linhas >= $de) return;
+      echo(" <span class=\"label label-default\" title=\"preenchido em " . h($linhas) . " de "
+         . h($de) . " linhas — o valor é um piso, não o total\">parcial</span>");
+  }
+
   escreve_mensagem_status();
 ?>
 
@@ -72,12 +102,30 @@
   <div class="col-sm-7">
     <table class="table table-bordered table-condensed">
       <tbody>
+        <?php if ($tem_mutirao) { ?>
         <tr><td>estoque no começo</td><td class="text-right"><?php echo(h(formata_moeda($conf['estoque']['antes']))); ?></td></tr>
-        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
-            <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
+        <tr><td>recebido pelo mutirão <small class="text-muted">&mdash; a contagem no dia</small>
+              <?php marca_parcial($conf["mutirao_linhas"], $conf["confirmado_linhas"]); ?></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['mutirao']))); ?></td></tr>
+        <tr><td>enviado aos núcleos <small class="text-muted">&mdash; o que saiu do mutirão</small>
+              <?php marca_parcial($conf["total"]["enviou_linhas"], $conf["total"]["recebeu_linhas"]); ?></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['total']['enviou']))); ?></td></tr>
+        <?php } ?>
+        <tr><td>confirmado pelos núcleos <small class="text-muted">&mdash; o que chegou lá</small></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></td></tr>
         <tr><td>entregue aos cestantes <small class="text-muted">&mdash; cobra o cestante</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></td></tr>
+        <?php if ($tem_mutirao) { ?>
         <tr><td>estoque no fim</td><td class="text-right"><?php echo(h(formata_moeda($conf['estoque']['depois']))); ?></td></tr>
+        <?php } ?>
+        <?php
+          // Finanças confirma POR ÚLTIMO, e a ordem da tabela diz isso: ela olha as
+          // justificativas que os núcleos escreveram depois da entrega, e só então fecha o
+          // número que paga o produtor. Posta no meio, parecia etapa do caminho da
+          // mercadoria; no fim, é o julgamento que ela de fato é.
+        ?>
+        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
         <tr class="active">
           <th>pago e não cobrado</th>
           <th class="text-right<?php echo(abs($conf['nao_cobrado']) > 0.005 ? ' text-danger' : ''); ?>">
@@ -90,13 +138,29 @@
   <div class="col-sm-5">
     <p class="small text-muted">
       <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
-      cobrado — já descontado o que ficou guardado em estoque. Sobrou, foi doado, estragou
-      depois de aceito, ou a entrega não foi anotada.
+      cobrado<?php if ($tem_mutirao) { ?> — já descontado o que ficou guardado em
+      estoque<?php } ?>. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi
+      anotada.
       <br><br>
-      Os núcleos confirmaram receber <strong><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></strong>,
-      e Finanças confirmou <strong><?php echo(h(formata_moeda($conf['confirmado']))); ?></strong> —
-      uma diferença de <strong><?php echo(h(formata_moeda($conf['abatido']))); ?></strong>,
-      que é o que ela abateu ao ler as justificativas.
+      <?php if ($tem_mutirao) { ?>
+      A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente diferente, e cada
+      distância entre duas contagens significa uma coisa. Mutirão contra Finanças é o que ela
+      <strong>abateu</strong> ao ler as justificativas — produto vencido sai da conta do
+      produtor. Enviado contra confirmado é o que se perdeu <strong>no caminho</strong> até o
+      núcleo. Confirmado contra entregue é o que ficou <strong>no núcleo</strong>.
+      <br><br>
+      As duas contagens do <strong>mutirão</strong> vêm marcadas como
+      <span class="label label-default">parcial</span> quando não estão preenchidas em toda
+      linha — e hoje quase nunca estão. Enquanto isso o número delas é <strong>piso</strong>,
+      não total, e não vale compará-lo com os outros.
+      <?php } else { ?>
+      Nesta chamada o produtor entrega <strong>direto no núcleo</strong>: não há contagem do
+      mutirão, remessa a caminho nem estoque guardado entre chamadas, e por isso essas linhas
+      não aparecem. A mercadoria é contada <strong>três vezes</strong> — o núcleo confirma o
+      que chegou, o cestante recebe, e Finanças fecha o que paga o produtor. Confirmado
+      contra entregue é o que ficou <strong>no núcleo</strong>; confirmado contra Finanças é
+      o que ela <strong>abateu</strong> ao ler as justificativas.
+      <?php } ?>
       <br><br>
       Tudo a <strong>preço de venda</strong>: a pergunta aqui é quanto disto virou dívida de
       alguém.
@@ -110,7 +174,8 @@
   <thead>
     <tr>
       <th>Núcleo</th>
-      <th class="text-right">Confirmou receber</th>
+      <?php if ($tem_mutirao) { ?><th class="text-right">Mutirão enviou</th><?php } ?>
+      <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregou aos cestantes</th>
       <th class="text-right">Diferença</th>
       <th></th>
@@ -119,7 +184,21 @@
   <tbody>
   <?php foreach ($conf['nucleos'] as $n) { ?>
     <tr>
-      <td><?php echo(h($n['nome'])); ?></td>
+      <td>
+        <a href="conferencia_chamada.php?cha_id=<?php echo(h($conf['cha_id'])); ?>&amp;nuc_id=<?php echo(h($n['nuc_id'])); ?>#detalhe"><?php echo(h($n['nome'])); ?></a>
+      </td>
+      <?php if ($tem_mutirao) { ?>
+      <td class="text-right">
+        <?php
+          // SEM destaque vermelho e SEM o selo "parcial". dist_quantidade é preenchida em
+          // 26% das linhas em que dist_quantidade_recebido é, então qualquer marca aqui
+          // apareceria em quase todo núcleo — vira ruído numa coluna inteira de números, e
+          // suja o texto de quem copia a tabela para uma planilha. A ressalva fica dita uma
+          // vez, na tabela de cima, onde é uma linha só.
+          echo(h(formata_moeda($n['enviou'])));
+        ?>
+      </td>
+      <?php } ?>
       <td class="text-right"><?php echo(h(formata_moeda($n['recebeu']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($n['distribuiu']))); ?></td>
       <td class="text-right<?php echo(abs($n['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
@@ -139,19 +218,20 @@
           // apenas se diz o que aconteceu, para quem confere decidir se vale olhar.
           if ($n['sem_registro'] > 0) {
               $tem_dif = (abs($n['diferenca']) > 0.005); ?>
-          <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> sem entrega registrada</span>
+          <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> em branco</span>
           <small class="text-muted">&nbsp;<?php
-            echo($tem_dif ? 'a diferença pode ser só isto'
+            echo($tem_dif ? 'clique no núcleo para ver quais'
                           : 'a conta fecha — pode ser repasse entre cestantes'); ?></small>
         <?php } ?>
       </td>
     </tr>
   <?php } ?>
   <?php if (!count($conf['nucleos'])) { ?>
-    <tr><td colspan="5">Nenhum núcleo movimentou esta chamada.</td></tr>
+    <tr><td colspan="<?php echo($tem_mutirao ? 6 : 5); ?>">Nenhum núcleo movimentou esta chamada.</td></tr>
   <?php } else { ?>
     <tr class="active">
       <th>total</th>
+      <?php if ($tem_mutirao) { ?><th class="text-right"><?php echo(h(formata_moeda($conf['total']['enviou']))); ?></th><?php } ?>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['recebeu']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($conf['total']['diferenca']))); ?></th>
@@ -160,6 +240,143 @@
   <?php } ?>
   </tbody>
 </table>
+
+<?php if ($detalhe !== null) { ?>
+
+<legend style="font-size:medium;" id="detalhe">
+  <?php echo(h($nome_nuc !== '' ? $nome_nuc : 'Núcleo')); ?> &middot; produto a produto
+</legend>
+
+<?php if (!count($detalhe)) { ?>
+  <p class="text-muted">Nada a explicar neste núcleo: nenhuma diferença, nenhuma linha em branco.</p>
+<?php } else {
+  // Colunas da tabela, para o colspan das linhas de registro: sem mutirão a coluna
+  // Enviado não existe.
+  $cols_det = $tem_mutirao ? 7 : 6;
+?>
+
+<div class="checkbox hidden-print" style="margin-top:0;">
+  <label>
+    <input type="checkbox" id="ver_registros" />
+    <strong>ver os registros</strong>
+    <small class="text-muted">&mdash; abre, sob cada produto, as linhas de cestante que deram origem à nota</small>
+  </label>
+</div>
+
+<table class="table table-bordered table-condensed table-striped">
+  <thead>
+    <tr>
+      <th>Produto</th>
+      <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
+      <th class="text-right">Núcleo confirmou receber</th>
+      <th class="text-right">Entregue</th>
+      <th class="text-right">Diferença</th>
+      <th>Justificativa</th>
+      <th>Linhas em branco</th>
+    </tr>
+  </thead>
+  <tbody>
+  <?php foreach ($detalhe as $d) { ?>
+    <tr>
+      <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
+      <?php if ($tem_mutirao) { ?>
+      <td class="text-right">
+        <?php echo($d['enviou'] > 0
+                   ? h(rtrim(rtrim(number_format($d['enviou'], 2, ',', '.'), '0'), ','))
+                   : '<span class="text-muted" title="o mutirão não informou o enviado deste produto">&mdash;</span>'); ?>
+      </td>
+      <?php } ?>
+      <td class="text-right"><?php echo(h(rtrim(rtrim(number_format($d['recebeu'], 2, ',', '.'), '0'), ','))); ?></td>
+      <td class="text-right"><?php echo(h(rtrim(rtrim(number_format($d['entregue'], 2, ',', '.'), '0'), ','))); ?></td>
+      <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
+        <?php echo(h(formata_moeda($d['diferenca']))); ?>
+      </td>
+      <td>
+        <?php if ($d['justificativa'] !== '') { ?>
+          <?php echo(h($d['justificativa'])); ?>
+        <?php } else if (abs($d['diferenca']) > 0.005) { ?>
+          <span class="label label-danger">sem justificativa</span>
+        <?php } else { ?>
+          <span class="text-muted">&mdash;</span>
+        <?php } ?>
+      </td>
+      <td>
+        <?php
+          // Nomear quem ficou em branco é o que faz a linha ser investigável. Sem os
+          // nomes, "4 em branco" manda abrir outra tela e procurar.
+          if (!count($d['em_branco'])) { ?>
+          <span class="text-muted">&mdash;</span>
+        <?php } else {
+          // escapa CADA parte e junta com a marcação depois: h() sobre a string já
+          // juntada escaparia o próprio separador, e o leitor via "&middot;" literal
+          $partes = array();
+          foreach ($d['em_branco'] as $b)
+              $partes[] = h($b['nome']) . ' <span class="text-muted">('
+                        . h(rtrim(rtrim(number_format($b['pediu'], 2, ',', '.'), '0'), ',')) . ')</span>';
+          echo('<small>' . implode(' &middot; ', $partes) . '</small>');
+        } ?>
+      </td>
+    </tr>
+    <?php
+      // Os registros que deram origem à nota. Ficam ESCONDIDOS por padrão porque um
+      // núcleo grande traz centenas de linhas e a tabela deixa de ser legível — mas
+      // ficam AQUI, coladas ao produto, e não em outra tela: a justificativa e o que a
+      // sustenta se leem juntas ou não se leem.
+      if (count($d['cestantes'])) { ?>
+    <tr class="registros" style="display:none;">
+      <td colspan="<?php echo(h($cols_det)); ?>" style="background:#fbfbfb;">
+        <small>
+          <strong><?php echo(h($d['nome'] . ' ' . $d['unidade'])); ?></strong>
+          <span class="text-muted">&middot; <?php echo(h(count($d['cestantes']))); ?> cestante(s) &middot; pediu &rarr; entregue</span>
+          <br>
+          <?php
+            $regs = array();
+            foreach ($d['cestantes'] as $c)
+            {
+                $pediu = rtrim(rtrim(number_format($c['pediu'], 2, ',', '.'), '0'), ',');
+
+                if ($c['entregue'] === null)
+                    // em branco não é zero: ninguém anotou. É o que o aviso da tabela
+                    // de cima conta, e o que quem confere precisa ver primeiro.
+                    $ent = '<span class="label label-warning">em branco</span>';
+                else if (abs($c['entregue'] - $c['pediu']) < 0.005)
+                    $ent = h(rtrim(rtrim(number_format($c['entregue'], 2, ',', '.'), '0'), ','));
+                else
+                    $ent = '<strong class="text-danger">'
+                         . h(rtrim(rtrim(number_format($c['entregue'], 2, ',', '.'), '0'), ','))
+                         . '</strong>';
+
+                $regs[] = h($c['nome']) . ' <span class="text-muted">' . h($pediu) . ' &rarr;</span> ' . $ent;
+            }
+            echo(implode(' &nbsp;&middot;&nbsp; ', $regs));
+          ?>
+        </small>
+      </td>
+    </tr>
+    <?php } ?>
+  <?php } ?>
+  </tbody>
+</table>
+
+<script>
+  // Sem reload: quem confere alterna a visão dezenas de vezes enquanto lê, e recarregar
+  // a página a cada clique perderia a rolagem e a chamada em foco.
+  $('#ver_registros').on('change', function () {
+      $('tr.registros').toggle(this.checked);
+  });
+</script>
+
+<p class="small text-muted">
+  Só aparece o produto que tem algo a dizer: diferença, linha em branco, ou justificativa
+  escrita. <strong>Diferença com justificativa</strong> está explicada e não precisa de mais
+  nada. <strong>Sem justificativa</strong> é o que vale investigar — e se escreve em
+  <a href="entrega_divergencias.php">Divergências</a>.
+  <br>Linha em branco num produto que fechou em zero não muda a conta: alguém desistiu e
+  outro levou.
+</p>
+<?php } ?>
+
+<?php } ?>
 
 <p class="small text-muted">
   O aviso <strong>sem entrega registrada</strong> conta só as linhas que podem explicar a
