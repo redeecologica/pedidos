@@ -4,8 +4,8 @@
 -- O QUE SÃO
 -- 75 linhas, em apenas 2 chamadas de toda a história da base:
 --
---   cha  450  Frescos          01/06/2019   73 linhas · 41 cestantes · R$ 320,38
---   cha 1015  Secos Bimestral  05/10/2024    2 linhas ·  2 cestantes · R$  57,20
+--   duas chamadas antigas, uma de Frescos e uma de Secos Bimestral. Poucas dezenas de
+--   linhas na primeira, um punhado na segunda. Os ids saem do bloco ANTES, abaixo.
 --
 -- POR QUE SÃO ERRO DE DADO, E NÃO ENTREGA
 -- Três sinais, todos na mesma direção:
