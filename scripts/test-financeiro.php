@@ -3150,16 +3150,33 @@ verifica("a conta de estoque existe e nao e destino de pagamento",
 executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
     VALUES (" . (int)$cha_est . "," . (int)$prod_est_id . ",20,50)");
 
+// SALDO MEDIDO POR DIFERENCA, e nao em absoluto. A conta de estoque e UMA so no sistema
+// inteiro, e a copia local pode ter lancamento anterior — foi o que aconteceu: um
+// `estoque_abertura` sobrou de um teste manual e derrubou seis assercoes que afirmavam
+// valores absolutos. E a mesma licao do TEST-2, em outra conta.
+$est0 = round(-saldo_da_conta($con_estoque), 2);
+function estoque_desde($base) { global $con_estoque; return round(-saldo_da_conta($con_estoque) - $base, 2); }
+
 // ABERTURA: 20 unidades ja guardadas antes de o modulo comecar a lancar. Sem isso a
 // conta guardaria so a soma das variacoes — o quanto o estoque MUDOU, e nao quanto vale.
-verifica("a abertura lanca o que ja estava guardado",
-    lanca_abertura_do_estoque($cha_est) > 0
-    && round(-saldo_da_conta($con_estoque), 2) == 160.00,
-    var_export(-saldo_da_conta($con_estoque), true));
+//
+// A abertura so acontece quando a conta esta VAZIA, entao aqui ela e exercitada pelo
+// contrato de recusa: com lancamento anterior, devolve 0 e nao mexe em nada.
+$ja_tinha = ($est0 != 0.0 || valor_escalar("SELECT COUNT(*) FROM lancamentos WHERE lan_con = " . (int)$con_estoque) > 0);
+$ab = lanca_abertura_do_estoque($cha_est);
+
+verifica("a abertura lanca o que ja estava guardado, ou recusa se a conta ja tem historia",
+    $ja_tinha ? ($ab === 0 && estoque_desde($est0) == 0.00)
+              : ($ab > 0   && estoque_desde($est0) == 160.00),
+    "ja_tinha=" . var_export($ja_tinha, true) . " ab=" . var_export($ab, true)
+        . " delta=" . estoque_desde($est0));
 
 verifica("abrir duas vezes nao dobra o estoque",
     lanca_abertura_do_estoque($cha_est) === 0
-    && round(-saldo_da_conta($con_estoque), 2) == 160.00);
+    && estoque_desde($est0) == ($ja_tinha ? 0.00 : 160.00));
+
+// daqui para baixo o ponto de partida e o que a abertura deixou
+$est1 = round(-saldo_da_conta($con_estoque), 2);
 
 $v = valor_do_estoque_da_chamada($cha_est);
 verifica("o estoque e avaliado a preco de COMPRA, nao de venda",
@@ -3173,9 +3190,8 @@ verifica("estocar move valor para o estoque e MELHORA a posicao da Rede",
     $tra_est && round($p[$con_estoque],2) == -240.00 && round($p[$con_rede_est],2) == 240.00,
     "tra=" . var_export($tra_est,true) . " pernas=" . json_encode($p));
 
-verifica("e o saldo passa a ser o estoque inteiro: 50 x 8 = 400",
-    round(-saldo_da_conta($con_estoque), 2) == 400.00,
-    var_export(-saldo_da_conta($con_estoque), true));
+verifica("e o estoque sobe 240: as 30 unidades que sobraram, a 8",
+    estoque_desde($est1) == 240.00, var_export(estoque_desde($est1), true));
 
 // IDEMPOTENTE: rodar de novo sem mudanca nao lanca nada.
 verifica("rodar de novo sem mudanca nao lanca nada",
@@ -3183,7 +3199,7 @@ verifica("rodar de novo sem mudanca nao lanca nada",
     var_export(lanca_estoque_da_chamada($cha_est), true));
 
 verifica("e o saldo continua o mesmo",
-    round(-saldo_da_conta($con_estoque), 2) == 400.00);
+    estoque_desde($est1) == 240.00);
 
 // CORRECAO: alguem conferiu e o estoque final era 45, nao 50. Lanca so a DIFERENCA —
 // reescrever o lancamento anterior apagaria o que ja foi conferido.
@@ -3196,9 +3212,8 @@ verifica("correcao lanca so a diferenca, e nao reescreve o que ja estava",
     $tra_corr > 0 && round($p2[$con_estoque],2) == 40.00 && round($p2[$con_rede_est],2) == -40.00,
     json_encode($p2));
 
-verifica("o saldo passa a refletir o estoque corrigido: 45 x 8 = 360",
-    round(-saldo_da_conta($con_estoque), 2) == 360.00,
-    var_export(-saldo_da_conta($con_estoque), true));
+verifica("a correcao devolve 40, deixando a variacao em 200: 25 unidades a 8",
+    estoque_desde($est1) == 200.00, var_export(estoque_desde($est1), true));
 
 // CONSUMIU: chamada seguinte comeca com 45 e termina com 5.
 $cha_est2 = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
@@ -3214,9 +3229,8 @@ verifica("consumir estoque devolve o valor e PIORA a posicao da Rede — o custo
     $tra_cons && round($p3[$con_estoque],2) == 320.00 && round($p3[$con_rede_est],2) == -320.00,
     json_encode($p3));
 
-verifica("e o estoque fica valendo 5 x 8 = 40",
-    round(-saldo_da_conta($con_estoque), 2) == 40.00,
-    var_export(-saldo_da_conta($con_estoque), true));
+verifica("e o estoque cai 320: as 40 unidades consumidas, a 8",
+    estoque_desde($est1) == -120.00, var_export(estoque_desde($est1), true));
 
 // SEM VARIACAO nao e erro: e chamada que nao mexeu no estoque.
 $cha_est3 = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
@@ -3248,8 +3262,9 @@ verifica("os lancamentos de estoque somam zero, como todos os outros",
 
 // A soma de tudo que foi lancado tem de bater com o estoque que existe HOJE nas
 // chamadas tocadas — e o mesmo dinheiro contado de dois jeitos.
-verifica("o saldo da conta bate com o estoque final da ultima chamada lancada",
-    round(-saldo_da_conta($con_estoque), 2) == round(5 * 8.00, 2));
+// A conta segue as duas chamadas: +25 unidades numa, -40 na outra, dando -15 a 8.
+verifica("o movimento das duas chamadas soma o que elas de fato mexeram",
+    estoque_desde($est1) == round(-15 * 8.00, 2), var_export(estoque_desde($est1), true));
 
 // CONTRATO da familia: consulta que nao roda devolve null.
 executa_sql("CREATE TEMPORARY TABLE estoque (

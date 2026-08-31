@@ -3076,7 +3076,7 @@ function abas_financeiras_do_grupo($grupo)
 		'fechamento' => array('fechamento_chamada.php',  'Fechamento de chamadas', 'glyphicon-lock'),
 		'despesas'   => array('despesas_rede.php',       'Despesas da Rede',   'glyphicon-globe'),
 		'quotas'     => array('quotas_rateio.php',       'Quotas de rateio',   'glyphicon-equalizer'),
-		'contas'     => array('contas.php',              'Contas',             'glyphicon-briefcase'),
+		'produtores' => array('contas_produtores.php',   'Produtores',         'glyphicon-leaf'),
 		'prazos'     => array('financas_prazos.php',     'Prazos',             'glyphicon-calendar'),
 	);
 }
@@ -3116,4 +3116,89 @@ function pode_ver_financas_da_rede()
 {
 	return pode_ver_financeiro()
 	    && (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+}
+
+
+// A posição de cada produtor no período: quanto a Rede lhe deve pelo que ele entregou, e
+// quanto já foi pago.
+//
+// O A RECEBER É DERIVADO, como o débito do cestante era antes da materialização: sai de
+// `chaprod_recebido_confirmado × prod_valor_compra`, que é o mesmo número que
+// rel_previsao_pagamento.php:26 já calcula — e que Finanças confirma depois de ler as
+// justificativas de divergência. Não há cópia gravada que possa divergir dele.
+//
+// O PAGO vem do razão: pagamento de cestante direto ao produtor, e pagamento do núcleo ao
+// produtor, os dois deixam a conta dele negativa. Aqui o sinal se inverte, porque quem lê
+// quer saber "quanto já pagamos", não "quanto ele deve".
+//
+// É esta tela que a conta do produtor sempre precisou. Em contas.php o saldo dele aparece
+// como "—", porque lá só o lado do PAGO existe e um número isolado diria o inverso da
+// verdade: que o produtor deve à Rede.
+//
+// CONTRATO: array (vazio quando não há produtor com movimento), ou null quando a consulta
+// não roda.
+function posicao_dos_produtores($de, $ate)
+{
+	// ---- o que ele tem a receber pelo que entregou ----
+	$sql = "SELECT f.forn_id, f.forn_nome_curto nome, f.forn_archive, ";
+	$sql.= "SUM(cp.chaprod_recebido_confirmado * p.prod_valor_compra) v ";
+	$sql.= "FROM chamadaprodutos cp ";
+	$sql.= "JOIN chamadas c   ON c.cha_id = cp.chaprod_cha ";
+	$sql.= "JOIN produtos p   ON p.prod_id = cp.chaprod_prod ";
+	$sql.= "  AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "JOIN fornecedores f ON f.forn_id = p.prod_forn ";
+	$sql.= "WHERE cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND c.cha_dt_entrega >= " . prep_para_bd($de) . " ";
+	$sql.= "AND c.cha_dt_entrega <  " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY f.forn_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$linhas = array();
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$linhas[(int)$r['forn_id']] = array(
+			'forn_id'   => (int)$r['forn_id'],
+			'nome'      => (string)$r['nome'],
+			'arquivado' => ((int)$r['forn_archive'] === 1),
+			'a_receber' => ($r['v'] === null) ? 0.0 : round((float)$r['v'], 2),
+			'pago'      => 0.0);
+
+	// ---- o que já foi pago a ele, pelo razão ----
+	$sql = "SELECT c.con_forn forn, f.forn_nome_curto nome, f.forn_archive, ";
+	$sql.= "SUM(-l.lan_valor) v ";
+	$sql.= "FROM lancamentos l ";
+	$sql.= "JOIN transacoes t   ON t.tra_id = l.lan_tra ";
+	$sql.= "JOIN contas c       ON c.con_id = l.lan_con AND c.con_tipo = 'produtor' ";
+	$sql.= "JOIN fornecedores f ON f.forn_id = c.con_forn ";
+	$sql.= "WHERE t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY c.con_forn";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$id = (int)$r['forn'];
+		// produtor pago sem ter entregue no período também aparece: é justamente o caso
+		// em que alguém quer olhar, e escondê-lo esconderia o pagamento adiantado ou o
+		// pagamento lançado no produtor errado
+		if (!isset($linhas[$id]))
+			$linhas[$id] = array('forn_id' => $id, 'nome' => (string)$r['nome'],
+			                     'arquivado' => ((int)$r['forn_archive'] === 1),
+			                     'a_receber' => 0.0, 'pago' => 0.0);
+
+		$linhas[$id]['pago'] = round((float)$r['v'], 2);
+	}
+
+	foreach ($linhas as $id => $x)
+		$linhas[$id]['saldo'] = round($x['a_receber'] - $x['pago'], 2);
+
+	// maior saldo primeiro: é a fila de quem esperar receber
+	uasort($linhas, function ($a, $b) {
+		if (abs($a['saldo'] - $b['saldo']) < 0.005) return strcasecmp($a['nome'], $b['nome']);
+		return ($a['saldo'] > $b['saldo']) ? -1 : 1;
+	});
+
+	return array_values($linhas);
 }
