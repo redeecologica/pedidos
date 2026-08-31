@@ -485,7 +485,13 @@
       <?php if ($tem_mutirao) { ?><th class="text-right">Mutirão enviou</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregou aos cestantes</th>
-      <th class="text-right">Diferença</th>
+      <?php
+        // O QUE A DIFERENÇA COMPARA, dito no cabeçalho. Numa linha com cinco números, um
+        // "Diferença" solto convida a supor que é contra o pedido — a coluna mais à
+        // esquerda —, e não contra as duas ao lado. Ela é recebido menos entregue, e é
+        // esse par que ela mede.
+      ?>
+      <th class="text-right">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th></th>
     </tr>
   </thead>
