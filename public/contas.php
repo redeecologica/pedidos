@@ -6,10 +6,14 @@
   // qualquer chamada de PAP_ADM sem olhar o parâmetro (common.inc.php:103-110), então
   // `verifica_seguranca(...)` abriria a tela para administrador sem Beta Tester.
   //
-  // Criar conta é ato de quem cuida do dinheiro da Rede, não de quem lança pagamento
-  // no núcleo: por isso RESP_FINANÇAS ou ADM, e não pode_lancar_pagamento().
-  if (!pode_ver_financeiro()
-      || (empty($_SESSION[PAP_RESP_FINANCAS]) && empty($_SESSION[PAP_ADM])))
+  // TELA DE ADMINISTRAÇÃO, não de finanças. Ela lista TODAS as contas, inclusive as
+  // internas — contrapartida, estoque, conta principal da Rede —, que são encanamento do
+  // razão e não decisão de quem cuida do dinheiro do dia a dia. A Rede pediu que ficasse
+  // com quem administra o sistema, e a configuração dela quase não muda.
+  //
+  // Quem cuida das finanças da Rede vê os produtores em contas_produtores.php, que é a
+  // pergunta que ela de fato faz: quanto devemos a cada um.
+  if (!pode_ver_financeiro() || empty($_SESSION[PAP_ADM]))
   {
       adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
       redireciona(PAGINAPRINCIPAL);
@@ -35,7 +39,6 @@
   }
 
   top();
-  abas_financeiras('rede', 'contas');
 
   // Lista TODAS, inclusive arquivadas e de cestante: esta é a tela de quem precisa
   // enxergar o conjunto. O que muda por tipo é o que dá para fazer, não o que dá para ver.
