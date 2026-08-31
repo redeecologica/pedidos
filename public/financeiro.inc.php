@@ -2323,7 +2323,12 @@ function despesas_da_rede($de, $ate)
 
 	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, ";
 	$sql.= "ABS(l.lan_valor) valor, ";
-	$sql.= "(SELECT IFNULL(SUM(r.rat_valor),0) FROM rateios r WHERE r.rat_tra = t.tra_id) rateado ";
+	$sql.= "(SELECT IFNULL(SUM(r.rat_valor),0) FROM rateios r WHERE r.rat_tra = t.tra_id) rateado, ";
+	// DE ONDE O DINHEIRO SAIU: é a outra perna, a que não é a conta principal da Rede.
+	// Quem repete o mês anterior precisa dela — a mesma despesa costuma sair sempre da
+	// mesma conta, e reescolher doze vezes é convite a errar numa.
+	$sql.= "(SELECT l2.lan_con FROM lancamentos l2 WHERE l2.lan_tra = t.tra_id ";
+	$sql.= "  AND l2.lan_con <> " . prep_para_bd($con_rede) . " LIMIT 1) origem ";
 	$sql.= "FROM transacoes t ";
 	$sql.= "JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_con = " . prep_para_bd($con_rede) . " ";
 	$sql.= "WHERE t.tra_tipo = 'despesa_rede' ";
@@ -2348,6 +2353,9 @@ function despesas_da_rede($de, $ate)
 			'categoria' => $cat,
 			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : $cat,
 			'historico' => (string)$row['tra_historico'],
+			// null quando a outra perna não existe — transação de três pernas, ou meia
+			// gravada. A tela cai no primeiro destino em vez de mostrar campo vazio.
+			'origem'    => ($row['origem'] === null) ? null : (int)$row['origem'],
 			'valor'     => $valor,
 			'rateado'   => $rateado,
 			// o que a Rede absorveu: sobra de centavos, ou parte que ninguém carimbou
@@ -2373,9 +2381,164 @@ function rateio_da_despesa($tra_id)
 }
 
 
+// Até quando uma despesa da Rede ainda pode ser corrigida no lugar.
+//
+// DO PRIMEIRO DIA DO MÊS ANTERIOR EM DIANTE. A janela existe porque as duas situações
+// são diferentes de verdade: despesa deste mês ou do passado ainda está sendo trabalhada,
+// e um erro de digitação nela se conserta digitando de novo. Despesa velha já entrou em
+// resultado que o núcleo leu, e reescrevê-la mudaria em silêncio um número sobre o qual
+// alguém já conversou — ali o certo é lançar um ajuste, que aparece.
+//
+// Dois meses, e não trinta dias: quem fecha o mês trabalha nos primeiros dias do
+// seguinte, e uma janela de trinta dias fecharia a porta no dia 1º, justamente quando a
+// pessoa senta para conferir o mês que acabou.
+function despesa_da_rede_editavel($tra_dt)
+{
+	$t = strtotime((string)$tra_dt);
+	if ($t === false) return false;
+
+	return date('Y-m', $t) >= date('Y-m', strtotime('first day of last month'));
+}
+
+
+// Corrige uma despesa da Rede no lugar: valor, data, área, conta de origem, descrição, e
+// o rateio junto.
+//
+// POR QUE ESTA REESCREVE O QUE redefine_rateio() NÃO REESCREVE. A regra do módulo é que
+// dinheiro lançado não se reescreve, e ela continua valendo para o passado — é o que a
+// janela de despesa_da_rede_editavel() protege. Dentro da janela a despesa ainda está
+// sendo montada, e obrigar um lançamento de ajuste para consertar um zero a mais
+// produziria duas linhas onde houve um erro de digitação, mais um rateio de ajuste
+// negativo para cada núcleo. O remédio seria pior.
+//
+// O RATEIO É REFEITO JUNTO, e tem de ser: ele é uma fração do valor, e deixar o antigo
+// depois de mudar o valor daria uma despesa cujo rateio não fecha com ela — que é
+// exatamente o estado que a coluna "fica com a Rede" existe para denunciar.
+//
+// CARIMBA QUEM ALTEROU, como edita_descricao_transacao(): sem isso a linha continuaria
+// dizendo que foi registrada por quem a criou, com o valor de outra pessoa.
+//
+// CONTRATO: true, ou false quando não pôde — fora da janela, transação que não é despesa
+// da Rede, valor não positivo, conta de origem inválida, rateio maior que o valor.
+function edita_despesa_da_rede($tra_id, $dt, $categoria, $valor, $con_origem, $historico, $rateio)
+{
+	if (!is_numeric($tra_id) || (int)$tra_id <= 0) return false;
+	$tra_id = (int)$tra_id;
+
+	$categorias = categorias_de_despesa_da_rede();
+	$categoria  = (is_string($categoria) || is_int($categoria)) ? trim((string)$categoria) : '';
+	if (!isset($categorias[$categoria])) return false;
+
+	$valor = round((float)$valor, 2);
+	if ($valor <= 0) return false;
+
+	if (!is_string($con_origem) && !is_int($con_origem)) return false;
+	$destinos = contas_de_destino();
+	if ($destinos === null)             return false;
+	if (!isset($destinos[$con_origem])) return false;
+	if (tipo_de_conta($con_origem) !== 'rede') return false;
+
+	$con_rede = conta_da_rede();
+	if (!$con_rede) return false;
+	if ((int)$con_rede === (int)$con_origem) return false;
+
+	if (!is_array($rateio)) return false;
+
+	// A DESPESA TEM DE SER O QUE SE DIZ QUE É, e estar na janela. Os dois conferidos no
+	// banco, e não no que a tela mandou: a tela esconde o botão, o POST não.
+	$res = executa_sql("SELECT tra_dt, tra_tipo FROM transacoes WHERE tra_id = " . prep_para_bd($tra_id));
+	if (!$res) return false;
+	$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$row) return false;
+	if ((string)$row['tra_tipo'] !== 'despesa_rede') return false;
+	if (!despesa_da_rede_editavel($row['tra_dt']))   return false;
+
+	// EXATAMENTE DUAS PERNAS. O invariante do módulo é esse, e reescrever pelo valor uma
+	// transação com três deixaria as outras intactas e a soma fora de zero.
+	$res = executa_sql("SELECT COUNT(*) n FROM lancamentos WHERE lan_tra = " . prep_para_bd($tra_id));
+	if (!$res) return false;
+	$rw = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$rw || (int)$rw['n'] !== 2) return false;
+
+	// Toda a conferência do rateio ANTES de escrever, como em lanca_despesa_da_rede().
+	$quotas = quotas_de_rateio();
+	if ($quotas === null) return false;
+
+	$soma = 0.0; $limpo = array();
+	foreach ($rateio as $nuc => $v)
+	{
+		if (!isset($quotas[(int)$nuc])) return false;
+		$v = round((float)$v, 2);
+		if ($v < 0) return false;
+		if ($v == 0) continue;
+		$soma += $v;
+		$limpo[(int)$nuc] = $v;
+	}
+	if ($soma > $valor + 0.0001) return false;
+
+	global $conn_link, $financeiro_em_transacao;
+	$nossa = empty($financeiro_em_transacao);
+	if ($nossa) { mysqli_begin_transaction($conn_link); $financeiro_em_transacao = true; }
+
+	$usr = isset($_SESSION['usr.id']) ? prep_para_bd($_SESSION['usr.id']) : "0";
+
+	$falhou = false;
+
+	$sql = "UPDATE transacoes SET tra_dt = " . prep_para_bd($dt) . ", ";
+	$sql.= "tra_historico = " . prep_para_bd(trim((string)$historico)) . ", ";
+	$sql.= "tra_categoria = " . prep_para_bd($categoria) . ", ";
+	$sql.= "tra_usr_alteracao = " . $usr . ", tra_dt_alteracao = NOW() ";
+	$sql.= "WHERE tra_id = " . prep_para_bd($tra_id);
+	if (executa_sql($sql) !== true) $falhou = true;
+
+	// As duas pernas são reescritas por inteiro — conta e valor —, porque a conta de
+	// origem também pode ter mudado. A perna do custo é a da conta principal da Rede; a
+	// outra é a de onde o dinheiro saiu.
+	if (!$falhou)
+	{
+		if (executa_sql("DELETE FROM lancamentos WHERE lan_tra = " . prep_para_bd($tra_id)) !== true)
+			$falhou = true;
+	}
+	if (!$falhou)
+	{
+		foreach (array(array($con_rede, -$valor), array($con_origem, $valor)) as $perna)
+		{
+			$sql = "INSERT INTO lancamentos (lan_tra, lan_con, lan_valor) VALUES (";
+			$sql.= prep_para_bd($tra_id) . ", " . prep_para_bd($perna[0]) . ", " . prep_para_bd($perna[1]) . ")";
+			if (!executa_sql($sql)) { $falhou = true; break; }
+		}
+	}
+
+	if (!$falhou)
+	{
+		if (executa_sql("DELETE FROM rateios WHERE rat_tra = " . prep_para_bd($tra_id)) !== true)
+			$falhou = true;
+	}
+	if (!$falhou)
+	{
+		foreach ($limpo as $nuc => $v)
+		{
+			$sql = "INSERT INTO rateios (rat_tra, rat_nuc, rat_valor) VALUES (";
+			$sql.= prep_para_bd($tra_id) . ", " . prep_para_bd($nuc) . ", " . prep_para_bd($v) . ")";
+			if (!executa_sql($sql)) { $falhou = true; break; }
+		}
+	}
+
+	if ($falhou)
+	{
+		if ($nossa) { mysqli_rollback($conn_link); $financeiro_em_transacao = false; }
+		return false;
+	}
+
+	if ($nossa) { mysqli_commit($conn_link); $financeiro_em_transacao = false; }
+	return true;
+}
+
+
 // Refaz a atribuição de uma despesa já lançada. A despesa em si — valor, data, conta —
-// NÃO muda: para corrigir dinheiro lança-se outra, como no resto do módulo. O que se
-// corrige aqui é para quem o custo foi apontado, que é decisão e não fato consumado.
+// NÃO muda por AQUI: quem corrige isso é edita_despesa_da_rede(), e só dentro da janela
+// em que a despesa ainda está sendo trabalhada. O que se corrige aqui é para quem o custo
+// foi apontado, que é decisão e não fato consumado — e isso vale em qualquer data.
 //
 // Substitui em bloco em vez de editar linha a linha: o conjunto tem de continuar
 // somando no máximo o valor da despesa, e conferir isso linha a linha deixaria estados
