@@ -104,6 +104,19 @@
       <tbody>
         <?php if ($tem_mutirao) { ?>
         <tr><td>estoque no começo</td><td class="text-right"><?php echo(h(formata_moeda($conf['estoque']['antes']))); ?></td></tr>
+        <?php } ?>
+        <?php
+          // A DEMANDA, e o único número da tabela que não depende de alguém conferir
+          // mercadoria — todos os outros são contagem posterior. Vem crua: o que foi
+          // pedido, sem nada abatido de estoque. Sem ela a corrente começa pelo meio,
+          // e não dá para ver se a chamada atendeu o que pediram.
+          //
+          // Fora do bloco do mutirão de propósito: chamada de Frescos também tem pedido,
+          // e nela esta é a primeira linha.
+        ?>
+        <tr><td>pedido pelos cestantes <small class="text-muted">&mdash; a demanda, sem nada abatido</small></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['total']['pediu']))); ?></td></tr>
+        <?php if ($tem_mutirao) { ?>
         <tr><td>recebido pelo mutirão <small class="text-muted">&mdash; a contagem no dia</small>
               <?php marca_parcial($conf["mutirao_linhas"], $conf["confirmado_linhas"]); ?></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['mutirao']))); ?></td></tr>
@@ -173,39 +186,68 @@
       </tbody>
     </table>
 
+    <?php
+      // O QUE FICA À VISTA são as duas frases que quem abre a tela precisa: o que o número
+      // é, e a que preço tudo está. O resto explica POR QUE ele se forma assim — vale
+      // muito quando surge a dúvida, e é parede de texto quando não surge. Vai para o
+      // popover, atrás de "Mais detalhes", em vez de sumir.
+      $detalhes = array();
+
+      if ($tem_mutirao)
+      {
+          $detalhes[] = 'O <strong>estoque entra nos dois sentidos</strong>, e é aí que o'
+                      . ' número costuma surpreender. Se a chamada <strong>consumiu</strong>'
+                      . ' do que estava guardado, aquela mercadoria também saiu sem ninguém'
+                      . ' ser cobrado por ela, e <strong>soma</strong>. Se a chamada'
+                      . ' <strong>deixou</strong> mercadoria guardada, aquilo não saiu, ainda'
+                      . ' é da Rede, e <strong>desconta</strong>. Só a diferença direta entre'
+                      . ' as duas primeiras linhas já responde "pagamos mais do que'
+                      . ' cobramos?" — o estoque responde a pergunta seguinte, "e do que a'
+                      . ' Rede já tinha, quanto saiu?".';
+
+          $detalhes[] = 'A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente'
+                      . ' diferente, e cada distância entre duas contagens significa uma'
+                      . ' coisa. Mutirão contra Finanças é o que ela <strong>abateu</strong>'
+                      . ' ao ler as justificativas — produto vencido sai da conta do produtor.'
+                      . ' Enviado contra confirmado é o que se perdeu <strong>no caminho</strong>'
+                      . ' até o núcleo. Confirmado contra entregue é o que ficou'
+                      . ' <strong>no núcleo</strong>.';
+
+          $detalhes[] = 'As duas contagens do <strong>mutirão</strong> vêm marcadas como'
+                      . ' <span class="label label-default">parcial</span> quando não estão'
+                      . ' preenchidas em toda linha — e hoje quase nunca estão. Enquanto isso'
+                      . ' o número delas é <strong>piso</strong>, não total, e não vale'
+                      . ' compará-lo com os outros.';
+      }
+      else
+      {
+          $detalhes[] = 'Nesta chamada o produtor entrega <strong>direto no núcleo</strong>:'
+                      . ' não há contagem do mutirão, remessa a caminho nem estoque guardado'
+                      . ' entre chamadas, e por isso essas linhas não aparecem. A mercadoria'
+                      . ' é contada <strong>três vezes</strong> — o núcleo confirma o que'
+                      . ' chegou, o cestante recebe, e Finanças fecha o que paga o produtor.'
+                      . ' Confirmado contra entregue é o que ficou <strong>no núcleo</strong>;'
+                      . ' confirmado contra Finanças é o que ela <strong>abateu</strong> ao ler'
+                      . ' as justificativas.';
+      }
+    ?>
     <p class="small text-muted">
       <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
       cobrado. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi anotada.
-      <?php if ($tem_mutirao) { ?>
-      <br><br>
-      O <strong>estoque entra nos dois sentidos</strong>, e é aí que o número costuma
-      surpreender. Se a chamada <strong>consumiu</strong> do que estava guardado, aquela
-      mercadoria também saiu sem ninguém ser cobrado por ela, e <strong>soma</strong>. Se a
-      chamada <strong>deixou</strong> mercadoria guardada, aquilo não saiu, ainda é da Rede,
-      e <strong>desconta</strong>. Só a diferença direta entre as duas primeiras linhas já
-      responde "pagamos mais do que cobramos?" — o estoque responde a pergunta seguinte,
-      "e do que a Rede já tinha, quanto saiu?".
-      <?php } ?>
-      <br><br>
-      <?php if ($tem_mutirao) { ?>
-      A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente diferente, e cada
-      distância entre duas contagens significa uma coisa. Mutirão contra Finanças é o que ela
-      <strong>abateu</strong> ao ler as justificativas — produto vencido sai da conta do
-      produtor. Enviado contra confirmado é o que se perdeu <strong>no caminho</strong> até o
-      núcleo. Confirmado contra entregue é o que ficou <strong>no núcleo</strong>.
-      <br><br>
-      As duas contagens do <strong>mutirão</strong> vêm marcadas como
-      <span class="label label-default">parcial</span> quando não estão preenchidas em toda
-      linha — e hoje quase nunca estão. Enquanto isso o número delas é <strong>piso</strong>,
-      não total, e não vale compará-lo com os outros.
-      <?php } else { ?>
-      Nesta chamada o produtor entrega <strong>direto no núcleo</strong>: não há contagem do
-      mutirão, remessa a caminho nem estoque guardado entre chamadas, e por isso essas linhas
-      não aparecem. A mercadoria é contada <strong>três vezes</strong> — o núcleo confirma o
-      que chegou, o cestante recebe, e Finanças fecha o que paga o produtor. Confirmado
-      contra entregue é o que ficou <strong>no núcleo</strong>; confirmado contra Finanças é
-      o que ela <strong>abateu</strong> ao ler as justificativas.
-      <?php } ?>
+      <?php
+        // .btn-popover é a classe que pedido.js:389 inicializa em toda página. O gatilho é
+        // CLIQUE, e não o hover de adiciona_popover_descricao(): este texto é longo, e um
+        // balão que some quando o mouse escapa não se termina de ler.
+        //
+        // data-html com a marcação escapada pelo h(): o navegador desfaz o escape ao ler o
+        // atributo, e o Bootstrap injeta como HTML. Escapar é o que impede a marcação de
+        // fechar o atributo aqui.
+      ?>
+      <a href="#" onclick="return false;" class="btn-popover"
+         data-trigger="click" data-placement="left" data-container="body" data-html="true"
+         data-title="Mais detalhes"
+         data-content="<?php echo(h(implode('<br><br>', $detalhes))); ?>">
+        <i class="glyphicon glyphicon-info-sign"></i> Mais detalhes</a>
       <br><br>
       Tudo a <strong>preço de venda</strong>: a pergunta aqui é quanto disto virou dívida de
       alguém.
