@@ -195,15 +195,24 @@
 
       if ($tem_mutirao)
       {
+          // A versão anterior dizia que a mercadoria consumida "saiu sem ninguém ser
+          // cobrado por ela", e isso se lê de dois jeitos: como fato da conta, ou como
+          // acusação de que alguém deixou de cobrar. Agora o texto fala do que a conta
+          // faz — de que lado cada parcela entra — e não do que teria acontecido.
           $detalhes[] = 'O <strong>estoque entra nos dois sentidos</strong>, e é aí que o'
-                      . ' número costuma surpreender. Se a chamada <strong>consumiu</strong>'
-                      . ' do que estava guardado, aquela mercadoria também saiu sem ninguém'
-                      . ' ser cobrado por ela, e <strong>soma</strong>. Se a chamada'
-                      . ' <strong>deixou</strong> mercadoria guardada, aquilo não saiu, ainda'
-                      . ' é da Rede, e <strong>desconta</strong>. Só a diferença direta entre'
-                      . ' as duas primeiras linhas já responde "pagamos mais do que'
-                      . ' cobramos?" — o estoque responde a pergunta seguinte, "e do que a'
-                      . ' Rede já tinha, quanto saiu?".';
+                      . ' número costuma surpreender.'
+                      . '<br><br>Se o estoque <strong>encolheu</strong> nesta chamada, saiu'
+                      . ' mercadoria do que estava guardado. A Rede pagou por ela numa'
+                      . ' chamada anterior, e ela está entre a mercadoria desta aqui — então'
+                      . ' entra do lado do que foi pago, e <strong>soma</strong>.'
+                      . '<br><br>Se o estoque <strong>cresceu</strong>, ficou mercadoria'
+                      . ' guardada para a próxima chamada. A Rede pagou por ela, mas ela não'
+                      . ' foi entregue agora e continua sendo dela — então sai da conta desta'
+                      . ' chamada, e <strong>desconta</strong>.'
+                      . '<br><br>As duas primeiras linhas sozinhas respondem "<em>nesta'
+                      . ' chamada, pagamos mais do que cobramos?</em>". Com o estoque, a'
+                      . ' pergunta passa a ser "<em>de tudo que estava disponível para'
+                      . ' entregar, quanto não virou cobrança?</em>".';
 
           $detalhes[] = 'A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente'
                       . ' diferente, e cada distância entre duas contagens significa uma'
@@ -255,7 +264,7 @@
   </div>
 </div>
 
-<legend style="font-size:medium;">Por núcleo</legend>
+<legend style="font-size:medium;" id="porNucleo">Por núcleo</legend>
 
 <table class="table table-bordered table-condensed table-striped">
   <thead>
@@ -269,10 +278,29 @@
     </tr>
   </thead>
   <tbody>
-  <?php foreach ($conf['nucleos'] as $n) { ?>
-    <tr>
+  <?php foreach ($conf['nucleos'] as $n) {
+        // O NOME DEIXOU DE SER LINK. Em todo o resto do sistema um nome sublinhado leva a
+        // outra página; aqui ele abria uma seção mais abaixo NESTA, e a promessa não
+        // batia com o que acontecia. Agora o nome é texto e quem convida a abrir é um
+        // botão com seta para baixo — o desenho que já significa "expande" em qualquer
+        // lugar. Aberto, a seta inverte e o botão passa a fechar.
+        $aberto = ((string)$n['nuc_id'] === (string)$nuc_id);
+        $url_abre  = 'conferencia_chamada.php?cha_id=' . h($conf['cha_id'])
+                   . '&amp;nuc_id=' . h($n['nuc_id']) . '#detalhe';
+        // fechar volta para a tabela, e não para o topo: quem fecha quer seguir lendo a
+        // linha em que estava
+        $url_fecha = 'conferencia_chamada.php?cha_id=' . h($conf['cha_id']) . '#porNucleo';
+  ?>
+    <tr<?php echo($aberto ? ' class="info"' : ''); ?>>
       <td>
-        <a href="conferencia_chamada.php?cha_id=<?php echo(h($conf['cha_id'])); ?>&amp;nuc_id=<?php echo(h($n['nuc_id'])); ?>#detalhe"><?php echo(h($n['nome'])); ?></a>
+        <?php if ($aberto) { ?><strong><?php } ?><?php echo(h($n['nome'])); ?><?php if ($aberto) { ?></strong><?php } ?>
+        <a class="btn btn-default btn-xs hidden-print" style="margin-left:6px;"
+           href="<?php echo($aberto ? $url_fecha : $url_abre); ?>"
+           title="<?php echo($aberto ? 'fechar o detalhe deste núcleo'
+                                     : 'abrir o detalhe deste núcleo, produto a produto, mais abaixo'); ?>">
+          <i class="glyphicon glyphicon-<?php echo($aberto ? 'chevron-up' : 'chevron-down'); ?>"></i>
+          <?php echo($aberto ? 'fechar' : 'detalhes'); ?>
+        </a>
       </td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
@@ -308,7 +336,7 @@
               $tem_dif = (abs($n['diferenca']) > 0.005); ?>
           <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> em branco</span>
           <small class="text-muted">&nbsp;<?php
-            echo($tem_dif ? 'clique no núcleo para ver quais'
+            echo($tem_dif ? 'abra os detalhes para ver quais'
                           : '(mas a conta fecha, então pode ser repasse entre cestantes'
                           . ' ou entrega parcial)'); ?></small>
         <?php }
