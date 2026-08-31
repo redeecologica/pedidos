@@ -185,33 +185,37 @@
         // LIMIT, e não recorte por data: vinte é vinte em qualquer semana do ano, e uma
         // janela de tempo encolheria a lista justamente depois de um período parado, que
         // é quando alguém volta querendo olhar o que ficou para trás.
-        //
-        // A CHAMADA EM FOCO ENTRA MESMO FORA DAS VINTE. Ela é lembrada na sessão entre
-        // as telas de entrega, e pode vir de um link antigo — sem esta condição o
-        // seletor mostraria "escolha uma chamada" com a tabela dela cheia logo abaixo,
-        // que é a tela se contradizendo.
-        $sql_cha = "SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
-                 . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
-                 . "ORDER BY (c.cha_id = " . prep_para_bd((int)$cha_id) . ") DESC, "
-                 . "c.cha_dt_entrega DESC, c.cha_id DESC LIMIT 20";
+        $res_cha = executa_sql(
+            "SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
+          . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
+          . "ORDER BY c.cha_dt_entrega DESC, c.cha_id DESC LIMIT 20");
 
-        $res_cha = executa_sql($sql_cha);
-
-        // reordena para a data voltar a mandar: o DESC acima só serviu para a chamada em
-        // foco sobreviver ao LIMIT, e deixá-la no topo bagunçaria a leitura da lista
-        $opcoes = array();
-        while ($res_cha && $rc = mysqli_fetch_array($res_cha, MYSQLI_ASSOC)) $opcoes[] = $rc;
-        usort($opcoes, function ($a, $b) {
-            if ($a['cha_dt_entrega'] === $b['cha_dt_entrega']) return (int)$b['cha_id'] - (int)$a['cha_id'];
-            return strcmp($b['cha_dt_entrega'], $a['cha_dt_entrega']);
-        });
-
-        foreach ($opcoes as $rc) {
+        $achou = false;
+        while ($res_cha && $rc = mysqli_fetch_array($res_cha, MYSQLI_ASSOC)) {
+            $e_esta = ((string)$rc['cha_id'] === (string)$cha_id);
+            if ($e_esta) $achou = true;
       ?>
-      <option value="<?php echo(h($rc['cha_id'])); ?>"<?php echo(((string)$rc['cha_id'] === (string)$cha_id) ? ' selected' : ''); ?>>
+      <option value="<?php echo(h($rc['cha_id'])); ?>"<?php echo($e_esta ? ' selected' : ''); ?>>
         <?php echo(h($rc['prodt_nome'] . ' — ' . date('d/m/Y', strtotime($rc['cha_dt_entrega'])))); ?>
       </option>
-      <?php } ?>
+      <?php }
+        // A CHAMADA EM FOCO ENTRA MESMO FORA DAS VINTE. Ela é lembrada na sessão entre as
+        // telas de entrega, e pode vir de um link antigo — sem isto o seletor mostraria
+        // "escolha uma chamada" com a tabela dela cheia logo abaixo, que é a tela se
+        // contradizendo. Mesmo bloco de entrega_divergencias.php:91 e das irmãs.
+        if (!$achou && $cha_id !== -1 && ctype_digit((string)$cha_id))
+        {
+            $r_foco = executa_sql(
+                "SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome FROM chamadas c "
+              . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
+              . "WHERE c.cha_id = " . prep_para_bd($cha_id));
+            $rf = $r_foco ? mysqli_fetch_array($r_foco, MYSQLI_ASSOC) : null;
+            if ($rf) {
+      ?>
+      <option value="<?php echo(h($rf['cha_id'])); ?>" selected>
+        <?php echo(h($rf['prodt_nome'] . ' — ' . date('d/m/Y', strtotime($rf['cha_dt_entrega'])))); ?>
+      </option>
+      <?php } } ?>
     </select>
   </div>
   <?php

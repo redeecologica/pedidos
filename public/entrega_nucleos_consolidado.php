@@ -66,7 +66,11 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
                         
                        $sql = "SELECT cha_id, prodt_nome, cha_dt_entrega cha_dt_entrega_original, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega ";
                         $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
-                        $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 10";
+                        $sql.= "ORDER BY cha_dt_entrega_original DESC LIMIT 20";
+						// 20, e não 10, em todo o módulo de Entregas: dez cobria pouco mais de
+						// um mês, e quem confere costuma comparar com a chamada equivalente
+						// anterior, que ficava de fora. A chamada em foco continua entrando
+						// mesmo fora da lista, no bloco logo abaixo.
 						
                         $res = executa_sql($sql);
                         if($res)
