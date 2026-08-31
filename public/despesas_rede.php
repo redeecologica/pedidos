@@ -50,35 +50,22 @@
 
       if ($o_que === "nova")
       {
-          // O QUE se está lançando decide tudo o resto. Despesa é custo de manter a Rede
-          // de pé, e por isso se rateia; pagamento a produtor quita o que a Rede já deve
-          // pela mercadoria, cujo custo já foi para quem a recebeu. Rateando o segundo,
-          // cada núcleo seria cobrado de novo pelo mesmo produto.
-          $valor = valor_digitado(campo("valor"));
-          $data  = date_create_from_format('d/m/Y', campo("dt"));
+          // SÓ DESPESA A RATEAR. O pagamento a produtor esteve aqui e saiu para a tela de
+          // Produtores: lá a pessoa já vê quanto falta para cada um, que é a informação
+          // sem a qual não se decide pagar. Aqui ele obrigava a chegar com nome e valor
+          // trazidos de outra tela, e ainda precisava de um parágrafo explicando que não
+          // era despesa e não se rateava — item que precisa disso está na tela errada.
+          $valor    = valor_digitado(campo("valor"));
+          $data     = date_create_from_format('d/m/Y', campo("dt"));
+          $sugerido = $data ? sugere_rateio($valor, campo("regra")) : null;
 
-          if (campo("lancamento") === "produtor")
-          {
-              $tra = !$data ? null
-                   : lanca_pagamento_a_produtor_da_rede(date_format($data, 'Y-m-d'),
-                         campo("produtor"), $valor, campo("origem"), campo("historico"));
+          $tra = ($sugerido === null) ? null
+               : lanca_despesa_da_rede(date_format($data, 'Y-m-d'), campo("categoria"), $valor,
+                     campo("origem"), campo("historico"), $sugerido);
 
-              adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
-                  $tra ? "Pagamento lançado na conta do produtor."
-                       : "Não foi possível lançar o pagamento. Confira a data, o valor, o produtor e a conta de origem.");
-          }
-          else
-          {
-              $sugerido = $data ? sugere_rateio($valor, campo("regra")) : null;
-
-              $tra = ($sugerido === null) ? null
-                   : lanca_despesa_da_rede(date_format($data, 'Y-m-d'), campo("categoria"), $valor,
-                         campo("origem"), campo("historico"), $sugerido);
-
-              adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
-                  $tra ? "Despesa lançada e rateada. Confira o rateio antes de fechar o mês."
-                       : "Não foi possível lançar. Confira a data, o valor, a área, a conta de origem e a regra de rateio.");
-          }
+          adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+              $tra ? "Despesa lançada e rateada. Confira o rateio antes de fechar o mês."
+                   : "Não foi possível lançar. Confira a data, o valor, a área, a conta de origem e a regra de rateio.");
       }
       else if ($o_que === "rateio")
       {
@@ -142,7 +129,6 @@
   $origens   = contas_de_destino_do_tipo('rede');
   // Produtor só entra na lista se tiver conta: sem conta não há perna onde lançar. As
   // contas nascem em Contas, no botão "criar as contas que faltam".
-  $produtores = contas_de_destino_do_tipo('produtor');
 
   $nomes_nuc = array();
   $res_n = executa_sql("SELECT nuc_id, nuc_nome_curto FROM nucleos");
@@ -387,7 +373,7 @@
 <?php } ?>
 
 <div class="panel panel-default">
-  <div class="panel-heading">Novo lançamento da Rede</div>
+  <div class="panel-heading">Nova despesa da Rede</div>
   <div class="panel-body">
     <form method="post" action="despesas_rede.php">
       <input type="hidden" name="action" value="<?php echo(ACAO_SALVAR); ?>" />
@@ -396,38 +382,13 @@
       <input type="hidden" name="mes" value="<?php echo(h($mes)); ?>" />
 
       <div class="row">
-        <div class="col-sm-6">
-          <label for="lancamento">O que é</label>
-          <select id="lancamento" name="lancamento" class="form-control">
-            <option value="despesa">despesa da Rede &mdash; rateada entre os núcleos</option>
-            <option value="produtor"<?php echo(count((array)$produtores) ? '' : ' disabled'); ?>>pagamento a produtor &mdash; não se rateia</option>
-          </select>
-          <span class="help-block small" id="ajuda_lancamento"></span>
-        </div>
-      </div>
-
-      <div class="row" style="margin-top:10px;">
-        <div class="col-sm-3" id="bloco_categoria">
+        <div class="col-sm-3">
           <label for="categoria">Área</label>
           <select id="categoria" name="categoria" class="form-control">
             <?php foreach ($cats as $ck => $cr) { ?>
             <option value="<?php echo(h($ck)); ?>"><?php echo(h($cr)); ?></option>
             <?php } ?>
           </select>
-        </div>
-        <div class="col-sm-6" id="bloco_produtor" style="display:none;">
-          <label for="produtor">Produtor</label>
-          <select id="produtor" name="produtor" class="form-control">
-            <?php foreach ((array)$produtores as $cid => $rot) { ?>
-            <option value="<?php echo(h($cid)); ?>"><?php echo(h($rot)); ?></option>
-            <?php } ?>
-          </select>
-          <?php if (!count((array)$produtores)) { ?>
-          <span class="help-block small">
-            Nenhum produtor tem conta ainda. Elas nascem em
-            <a href="contas.php">Contas</a>, no botão <em>criar as contas que faltam</em>.
-          </span>
-          <?php } ?>
         </div>
         <div class="col-sm-3">
           <label for="dt">Data</label>
@@ -438,7 +399,7 @@
           <label for="valor">Valor</label>
           <input type="text" id="valor" name="valor" class="form-control numero" required="required" value="" />
         </div>
-        <div class="col-sm-3" id="bloco_regra">
+        <div class="col-sm-3">
           <label for="regra">Rateio</label>
           <select id="regra" name="regra" class="form-control">
             <?php foreach ($regras as $rk => $rr) { ?>
@@ -484,49 +445,6 @@
   area.onchange = function () { desc.placeholder = exemplos[area.value] || ''; };
 })();
 
-// Mostra os campos que significam alguma coisa em cada tipo de lançamento. Quem manda é
-// o servidor: ele lê `produtor` só em pagamento, `categoria` e `regra` só em despesa, e
-// IGNORA o resto — a mesma divisão de conta_nucleo.php. Sem JavaScript a tela continua
-// inteira, com todos os campos à mostra e o lançamento saindo igual.
-(function () {
-  var tipo = document.getElementById('lancamento');
-  if (!tipo) return;
-
-  function mostra(id, sim) {
-    var el = document.getElementById(id);
-    if (el) el.style.display = sim ? '' : 'none';
-  }
-
-  var ajuda     = document.getElementById('ajuda_lancamento');
-  var desc      = document.getElementById('historico');
-  var area_desc = document.getElementById('categoria');
-
-  // Os textos vêm do PHP em vez de literais aqui: acentos dentro de string JavaScript
-  // dependem do charset da página chegar certo, e json_encode() escapa por conta.
-  var exemplos_desc         = <?php echo(json_encode($exemplos)); ?>;
-  var ajuda_despesa         = <?php echo(json_encode('Custo de manter a Rede de pé. É apontado nos núcleos pela regra escolhida.')); ?>;
-  var ajuda_pagamento       = <?php echo(json_encode('Quita o que a Rede já deve ao produtor pela mercadoria entregue. O custo dela já foi para quem a recebeu, então ratear cobraria o mesmo produto duas vezes.')); ?>;
-  var placeholder_pagamento = <?php echo(json_encode('Referente a que entrega, ou o mês pago')); ?>;
-
-  function ajusta() {
-    var pagamento = (tipo.value === 'produtor');
-
-    mostra('bloco_categoria', !pagamento);
-    mostra('bloco_regra',     !pagamento);
-    mostra('bloco_produtor',   pagamento);
-
-    if (ajuda) ajuda.textContent = pagamento ? ajuda_pagamento : ajuda_despesa;
-
-    // O placeholder da descrição segue o tipo: em despesa é o exemplo da área, em
-    // pagamento é o que identifica a entrega paga.
-    if (desc)
-      desc.placeholder = pagamento ? placeholder_pagamento
-                                   : (exemplos_desc[area_desc ? area_desc.value : ''] || '');
-  }
-
-  tipo.onchange = ajusta;
-  ajusta();
-})();
 </script>
 
 <p class="small text-muted">
