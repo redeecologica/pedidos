@@ -2800,7 +2800,19 @@ function conferencia_da_chamada($cha_id)
 	// no núcleo antigo. Medido — juntar pelo núcleo atual dá números absurdos.
 	$sql = "SELECT ped.ped_nuc nuc, n.nuc_nome_curto nome, ";
 	$sql.= "SUM(pp.pedprod_entregue * p.prod_valor_venda) v, ";
-	$sql.= "SUM(pp.pedprod_quantidade > 0 AND pp.pedprod_entregue IS NULL) sem ";
+	// SÓ AS LINHAS QUE PODEM EXPLICAR A DIFERENÇA. Contar toda linha pedida sem entrega
+	// registrada incluía produtos que o núcleo nunca confirmou ter recebido — e essas
+	// contribuem zero dos dois lados da conta. O resultado era um núcleo com diferença
+	// 0,00 e "29 sem entrega registrada" ao lado, o que faz quem lê procurar problema
+	// onde não há.
+	//
+	// A linha só entra quando o núcleo CONFIRMOU RECEBER aquele produto: aí o recebido
+	// entrou na soma, a entrega não, e a diferença pode ser só o registro faltando.
+	$sql.= "SUM(pp.pedprod_quantidade > 0 AND pp.pedprod_entregue IS NULL ";
+	$sql.= "    AND EXISTS (SELECT 1 FROM distribuicao d ";
+	$sql.= "                WHERE d.dist_cha = ped.ped_cha AND d.dist_nuc = ped.ped_nuc ";
+	$sql.= "                  AND d.dist_prod = pp.pedprod_prod ";
+	$sql.= "                  AND d.dist_quantidade_recebido > 0)) sem ";
 	$sql.= "FROM pedidos ped ";
 	$sql.= "JOIN pedidoprodutos pp ON pp.pedprod_ped = ped.ped_id ";
 	$sql.= "JOIN chamadas c  ON c.cha_id  = ped.ped_cha ";
@@ -3201,4 +3213,52 @@ function posicao_dos_produtores($de, $ate)
 	});
 
 	return array_values($linhas);
+}
+
+
+// Quem alcança a conferência em dinheiro. É a mesma pergunta que conferencia_chamada.php
+// faz por dentro — aqui só para a aba não aparecer para quem ela vai recusar.
+function pode_ver_conferencia()
+{
+	return pode_ver_financeiro()
+	    && (!empty($_SESSION[PAP_RESP_ENTREGA]) || !empty($_SESSION[PAP_RESP_FINANCAS])
+	        || !empty($_SESSION[PAP_ADM]));
+}
+
+
+// A barra de abas de ENTREGAS, com a Conferência em R$ no fim quando quem olha a alcança.
+//
+// Ela estava copiada em NOVE telas, e a conferência entrou em uma só — então clicar em
+// Divergências fazia a aba nova desaparecer, como se não existisse. É o defeito que uma
+// sequência copiada sempre produz: a décima tela nasce fora dela, ou uma das nove fica
+// para trás e ninguém nota.
+//
+// A ABA ATIVA MANTÉM O LINK, de propósito. Metade destas telas é detalhe de outra —
+// entrega_nucleo.php fica sob "Recebido pelo Núcleo" —, e ali clicar na aba marcada é
+// como se volta para a lista. Trocar por `#` tiraria essa saída.
+function abas_entregas($ativa)
+{
+	$abas = array(
+		'hub'          => array('entregas.php',                       'Entregas',               ''),
+		'nucleos'      => array('entrega_nucleos_consolidado.php',    'Recebido pelo Núcleo',   'glyphicon-road'),
+		'cestantes'    => array('entrega_cestantes_consolidado.php',  'Entregue aos Cestantes', 'glyphicon-grain'),
+		'divergencias' => array('entrega_divergencias.php',           'Divergências',           'glyphicon-eye-open'),
+	);
+
+	if (pode_ver_conferencia())
+		$abas['conferencia'] = array('conferencia_chamada.php', 'Conferência em R$', 'glyphicon-scale');
+
+	echo('<ul class="nav nav-tabs">' . "\n");
+
+	foreach ($abas as $chave => $aba)
+	{
+		list($url, $rotulo, $icone) = $aba;
+
+		echo('  <li' . ($chave === $ativa ? ' class="active"' : '') . '>');
+		echo('<a href="' . h($url) . '">');
+		if ($icone !== '') echo('<i class="glyphicon ' . h($icone) . '"></i> ');
+		echo(h($rotulo) . '</a></li>' . "\n");
+	}
+
+	echo('</ul>' . "\n");
 }

@@ -8,9 +8,7 @@
   // dinheiro ao lado das quantidades. Mais a trava do módulo, que não passa por
   // verifica_seguranca(): aquela função valida qualquer chamada de PAP_ADM sem olhar o
   // parâmetro (common.inc.php:103-110).
-  if (!pode_ver_financeiro()
-      || (empty($_SESSION[PAP_RESP_ENTREGA]) && empty($_SESSION[PAP_RESP_FINANCAS])
-          && empty($_SESSION[PAP_ADM])))
+  if (!pode_ver_conferencia())
   {
       adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
       redireciona(PAGINAPRINCIPAL);
@@ -33,13 +31,7 @@
   escreve_mensagem_status();
 ?>
 
-<ul class="nav nav-tabs">
-  <li><a href="entregas.php">Entregas</a></li>
-  <li><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
-  <li><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>
-  <li><a href="entrega_divergencias.php"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-scale"></i> Conferência em R$</a></li>
-</ul>
+<?php abas_entregas('conferencia'); ?>
 <br>
 
 <form class="form-inline hidden-print" method="get" action="conferencia_chamada.php">
@@ -135,11 +127,22 @@
       </td>
       <td>
         <?php
-          // O aviso é o que impede de cobrar do núcleo um erro de digitação: sem ele, a
-          // diferença acima seria lida como perda quando pode ser entrega não anotada.
-          if ($n['sem_registro'] > 0) { ?>
+          // O aviso conta as linhas que PODEM explicar a conta: pedido feito, entrega não
+          // anotada, num produto que o núcleo confirmou ter recebido. Antes contava toda
+          // linha sem entrega, inclusive de produto que o núcleo nunca recebeu — e essas
+          // contribuem zero dos dois lados, o que dava a um núcleo com diferença 0,00 um
+          // aviso de "29 sem entrega registrada" ao lado.
+          //
+          // O texto muda com a diferença, porque as duas situações são diferentes. SEM
+          // diferença a conta do núcleo fecha, e a causa mais comum é repasse entre
+          // cestantes: alguém desiste e outro leva. Isso é normal e não se acusa —
+          // apenas se diz o que aconteceu, para quem confere decidir se vale olhar.
+          if ($n['sem_registro'] > 0) {
+              $tem_dif = (abs($n['diferenca']) > 0.005); ?>
           <span class="label label-warning"><?php echo(h($n['sem_registro'])); ?> sem entrega registrada</span>
-          <small class="text-muted">&nbsp;a diferença pode ser só isto</small>
+          <small class="text-muted">&nbsp;<?php
+            echo($tem_dif ? 'a diferença pode ser só isto'
+                          : 'a conta fecha — pode ser repasse entre cestantes'); ?></small>
         <?php } ?>
       </td>
     </tr>
@@ -159,7 +162,12 @@
 </table>
 
 <p class="small text-muted">
-  Diferença <strong>positiva</strong>: o núcleo confirmou receber mais do que entregou.
+  O aviso <strong>sem entrega registrada</strong> conta só as linhas que podem explicar a
+  conta: pedido feito, entrega não anotada, num produto que o núcleo confirmou ter recebido.
+  Havendo diferença, ela pode ser só isso — não cobre do núcleo antes de conferir. Sem
+  diferença, a conta fecha e a causa mais comum é <strong>repasse entre cestantes</strong>:
+  alguém desiste e outro leva.
+  <br>Diferença <strong>positiva</strong>: o núcleo confirmou receber mais do que entregou.
   <strong>Negativa</strong>: entregou sem ter confirmado o recebimento — a conta não fecha
   por falta de registro, não por falta de mercadoria.
   <br>Para ver produto a produto e a justificativa de cada divergência, use
