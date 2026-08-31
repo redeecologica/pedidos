@@ -2333,7 +2333,22 @@ function despesas_da_rede($de, $ate)
 	$sql.= "JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_con = " . prep_para_bd($con_rede) . " ";
 	$sql.= "WHERE t.tra_tipo = 'despesa_rede' ";
 	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
-	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+
+	// POR ÁREA, DEPOIS POR DESCRIÇÃO. A lista é conferida contra a planilha da Rede, que
+	// agrupa por área — e por data as mesmas catorze linhas apareciam embaralhadas todo
+	// mês, obrigando a procurar cada uma. Dentro da área, a descrição põe lado a lado a
+	// mesma despesa de meses diferentes quando se olha um período maior.
+	//
+	// A ordem das áreas é a que categorias_de_despesa_da_rede() define, e não a
+	// alfabética: é a mesma que a caixa de seleção oferece, e duas ordens diferentes para
+	// a mesma lista fazem quem confere perder o lugar. Categoria gravada que saiu do
+	// código cai no fim, em vez de sumir no meio.
+	$ordem = array();
+	foreach (array_keys(categorias_de_despesa_da_rede()) as $ck) $ordem[] = prep_para_bd($ck);
+
+	$sql.= "ORDER BY FIELD(t.tra_categoria, " . implode(', ', $ordem) . ") = 0, ";
+	$sql.= "FIELD(t.tra_categoria, " . implode(', ', $ordem) . "), ";
+	$sql.= "t.tra_historico, t.tra_dt, t.tra_id";
 
 	$res = executa_sql($sql);
 	if (!$res) return null;

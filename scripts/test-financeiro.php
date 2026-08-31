@@ -2949,6 +2949,29 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
                     && round($so_um['sobra'], 2) == 90.00,
     var_export($so_um, true));
 
+// A ORDEM: por AREA, na sequencia que a caixa de selecao oferece, e depois por
+// descricao. Por data as mesmas linhas apareciam embaralhadas todo mes, e a lista e
+// conferida contra a planilha da Rede, que agrupa por area.
+$ordem_cats = array_keys(categorias_de_despesa_da_rede());
+$pos = array();
+foreach ((array)$lista as $k => $l) $pos[] = array_search($l['categoria'], $ordem_cats, true);
+
+$em_ordem = true;
+for ($k = 1; $k < count($pos); $k++) if ($pos[$k] < $pos[$k-1]) $em_ordem = false;
+
+verifica("a lista vem agrupada por area, na ordem da caixa de selecao",
+    $em_ordem, json_encode(array_map(function ($l) { return $l['categoria']; }, (array)$lista)));
+
+// e dentro da area, pela descricao
+$dentro_ok = true;
+for ($k = 1; $k < count($lista); $k++)
+    if ($lista[$k]['categoria'] === $lista[$k-1]['categoria']
+        && strcasecmp($lista[$k]['historico'], $lista[$k-1]['historico']) < 0) $dentro_ok = false;
+
+verifica("e dentro de cada area, pela descricao",
+    $dentro_ok, json_encode(array_map(function ($l) {
+        return $l['categoria'] . '/' . $l['historico']; }, (array)$lista)));
+
 // DE ONDE O DINHEIRO SAIU, por despesa. E o que "repetir o mes anterior" usa para
 // pre-preencher a conta de cada linha: a mesma despesa costuma sair sempre da mesma
 // conta, e reescolher doze vezes e convite a errar numa.
