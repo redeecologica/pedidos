@@ -172,7 +172,11 @@
   $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
                     7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
 
-  $regras = array('igual' => 'igual entre os núcleos', 'quota' => 'por quota de entrega');
+  // A PALAVRA QUE DISTINGUE, em caixa alta. As duas opções são frases parecidas numa
+  // caixa de seleção estreita, e a diferença inteira está numa palavra no meio de cada
+  // uma — destacá-la é o que faz a escolha se ler de relance, numa lista de doze linhas
+  // em que a regra errada não produz erro visível, só um rateio com outra intenção.
+  $regras = array('igual' => 'IGUAL entre os núcleos', 'quota' => 'por quota de ENTREGA');
 
   // Exemplo por área, tirado da planilha da Rede. Placeholder genérico numa tela de
   // catorze linhas repetidas todo mês não ajuda ninguém; o que ajuda é lembrar o nome
