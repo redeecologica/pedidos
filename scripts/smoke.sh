@@ -55,17 +55,62 @@ fi
 EXCLUIR='script_gera_pedidos_associacao.php|bd_fora.php|settings|\.inc\.php'
 PAGINAS=$(git ls-files public/ | grep -E '^public/[^/]+\.php$' | sed 's#^public/##' | grep -vE "$EXCLUIR")
 
+# AVISOS JÁ CONHECIDOS, por página. Esta lista é uma CATRACA, não um perdão: a página
+# reprova se o número mudar para mais OU para menos. Para mais é regressão; para menos
+# é conserto que precisa baixar o número aqui, senão a folga volta a esconder o
+# próximo aviso.
+#
+# Todos são da mesma família — o PHP 8 reclamando de $row indexado depois de consulta
+# que não devolveu linha, e de variável que só existe em um dos ramos. São anteriores a
+# esta rede enxergar qualquer aviso, e estão anotados para serem tratados, não para
+# ficarem assim.
+CONHECIDOS="
+distribuicao_consolidado.php 5
+distribuicao_consolidado_por_produtor.php 5
+entrega_cestantes_consolidado.php 6
+entrega_divergencias.php 3
+entrega_nucleos_consolidado.php 5
+estoque.php 1
+pedido_entregue.php 12
+recebimento.php 2
+rel_distribuicao.php 2
+rel_entrega_cestantes_nucleo.php 4
+rel_pedido_contato_cestantes.php 2
+rel_pedido_por_cestante.php 4
+rel_pedido_por_cestante_nucleo.php 4
+rel_pedido_por_produtor.php 2
+rel_pedido_por_produtor_considera_estoque.php 2
+rel_pedido_pre_mutirao.php 2
+rel_previsao_pagamento.php 2
+rel_previsao_pagamento_detalhado.php 2
+"
+
+esperado() { awk -v p="$1" '$1==p {print $2; found=1} END {if (!found) print 0}' <<< "$CONHECIDOS"; }
+
 FALHAS=0
 printf '%-50s %s\n' "PÁGINA" "HTTP"
 for p in $PAGINAS; do
   STATUS=$(curl -s -b "$COOKIES" -o /tmp/smoke.html -w '%{http_code}' "http://localhost:8084/$p")
-  ERRO=$(grep -cE 'Fatal error|Parse error|Warning:|Deprecated:' /tmp/smoke.html || true)
+  # SEM dois-pontos depois de Warning e Deprecated: o PHP emite "<b>Warning</b>: ", e o
+  # padrão antigo exigia "Warning:" colado — nunca casava. A rede vinha reprovando fatal
+  # e erro de parse e deixando passar TODO aviso, em 18 das 88 páginas.
+  VISTOS=$(grep -cE 'Fatal error|Parse error|Warning|Deprecated' /tmp/smoke.html || true)
+  ESPERADO=$(esperado "$p")
+  # ERRO fica NUMÉRICO — a comparação adiante é aritmética. O texto da catraca vai
+  # separado, em NOTA, para a linha dizer se subiu ou se caiu.
+  ERRO=0; NOTA=""
+  if [[ "$VISTOS" -ne "$ESPERADO" ]]; then
+    ERRO=1
+    if [[ "$VISTOS" -gt "$ESPERADO" ]]; then NOTA="PHP($VISTOS, eram $ESPERADO)"
+    else                                     NOTA="PHP($VISTOS, eram $ESPERADO — baixe a linha em CONHECIDOS)"
+    fi
+  fi
   XSS=$(grep -cF "$XSSMARK" /tmp/smoke.html || true)
   MARCA=""
   # sem a comparação entre dois PHPs, o 5xx é o que sobra para pegar página quebrada
   [[ "$STATUS" =~ ^5 ]] && MARCA="$MARCA HTTP-$STATUS"
   grep -q "location.href='login.php'" /tmp/smoke.html && MARCA="$MARCA SESSAO-PERDIDA"
-  [[ "$ERRO" -gt 0 ]] && MARCA="$MARCA ERRO-PHP($ERRO)"
+  [[ "$ERRO" -gt 0 ]] && MARCA="$MARCA $NOTA"
   [[ "$XSS" -gt 0 ]] && MARCA="$MARCA XSS-CRU($XSS)"
   if [[ -n "$MARCA" ]]; then
     FALHAS=$((FALHAS+1))
