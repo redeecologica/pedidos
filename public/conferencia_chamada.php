@@ -35,18 +35,32 @@
   // faz quem lê procurar o que nunca foi registrado.
   $tem_mutirao = ($conf !== null && $conf['tem_mutirao']);
 
-  // Núcleo aberto: o número sozinho manda procurar no lugar errado. Em Santa, "6 sem
-  // entrega registrada" ao lado de R$ 49,00 — e das seis, uma era a diferença.
+  // O DETALHE DE TODOS OS NÚCLEOS, de uma vez. Antes vinha um por vez, com o núcleo na
+  // URL e a tabela numa seção lá embaixo — e a tela mentia duas vezes: o nome parecia
+  // link para outra página, e o que abria não ficava onde se estava olhando.
+  //
+  // Carregar todos custa 57 ms nos dez núcleos da chamada de 09/05/2026, medido — e
+  // paga uma expansão que abre debaixo da própria linha, na hora, sem recarregar.
+  // Recarregar a cada clique perderia a rolagem, e quem confere abre e fecha dezenas
+  // de vezes enquanto lê.
+  //
+  // null aqui é consulta que não rodou, e não "núcleo sem nada a explicar" — a tela
+  // distingue os dois logo abaixo.
+  $detalhes_nuc = array();
+  $detalhe_falhou = false;
+
+  foreach ((array)($conf ? $conf['nucleos'] : array()) as $x)
+  {
+      $d = detalhe_do_nucleo_na_chamada($cha_id, $x['nuc_id']);
+      if ($d === null) { $detalhe_falhou = true; continue; }
+      $detalhes_nuc[(int)$x['nuc_id']] = $d;
+  }
+
+  // nuc_id na URL continua valendo: um link antigo, ou compartilhado, abre aquele
+  // núcleo já expandido em vez de cair numa tela que perdeu o endereço.
   $nuc_id = request_get("nuc_id", "");
   if (!is_string($nuc_id) && !is_int($nuc_id)) $nuc_id = "";
   if (!ctype_digit((string)$nuc_id) || (int)$nuc_id <= 0) $nuc_id = "";
-
-  $detalhe = ($conf !== null && $nuc_id !== "")
-           ? detalhe_do_nucleo_na_chamada($cha_id, $nuc_id) : null;
-
-  $nome_nuc = '';
-  foreach ((array)($conf ? $conf['nucleos'] : array()) as $x)
-      if ((string)$x['nuc_id'] === (string)$nuc_id) $nome_nuc = $x['nome'];
 
   // Diz quando um número é PISO e não total. As duas colunas do mutirão são preenchidas
   // em uma fração das linhas — 26% e 19% no último ano —, e sem isso "enviou 4.171" ao
@@ -56,6 +70,106 @@
       if ($de <= 0 || $linhas >= $de) return;
       echo(" <span class=\"label label-default\" title=\"preenchido em " . h($linhas) . " de "
          . h($de) . " linhas — o valor é um piso, não o total\">parcial</span>");
+  }
+
+  // O DETALHE DE UM NÚCLEO, produto a produto. Numa função porque agora é desenhado uma
+  // vez por linha da tabela, e não uma vez na página: dez cópias divergiriam na primeira
+  // correção. Recebe tudo o que usa — não lê variável global — para a linha em que é
+  // chamada dizer sozinha o que ela mostra.
+  function tabela_detalhe($linhas, $tem_mutirao)
+  {
+      $cols = $tem_mutirao ? 7 : 6;
+      $num  = function ($v) { return rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ','); };
+?>
+<table class="table table-bordered table-condensed table-striped" style="margin-bottom:0;">
+  <thead>
+    <tr>
+      <th>Produto</th>
+      <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
+      <th class="text-right">Núcleo confirmou receber</th>
+      <th class="text-right">Entregue</th>
+      <th class="text-right">Diferença</th>
+      <th>Justificativa</th>
+      <th>Linhas em branco</th>
+    </tr>
+  </thead>
+  <tbody>
+  <?php foreach ($linhas as $d) { ?>
+    <tr>
+      <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
+      <?php if ($tem_mutirao) { ?>
+      <td class="text-right">
+        <?php echo($d['enviou'] > 0 ? h($num($d['enviou']))
+                   : '<span class="text-muted" title="o mutirão não informou o enviado deste produto">&mdash;</span>'); ?>
+      </td>
+      <?php } ?>
+      <td class="text-right"><?php echo(h($num($d['recebeu']))); ?></td>
+      <td class="text-right"><?php echo(h($num($d['entregue']))); ?></td>
+      <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
+        <?php echo(h(formata_moeda($d['diferenca']))); ?>
+      </td>
+      <td>
+        <?php if ($d['justificativa'] !== '') { ?>
+          <?php echo(h($d['justificativa'])); ?>
+        <?php } else if (abs($d['diferenca']) > 0.005) { ?>
+          <span class="label label-danger">sem justificativa</span>
+        <?php } else { ?>
+          <span class="text-muted">&mdash;</span>
+        <?php } ?>
+      </td>
+      <td>
+        <?php
+          // Nomear quem ficou em branco é o que faz a linha ser investigável. Sem os
+          // nomes, "4 em branco" manda abrir outra tela e procurar.
+          if (!count($d['em_branco'])) { ?>
+          <span class="text-muted">&mdash;</span>
+        <?php } else {
+          // escapa CADA parte e junta com a marcação depois: h() sobre a string já
+          // juntada escaparia o próprio separador, e o leitor via "&middot;" literal
+          $partes = array();
+          foreach ($d['em_branco'] as $b)
+              $partes[] = h($b['nome']) . ' <span class="text-muted">(' . h($num($b['pediu'])) . ')</span>';
+          echo('<small>' . implode(' &middot; ', $partes) . '</small>');
+        } ?>
+      </td>
+    </tr>
+    <?php
+      // Os registros que deram origem à nota. Ficam ESCONDIDOS por padrão porque um
+      // núcleo grande traz centenas de linhas e a tabela deixa de ser legível — mas
+      // ficam AQUI, coladas ao produto, e não em outra tela: a justificativa e o que a
+      // sustenta se leem juntas ou não se leem.
+      if (count($d['cestantes'])) { ?>
+    <tr class="registros" style="display:none;">
+      <td colspan="<?php echo(h($cols)); ?>" style="background:#fbfbfb;">
+        <small>
+          <strong><?php echo(h($d['nome'] . ' ' . $d['unidade'])); ?></strong>
+          <span class="text-muted">&middot; <?php echo(h(count($d['cestantes']))); ?> cestante(s) &middot; pediu &rarr; entregue</span>
+          <br>
+          <?php
+            $regs = array();
+            foreach ($d['cestantes'] as $c)
+            {
+                if ($c['entregue'] === null)
+                    // em branco não é zero: ninguém anotou. É o que o aviso da tabela
+                    // de cima conta, e o que quem confere precisa ver primeiro.
+                    $ent = '<span class="label label-warning">em branco</span>';
+                else if (abs($c['entregue'] - $c['pediu']) < 0.005)
+                    $ent = h($num($c['entregue']));
+                else
+                    $ent = '<strong class="text-danger">' . h($num($c['entregue'])) . '</strong>';
+
+                $regs[] = h($c['nome']) . ' <span class="text-muted">' . h($num($c['pediu'])) . ' &rarr;</span> ' . $ent;
+            }
+            echo(implode(' &nbsp;&middot;&nbsp; ', $regs));
+          ?>
+        </small>
+      </td>
+    </tr>
+    <?php } ?>
+  <?php } ?>
+  </tbody>
+</table>
+<?php
   }
 
   escreve_mensagem_status();
@@ -266,6 +380,32 @@
 
 <legend style="font-size:medium;" id="porNucleo">Por núcleo</legend>
 
+<?php if ($detalhe_falhou) { ?>
+  <?php
+    // Sem isto, núcleo cujo detalhe não carregou fica IGUAL a núcleo sem nada a explicar:
+    // não abre, e a tela deixa de prometer o que não pode entregar em silêncio. É a
+    // mesma distinção que o resto do módulo faz entre null e lista vazia.
+  ?>
+  <div class="alert alert-warning">
+    <strong>O detalhe de pelo menos um núcleo não pôde ser carregado.</strong><br>
+    Esses núcleos não abrem ao clique. Os números da tabela continuam válidos.
+  </div>
+<?php } ?>
+
+<p class="small text-muted hidden-print" style="margin-bottom:6px;">
+  Clique num núcleo para abrir o detalhe dele, produto a produto, logo abaixo da linha.
+  Núcleo sem nada a explicar &mdash; nenhuma diferença, nenhuma linha em branco, nenhuma
+  justificativa &mdash; não abre.
+</p>
+
+<div class="checkbox hidden-print" style="margin-top:0;">
+  <label>
+    <input type="checkbox" id="ver_registros" />
+    <strong>ver os registros</strong>
+    <small class="text-muted">&mdash; dentro do detalhe, abre sob cada produto as linhas de cestante que deram origem à nota</small>
+  </label>
+</div>
+
 <table class="table table-bordered table-condensed table-striped">
   <thead>
     <tr>
@@ -279,28 +419,28 @@
   </thead>
   <tbody>
   <?php foreach ($conf['nucleos'] as $n) {
-        // O NOME DEIXOU DE SER LINK. Em todo o resto do sistema um nome sublinhado leva a
-        // outra página; aqui ele abria uma seção mais abaixo NESTA, e a promessa não
-        // batia com o que acontecia. Agora o nome é texto e quem convida a abrir é um
-        // botão com seta para baixo — o desenho que já significa "expande" em qualquer
-        // lugar. Aberto, a seta inverte e o botão passa a fechar.
-        $aberto = ((string)$n['nuc_id'] === (string)$nuc_id);
-        $url_abre  = 'conferencia_chamada.php?cha_id=' . h($conf['cha_id'])
-                   . '&amp;nuc_id=' . h($n['nuc_id']) . '#detalhe';
-        // fechar volta para a tabela, e não para o topo: quem fecha quer seguir lendo a
-        // linha em que estava
-        $url_fecha = 'conferencia_chamada.php?cha_id=' . h($conf['cha_id']) . '#porNucleo';
+        // A LINHA INTEIRA ABRE E FECHA, e o detalhe nasce logo abaixo dela. Antes o nome
+        // era um link — e em todo o resto do sistema link leva a outra página, enquanto
+        // aqui ele abria uma seção lá no fim. Depois virou um botão "detalhes", que
+        // prometia algo perto e entregava longe. Agora a promessa e o que acontece são a
+        // mesma coisa: clicou, abriu ali.
+        $tem_detalhe = (isset($detalhes_nuc[(int)$n['nuc_id']])
+                        && count($detalhes_nuc[(int)$n['nuc_id']]) > 0);
+        $aberto = ($tem_detalhe && (string)$n['nuc_id'] === (string)$nuc_id);
   ?>
-    <tr<?php echo($aberto ? ' class="info"' : ''); ?>>
-      <td>
-        <?php if ($aberto) { ?><strong><?php } ?><?php echo(h($n['nome'])); ?><?php if ($aberto) { ?></strong><?php } ?>
-        <a class="btn btn-default btn-xs hidden-print" style="margin-left:6px;"
-           href="<?php echo($aberto ? $url_fecha : $url_abre); ?>"
-           title="<?php echo($aberto ? 'fechar o detalhe deste núcleo'
-                                     : 'abrir o detalhe deste núcleo, produto a produto, mais abaixo'); ?>">
-          <i class="glyphicon glyphicon-<?php echo($aberto ? 'chevron-up' : 'chevron-down'); ?>"></i>
-          <?php echo($aberto ? 'fechar' : 'detalhes'); ?>
-        </a>
+    <tr<?php echo($tem_detalhe ? ' class="linha-nucleo' . ($aberto ? ' info' : '') . '" data-nuc="' . h($n['nuc_id']) . '" style="cursor:pointer;"' : ''); ?>>
+      <?php
+        // nome em UMA linha: "Vargem Grande" e "Nova Iguaçu" quebravam em duas, e a
+        // tabela ficava com linhas de alturas diferentes sem nenhum motivo
+      ?>
+      <td style="white-space:nowrap;">
+        <?php if ($tem_detalhe) { ?>
+        <i class="glyphicon glyphicon-chevron-<?php echo($aberto ? 'down' : 'right'); ?> text-muted seta-nucleo"
+           style="font-size:11px; margin-right:5px;"></i>
+        <?php } else { ?>
+        <span style="display:inline-block; width:16px;"></span>
+        <?php } ?>
+        <?php echo(h($n['nome'])); ?>
       </td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
@@ -350,6 +490,16 @@
         <?php } ?>
       </td>
     </tr>
+    <?php
+      // O DETALHE, colado na linha do núcleo. É a mudança inteira: antes ele nascia numa
+      // seção no fim da página, e quem clicava perdia de vista a linha que tinha clicado.
+      if ($tem_detalhe) { ?>
+    <tr class="detalhe-nucleo" data-nuc="<?php echo(h($n['nuc_id'])); ?>"<?php echo($aberto ? '' : ' style="display:none;"'); ?>>
+      <td colspan="<?php echo($tem_mutirao ? 6 : 5); ?>" style="padding:0 0 0 24px; background:#f7f7f7;">
+        <?php tabela_detalhe($detalhes_nuc[(int)$n['nuc_id']], $tem_mutirao); ?>
+      </td>
+    </tr>
+    <?php } ?>
   <?php } ?>
   <?php if (!count($conf['nucleos'])) { ?>
     <tr><td colspan="<?php echo($tem_mutirao ? 6 : 5); ?>">Nenhum núcleo movimentou esta chamada.</td></tr>
@@ -371,142 +521,43 @@
   </tbody>
 </table>
 
-<?php if ($detalhe !== null) { ?>
-
-<legend style="font-size:medium;" id="detalhe">
-  <?php echo(h($nome_nuc !== '' ? $nome_nuc : 'Núcleo')); ?> &middot; produto a produto
-</legend>
-
-<?php if (!count($detalhe)) { ?>
-  <p class="text-muted">Nada a explicar neste núcleo: nenhuma diferença, nenhuma linha em branco.</p>
-<?php } else {
-  // Colunas da tabela, para o colspan das linhas de registro: sem mutirão a coluna
-  // Enviado não existe.
-  $cols_det = $tem_mutirao ? 7 : 6;
-?>
-
-<div class="checkbox hidden-print" style="margin-top:0;">
-  <label>
-    <input type="checkbox" id="ver_registros" />
-    <strong>ver os registros</strong>
-    <small class="text-muted">&mdash; abre, sob cada produto, as linhas de cestante que deram origem à nota</small>
-  </label>
-</div>
-
-<table class="table table-bordered table-condensed table-striped">
-  <thead>
-    <tr>
-      <th>Produto</th>
-      <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
-      <th class="text-right">Núcleo confirmou receber</th>
-      <th class="text-right">Entregue</th>
-      <th class="text-right">Diferença</th>
-      <th>Justificativa</th>
-      <th>Linhas em branco</th>
-    </tr>
-  </thead>
-  <tbody>
-  <?php foreach ($detalhe as $d) { ?>
-    <tr>
-      <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
-      <?php if ($tem_mutirao) { ?>
-      <td class="text-right">
-        <?php echo($d['enviou'] > 0
-                   ? h(rtrim(rtrim(number_format($d['enviou'], 2, ',', '.'), '0'), ','))
-                   : '<span class="text-muted" title="o mutirão não informou o enviado deste produto">&mdash;</span>'); ?>
-      </td>
-      <?php } ?>
-      <td class="text-right"><?php echo(h(rtrim(rtrim(number_format($d['recebeu'], 2, ',', '.'), '0'), ','))); ?></td>
-      <td class="text-right"><?php echo(h(rtrim(rtrim(number_format($d['entregue'], 2, ',', '.'), '0'), ','))); ?></td>
-      <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
-        <?php echo(h(formata_moeda($d['diferenca']))); ?>
-      </td>
-      <td>
-        <?php if ($d['justificativa'] !== '') { ?>
-          <?php echo(h($d['justificativa'])); ?>
-        <?php } else if (abs($d['diferenca']) > 0.005) { ?>
-          <span class="label label-danger">sem justificativa</span>
-        <?php } else { ?>
-          <span class="text-muted">&mdash;</span>
-        <?php } ?>
-      </td>
-      <td>
-        <?php
-          // Nomear quem ficou em branco é o que faz a linha ser investigável. Sem os
-          // nomes, "4 em branco" manda abrir outra tela e procurar.
-          if (!count($d['em_branco'])) { ?>
-          <span class="text-muted">&mdash;</span>
-        <?php } else {
-          // escapa CADA parte e junta com a marcação depois: h() sobre a string já
-          // juntada escaparia o próprio separador, e o leitor via "&middot;" literal
-          $partes = array();
-          foreach ($d['em_branco'] as $b)
-              $partes[] = h($b['nome']) . ' <span class="text-muted">('
-                        . h(rtrim(rtrim(number_format($b['pediu'], 2, ',', '.'), '0'), ',')) . ')</span>';
-          echo('<small>' . implode(' &middot; ', $partes) . '</small>');
-        } ?>
-      </td>
-    </tr>
-    <?php
-      // Os registros que deram origem à nota. Ficam ESCONDIDOS por padrão porque um
-      // núcleo grande traz centenas de linhas e a tabela deixa de ser legível — mas
-      // ficam AQUI, coladas ao produto, e não em outra tela: a justificativa e o que a
-      // sustenta se leem juntas ou não se leem.
-      if (count($d['cestantes'])) { ?>
-    <tr class="registros" style="display:none;">
-      <td colspan="<?php echo(h($cols_det)); ?>" style="background:#fbfbfb;">
-        <small>
-          <strong><?php echo(h($d['nome'] . ' ' . $d['unidade'])); ?></strong>
-          <span class="text-muted">&middot; <?php echo(h(count($d['cestantes']))); ?> cestante(s) &middot; pediu &rarr; entregue</span>
-          <br>
-          <?php
-            $regs = array();
-            foreach ($d['cestantes'] as $c)
-            {
-                $pediu = rtrim(rtrim(number_format($c['pediu'], 2, ',', '.'), '0'), ',');
-
-                if ($c['entregue'] === null)
-                    // em branco não é zero: ninguém anotou. É o que o aviso da tabela
-                    // de cima conta, e o que quem confere precisa ver primeiro.
-                    $ent = '<span class="label label-warning">em branco</span>';
-                else if (abs($c['entregue'] - $c['pediu']) < 0.005)
-                    $ent = h(rtrim(rtrim(number_format($c['entregue'], 2, ',', '.'), '0'), ','));
-                else
-                    $ent = '<strong class="text-danger">'
-                         . h(rtrim(rtrim(number_format($c['entregue'], 2, ',', '.'), '0'), ','))
-                         . '</strong>';
-
-                $regs[] = h($c['nome']) . ' <span class="text-muted">' . h($pediu) . ' &rarr;</span> ' . $ent;
-            }
-            echo(implode(' &nbsp;&middot;&nbsp; ', $regs));
-          ?>
-        </small>
-      </td>
-    </tr>
-    <?php } ?>
-  <?php } ?>
-  </tbody>
-</table>
-
 <script>
-  // Sem reload: quem confere alterna a visão dezenas de vezes enquanto lê, e recarregar
-  // a página a cada clique perderia a rolagem e a chamada em foco.
+(function () {
+  // TUDO SEM RECARREGAR. Os detalhes de todos os núcleos já vieram no HTML — 57 ms para
+  // os dez da chamada de 09/05/2026 —, então abrir é mostrar o que já está aqui. Quem
+  // confere abre e fecha dezenas de vezes enquanto lê, e ida ao servidor a cada clique
+  // perderia a rolagem e o lugar da leitura.
+  $('tr.linha-nucleo').on('click', function (e) {
+      // link dentro da linha continua sendo link, e não abre o detalhe junto
+      if ($(e.target).closest('a').length) return;
+
+      var nuc  = $(this).data('nuc');
+      var alvo = $('tr.detalhe-nucleo[data-nuc="' + nuc + '"]');
+      var vai_abrir = !alvo.is(':visible');
+
+      alvo.toggle(vai_abrir);
+      $(this).toggleClass('info', vai_abrir);
+      $(this).find('i.seta-nucleo')
+             .toggleClass('glyphicon-chevron-right', !vai_abrir)
+             .toggleClass('glyphicon-chevron-down',   vai_abrir);
+  });
+
+  // O interruptor vale para TODOS os detalhes abertos de uma vez: quem liga "ver os
+  // registros" quer a mesma profundidade em qualquer núcleo que abrir depois.
   $('#ver_registros').on('change', function () {
       $('tr.registros').toggle(this.checked);
   });
+})();
 </script>
 
 <p class="small text-muted">
-  Só aparece o produto que tem algo a dizer: diferença, linha em branco, ou justificativa
-  escrita. <strong>Diferença com justificativa</strong> está explicada e não precisa de mais
-  nada. <strong>Sem justificativa</strong> é o que vale investigar — e se escreve em
-  <a href="entrega_divergencias.php">Divergências</a>.
+  No detalhe de um núcleo só aparece o produto que tem algo a dizer: diferença, linha em
+  branco, ou justificativa escrita. <strong>Diferença com justificativa</strong> está
+  explicada e não precisa de mais nada. <strong>Sem justificativa</strong> é o que vale
+  investigar — e se escreve em <a href="entrega_divergencias.php">Divergências</a>.
   <br>Linha em branco num produto que fechou em zero não muda a conta: alguém desistiu e
   outro levou.
 </p>
-<?php } ?>
-
-<?php } ?>
 
 <p class="small text-muted">
   O aviso <strong>sem entrega registrada</strong> conta só as linhas que podem explicar a
