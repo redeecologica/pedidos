@@ -259,7 +259,13 @@
         $rat_atual = ($em_edicao || $em_correcao) ? (array)rateio_da_despesa($d['tra_id']) : array(); ?>
     <tr<?php echo(($em_edicao || $em_correcao) ? ' class="info"' : ''); ?>>
       <td><?php echo(h(date('d/m/Y', strtotime($d['dt'])))); ?></td>
-      <td><span class="label label-default"><?php echo(h($d['categoria_rotulo'])); ?></span></td>
+      <?php
+        // TEXTO SIMPLES, e não etiqueta. Com a lista agrupada por área, a etiqueta em toda
+        // linha vira um bloco de cor que compete com os números — e ela também suja o
+        // texto de quem copia a tabela para uma planilha, que foi o motivo de o selo
+        // "parcial" sair da conferência.
+      ?>
+      <td><?php echo(h($d['categoria_rotulo'])); ?></td>
       <td><?php echo(h($d['historico'])); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($d['valor']))); ?></td>
       <td class="text-right"><?php echo(h(formata_moeda($d['rateado']))); ?></td>
