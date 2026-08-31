@@ -49,7 +49,7 @@
       $tra = !$data ? null
            : lanca_pagamento_a_produtor_da_rede(date_format($data, 'Y-m-d'),
                  campo_prod("con_produtor"), valor_digitado_prod(campo_prod("valor")),
-                 campo_prod("origem"), campo_prod("historico"));
+                 campo_prod("origem"), campo_prod("historico"), campo_prod("comprovante"));
 
       adiciona_mensagem_status($tra ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
           $tra ? "Pagamento lançado na conta do produtor."
@@ -250,14 +250,25 @@
           </div>
 
           <div class="row" style="margin-top:8px;">
-            <div class="col-sm-9">
+            <div class="col-sm-5">
               <label for="pg_historico">Descrição do pagamento a <?php echo(h($f['nome'])); ?></label>
               <input type="text" id="pg_historico" name="historico" class="form-control" maxlength="200"
                      placeholder="Referente a que entrega, ou o mês pago" />
             </div>
+            <div class="col-sm-4">
+              <?php
+                // MESMO CAMPO do pagamento de cestante, e pelo mesmo motivo: é o que
+                // transforma "consta que pagamos" em "aqui está". Quem cobra de novo por
+                // engano é justamente quem não achou o registro. Opcional — pagamento em
+                // dinheiro não tem link, e exigir um faria inventar.
+              ?>
+              <label for="pg_comprovante">Comprovante</label>
+              <input type="text" id="pg_comprovante" name="comprovante" class="form-control" maxlength="300"
+                     placeholder="link do comprovante, ou como identificá-lo" />
+            </div>
             <div class="col-sm-3" style="padding-top:24px;">
               <button class="btn btn-success" type="submit">
-                <i class="glyphicon glyphicon-ok glyphicon-white"></i> registrar
+                <i class="glyphicon glyphicon-ok glyphicon-white"></i> lançar pagamento
               </button>
             </div>
           </div>
@@ -298,5 +309,16 @@
 </p>
 
 <?php } ?>
+
+<script type="text/javascript">
+	// A classe .data não vira calendário sozinha: cada tela liga o seu, e esta nascia sem.
+	$(function() {
+		$(".data").datepicker({
+			format: 'dd/mm/yyyy',
+			language: 'pt-BR',
+			autoclose: true
+		});
+	});
+</script>
 
 <?php footer(); ?>
