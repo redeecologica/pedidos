@@ -212,6 +212,32 @@
   <?php echo(h($conf['tipo'] . ' — entrega de ' . date('d/m/Y', strtotime($conf['dt'])))); ?>
 </legend>
 
+<?php
+  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado −81,00" se lê como o que o rótulo
+  // afirma, com um menos que ninguém sabe interpretar sem uma referência de qual é o
+  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais mercadoria do
+  // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
+  // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
+  // sinal do lançamento.
+  $saldo_conf = $conf['nao_cobrado'];
+
+  if ($saldo_conf > 0.005)
+  {
+      $rot_saldo = 'pago e não cobrado';
+      $sub_saldo = 'a Rede pagou por mercadoria que ninguém foi cobrado';
+  }
+  else if ($saldo_conf < -0.005)
+  {
+      $rot_saldo = 'recebido e não pago';
+      $sub_saldo = 'entrou mais mercadoria do que a Rede pagou ao produtor';
+  }
+  else
+  {
+      $rot_saldo = 'pago e cobrado se equivalem';
+      $sub_saldo = '';
+  }
+?>
+
 <div class="row">
   <div class="col-sm-7">
     <table class="table table-bordered table-condensed">
@@ -252,9 +278,13 @@
         <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
         <tr class="active">
-          <th>pago e não cobrado</th>
-          <th class="text-right<?php echo(abs($conf['nao_cobrado']) > 0.005 ? ' text-danger' : ''); ?>">
-            <?php echo(h(formata_moeda($conf['nao_cobrado']))); ?>
+          <th><?php echo(h($rot_saldo)); ?>
+            <?php if ($sub_saldo !== '') { ?>
+            <small class="text-muted" style="font-weight:normal;">&mdash; <?php echo(h($sub_saldo)); ?></small>
+            <?php } ?>
+          </th>
+          <th class="text-right<?php echo(abs($saldo_conf) > 0.005 ? ' text-danger' : ''); ?>">
+            <?php echo(h(formata_moeda(abs($saldo_conf)))); ?>
           </th>
         </tr>
       </tbody>
@@ -294,8 +324,8 @@
         </tr>
         <?php } ?>
         <tr class="active">
-          <th class="small">pago e não cobrado</th>
-          <th class="text-right small"><?php echo(h(formata_moeda($conf['nao_cobrado']))); ?></th>
+          <th class="small"><?php echo(h($rot_saldo)); ?></th>
+          <th class="text-right small"><?php echo(h(formata_moeda(abs($saldo_conf)))); ?></th>
         </tr>
       </tbody>
     </table>
@@ -338,9 +368,9 @@
 
           $detalhes[] = 'As duas contagens do <strong>mutirão</strong> vêm marcadas como'
                       . ' <span class="label label-default">parcial</span> quando não estão'
-                      . ' preenchidas em toda linha — e hoje quase nunca estão. Enquanto isso'
-                      . ' o número delas é <strong>piso</strong>, não total, e não vale'
-                      . ' compará-lo com os outros.';
+                      . ' preenchidas em toda linha. Neste caso o número delas é'
+                      . ' <strong>piso</strong>, não total, e não vale compará-lo com os'
+                      . ' outros.';
       }
       else
       {
@@ -355,8 +385,15 @@
       }
     ?>
     <p class="small text-muted">
+      <?php if ($saldo_conf < -0.005) { ?>
+      <strong>Recebido e não pago</strong> é o contrário do caso comum: saiu mais mercadoria
+      — entregue aos cestantes, mais o que ficou guardado — do que a Rede pagou ao produtor.
+      Costuma ser produto que chegou a mais e foi aceito, ou contagem de recebimento que
+      ficou abaixo do que de fato entrou.
+      <?php } else { ?>
       <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
       cobrado. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi anotada.
+      <?php } ?>
       <?php
         // .btn-popover é a classe que pedido.js:389 inicializa em toda página. O gatilho é
         // CLIQUE, e não o hover de adiciona_popover_descricao(): este texto é longo, e um

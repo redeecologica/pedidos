@@ -3612,6 +3612,24 @@ verifica("mercadoria que ficou guardada sai do 'nao cobrado'",
     round($cf2['estoque']['depois'],2) == 100.00 && round($cf2['nao_cobrado'],2) == 0.00,
     "estoque=" . json_encode($cf2['estoque']) . " nao_cobrado=" . $cf2['nao_cobrado']);
 
+// O NUMERO VIRA NEGATIVO, e isso nao e defeito: quer dizer que saiu mais mercadoria —
+// entregue mais guardada — do que a Rede pagou. Visto na chamada 1123 da base, com
+// -81,00. A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra
+// "recebido e nao pago", porque "pago e nao cobrado -81,00" afirma o contrario do que
+// aconteceu. Se a funcao parasse de devolver negativo, o rotulo nunca mais apareceria e
+// nada reclamaria.
+executa_sql("UPDATE estoque SET est_prod_qtde_depois = 30
+    WHERE est_cha = " . (int)$cha_cf . " AND est_prod = " . (int)$prod_est_id);
+$cf_neg = conferencia_da_chamada($cha_cf);
+verifica("guardar mais do que a Rede pagou deixa o 'nao cobrado' NEGATIVO",
+    is_array($cf_neg) && round($cf_neg['nao_cobrado'],2) == -200.00,
+    "estoque=" . json_encode(is_array($cf_neg) ? $cf_neg['estoque'] : null)
+    . " nao_cobrado=" . (is_array($cf_neg) ? $cf_neg['nao_cobrado'] : '?'));
+
+// volta ao estado que os testes seguintes pressupoem
+executa_sql("UPDATE estoque SET est_prod_qtde_depois = 10
+    WHERE est_cha = " . (int)$cha_cf . " AND est_prod = " . (int)$prod_est_id);
+
 // Nucleo que entregou SEM ter confirmado recebimento tambem tem de aparecer: e
 // justamente o caso em que a conta nao fecha, e some-lo esconderia o problema.
 $nuc_cf3 = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive, nuc_nuct)
