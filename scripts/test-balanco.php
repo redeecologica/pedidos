@@ -316,9 +316,9 @@ verifica("conta que FECHA e mesmo assim tem linha em branco: repasse entre cesta
 
 // ---- o DETALHE, produto a produto ----
 //
-// Existe porque o numero sozinho manda procurar no lugar errado. Medido em Santa, Secos de
-// 09/05/2026: "6 sem entrega registrada" ao lado de R$ 49,00 de diferenca. Das seis, UMA
-// era a diferenca — o mel, que chegou quebrado — e as outras cinco eram produto
+// Existe porque o numero sozinho manda procurar no lugar errado. Visto numa chamada de
+// secos: meia duzia de linhas sem entrega registrada ao lado de uma diferenca pequena. So
+// UMA delas era a diferenca — um produto que chegou quebrado — e as outras eram produto
 // inteiramente distribuido com a linha de alguem em branco.
 executa_sql("UPDATE distribuicao SET dist_just_dif_entrega = 'chegou quebrado'
     WHERE dist_cha = " . (int)$cha_cf . " AND dist_nuc = " . (int)$nuc_cf2
@@ -385,8 +385,8 @@ verifica("e distingue quem nao teve entrega ANOTADA de quem levou zero",
 
 // A linha que existe SO pela justificativa. entrega_divergencia_justificativa.php:65
 // cria assim quando ainda nao havia linha: grava o texto e deixa dist_quantidade_recebido
-// NULL. Sao 93 na base, com texto como "fracao da saca de 20kg que foi entregue para
-// Santa Teresa" — a justificativa existe JUSTAMENTE porque nao houve recebimento.
+// NULL. Ha dezenas dessas na base, com texto explicando que a mercadoria foi para outro
+// nucleo — a justificativa existe JUSTAMENTE porque nao houve recebimento.
 //
 // Sem esta linha no detalhe, o aviso "1 justificada" da tabela de cima contava uma
 // explicacao que o clique nao mostrava: o mesmo defeito do aviso de linhas em branco,
@@ -444,7 +444,7 @@ verifica("detalhe de consulta recusada e null, e nao 'nada a explicar'",
 // ---- chamada que NAO passa pelo mutirao ----
 //
 // Frescos e afins: o produtor entrega direto no nucleo. Nao ha contagem central, remessa
-// a caminho nem estoque guardado entre chamadas — medido na base, as 839 chamadas com
+// a caminho nem estoque guardado entre chamadas — medido na base, chamada com
 // prodt_mutirao = 0 nao tem UMA linha de estoque. A tela le esta flag para nao mostrar
 // linha, coluna nem explicacao de etapa que nunca aconteceu.
 verifica("chamada de tipo com mutirao se declara como tal",

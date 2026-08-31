@@ -33,8 +33,9 @@
   // URL e a tabela numa seção lá embaixo — e a tela mentia duas vezes: o nome parecia
   // link para outra página, e o que abria não ficava onde se estava olhando.
   //
-  // Carregar todos custa 57 ms nos dez núcleos da chamada de 09/05/2026, medido — e
-  // paga uma expansão que abre debaixo da própria linha, na hora, sem recarregar.
+  // Carregar todos é praticamente instantâneo, medido numa chamada com todos os
+  // núcleos — e paga uma expansão que abre debaixo da própria linha, na hora, sem
+  // recarregar.
   // Recarregar a cada clique perderia a rolagem, e quem confere abre e fecha dezenas
   // de vezes enquanto lê.
   //
@@ -57,8 +58,8 @@
   if (!ctype_digit((string)$nuc_id) || (int)$nuc_id <= 0) $nuc_id = "";
 
   // Diz quando um número é PISO e não total. As duas colunas do mutirão são preenchidas
-  // em uma fração das linhas — 26% e 19% no último ano —, e sem isso "enviou 4.171" ao
-  // lado de "recebeu 6.584" parece a corrente quebrada, quando é só coluna vazia.
+  // numa fração das linhas, e sem isso um "enviou" bem abaixo do "recebeu" parece a
+  // corrente quebrada, quando é só coluna vazia.
   function marca_parcial($linhas, $de)
   {
       if ($de <= 0 || $linhas >= $de) return;
@@ -178,9 +179,9 @@
     <select id="cha_id" name="cha_id" class="form-control" onchange="this.form.submit();">
       <option value="-1">escolha uma chamada</option>
       <?php
-        // AS ÚLTIMAS VINTE, da mais recente para a mais antiga. São 1.170 chamadas na
-        // base, desde 2013, e uma lista com todas é rolagem que ninguém percorre — as
-        // de 2015 não são conferidas por ninguém.
+        // AS ÚLTIMAS VINTE, da mais recente para a mais antiga. A base guarda chamadas
+        // desde 2013, e uma lista com todas é rolagem que ninguém percorre — as de dez
+        // anos atrás não são conferidas por ninguém.
         //
         // LIMIT, e não recorte por data: vinte é vinte em qualquer semana do ano, e uma
         // janela de tempo encolheria a lista justamente depois de um período parado, que
@@ -320,10 +321,11 @@
   </div>
   <div class="col-sm-5">
     <?php
-      // A CONTA, aberta. "Pago e não cobrado 5.036,80" ao lado de uma diferença direta de
-      // 2.776,80 faz quem lê desconfiar do número — e a explicação em prosa dizia só
-      // metade da verdade: que o estoque desconta. Ele entra NOS DOIS SENTIDOS, e nesta
-      // chamada somou, porque a entrega consumiu mercadoria que já estava guardada.
+      // A CONTA, aberta. O total de "pago e não cobrado" costuma sair bem acima da
+      // diferença direta entre as duas primeiras linhas, e isso faz quem lê desconfiar do
+      // número — a explicação em prosa dizia só metade da verdade: que o estoque
+      // desconta. Ele entra NOS DOIS SENTIDOS, e soma quando a entrega consumiu
+      // mercadoria que já estava guardada.
       $dif_direta  = round($conf['confirmado'] - $conf['total']['distribuiu'], 2);
       // positivo = o estoque encolheu, ou seja, saiu mercadoria guardada sem ser cobrada
       $mov_estoque = round($conf['estoque']['antes'] - $conf['estoque']['depois'], 2);
@@ -525,7 +527,7 @@
       <td class="text-right">
         <?php
           // SEM destaque vermelho e SEM o selo "parcial". dist_quantidade é preenchida em
-          // 26% das linhas em que dist_quantidade_recebido é, então qualquer marca aqui
+          // uma fração das linhas em que dist_quantidade_recebido é, então marca aqui
           // apareceria em quase todo núcleo — vira ruído numa coluna inteira de números, e
           // suja o texto de quem copia a tabela para uma planilha. A ressalva fica dita uma
           // vez, na tabela de cima, onde é uma linha só.
@@ -603,8 +605,8 @@
 
 <script>
 (function () {
-  // TUDO SEM RECARREGAR. Os detalhes de todos os núcleos já vieram no HTML — 57 ms para
-  // os dez da chamada de 09/05/2026 —, então abrir é mostrar o que já está aqui. Quem
+  // TUDO SEM RECARREGAR. Os detalhes de todos os núcleos já vieram no HTML, a um custo
+  // praticamente instantâneo, então abrir é mostrar o que já está aqui. Quem
   // confere abre e fecha dezenas de vezes enquanto lê, e ida ao servidor a cada clique
   // perderia a rolagem e o lugar da leitura.
   $('tr.linha-nucleo').on('click', function (e) {

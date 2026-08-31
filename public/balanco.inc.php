@@ -132,8 +132,8 @@ function compara_nome_de_nucleo($a, $b)
 //
 // O CONTADOR DE ENTREGAS NÃO REGISTRADAS vem junto de propósito. Sem ele, alguém leria
 // como perda do núcleo o que é apenas entrega que ninguém anotou — e cobraria do núcleo
-// por um erro de digitação. Medido na base: 12,6% das linhas pedidas não têm entrega
-// registrada, contra ~1% de quebra real.
+// por um erro de digitação. Medido na base: linha pedida sem entrega registrada é
+// ordem de grandeza mais comum do que quebra de verdade.
 //
 // CONTRATO: array, ou null quando a chamada não existe ou a consulta não roda.
 function balanco_da_chamada($cha_id)
@@ -151,7 +151,7 @@ function balanco_da_chamada($cha_id)
 	// prodt_mutirao diz se este tipo de chamada passa pelo mutirão. Quando NÃO passa
 	// (Frescos e afins), o produtor entrega direto no núcleo: não há contagem central,
 	// não há remessa do mutirão para o núcleo e não há estoque entre chamadas. Medido:
-	// nas 839 chamadas sem mutirão da base não existe UMA linha de estoque. Mostrar
+	// em toda a história das chamadas sem mutirão não existe UMA linha de estoque. Mostrar
 	// essas medidas zeradas ali seria inventar etapa que não aconteceu.
 	$tem_mutirao = ((int)$cha['prodt_mutirao'] === 1);
 
@@ -160,9 +160,9 @@ function balanco_da_chamada($cha_id)
 	// São duas colunas diferentes da mesma tabela, e a distância entre elas é o que se
 	// perdeu no caminho — antes de o núcleo sequer abrir a caixa. dist_quantidade é o
 	// que saiu do mutirão; dist_quantidade_recebido é o que o núcleo confirmou.
-	// A COBERTURA vem junto, e não é detalhe. dist_quantidade é preenchida em 26% das
-	// linhas em que dist_quantidade_recebido é — medido em 12 meses: 3.507 contra 13.246.
-	// Sem dizer isso, "enviou 4.171" ao lado de "recebeu 6.584" parece a corrente
+	// A COBERTURA vem junto, e não é detalhe. dist_quantidade é preenchida numa fração
+	// das linhas em que dist_quantidade_recebido é — medido em doze meses, cerca de um
+	// quarto. Sem dizer isso, um "enviou" bem abaixo do "recebeu" parece a corrente
 	// quebrada, quando é só coluna não preenchida. O número é PISO, não total.
 	$sql = "SELECT d.dist_nuc nuc, n.nuc_nome_curto nome, ";
 	$sql.= "SUM(d.dist_quantidade * p.prod_valor_venda) e, ";
@@ -334,7 +334,7 @@ function balanco_da_chamada($cha_id)
 		'total'      => $total,
 		'confirmado' => $confirmado,
 		// o que o mutirão contou chegar dos produtores, antes do julgamento de Finanças.
-		// Preenchido em 19% das linhas que Finanças confirma — é piso, não total.
+		// Preenchido numa minoria das linhas que Finanças confirma — é piso, não total.
 		'mutirao'    => $mutirao,
 		'mutirao_linhas'    => $mutirao_linhas,
 		'confirmado_linhas' => $confirmado_linhas,
@@ -350,15 +350,16 @@ function balanco_da_chamada($cha_id)
 // O detalhe de um núcleo numa chamada: produto a produto, com a justificativa que alguém
 // já escreveu e as linhas em branco nomeadas.
 //
-// EXISTE PORQUE O NÚMERO SOZINHO MANDA PROCURAR NO LUGAR ERRADO. Medido em Santa, Secos
-// de 09/05/2026: o resumo dizia "6 sem entrega registrada" ao lado de uma diferença de
-// R$ 49,00. Das seis, UMA era a diferença — o mel, que chegou quebrado, e cuja
-// justificativa já estava escrita. As outras cinco eram produto inteiramente distribuído
-// com a linha de alguém em branco, que não muda a conta.
+// EXISTE PORQUE O NÚMERO SOZINHO MANDA PROCURAR NO LUGAR ERRADO. Visto numa chamada de
+// secos: o resumo apontava meia dúzia de linhas sem entrega registrada ao lado de uma
+// diferença pequena. Só UMA delas era a diferença — um produto que chegou quebrado, com
+// a justificativa já escrita. As outras eram produto inteiramente distribuído com a
+// linha de alguém em branco, que não muda a conta.
 //
 // A JUSTIFICATIVA VEM JUNTO, e não é enfeite: ela responde a pergunta antes de alguém
-// abrir outra tela. Está em distribuicao.dist_just_dif_entrega, preenchida em 91,7% das
-// divergências do último ano — o hábito existe e funciona; faltava trazê-lo para cá.
+// abrir outra tela. Está em distribuicao.dist_just_dif_entrega, preenchida na grande
+// maioria das divergências do último ano — o hábito existe e funciona; faltava trazê-lo
+// para cá.
 //
 // CONTRATO: array de produtos (vazio quando nada diverge), ou null quando a consulta não
 // roda.
@@ -375,10 +376,10 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	$sql.= "WHERE d.dist_cha = " . prep_para_bd($cha_id) . " ";
 	$sql.= "AND d.dist_nuc = " . prep_para_bd($nuc_id) . " ";
 	// Recebido, OU explicado por escrito. Exigir só o recebido deixava de fora a
-	// justificativa que existe justamente porque não houve recebimento — e são 93 linhas
-	// na base, com texto como "fração da saca de 20kg que foi entregue para Santa
-	// Teresa". A tela contava essas no aviso "1 justificada" e não mostrava nenhuma ao
-	// clicar: o mesmo defeito do aviso de linhas em branco, um nível abaixo.
+	// justificativa que existe justamente porque não houve recebimento — e há dezenas
+	// dessas na base, com texto explicando que a mercadoria foi para outro núcleo. A tela
+	// contava essas no aviso de justificativas e não mostrava nenhuma ao clicar: o mesmo
+	// defeito do aviso de linhas em branco, um nível abaixo.
 	//
 	// entrega_divergencia_justificativa.php:65 é quem cria a linha assim — o INSERT dela
 	// grava só a justificativa, e dist_quantidade_recebido fica NULL.
