@@ -1,6 +1,9 @@
 <?php
   require  "common.inc.php";
   require_once(__DIR__ . "/financeiro.inc.php");
+  // prazo_contabil_valido() mora aqui: o prazo tem de cair depois da entrega, e esta tela
+  // passou a ser onde ele se edita.
+  require_once(__DIR__ . "/chamada.inc.php");
 
   verifica_seguranca();
 
@@ -52,8 +55,13 @@
           // AQUI, no servidor, e não só escondendo o botão: a tela esconde, o POST não.
           $fila_agora = chamadas_a_fechar($de, $ate);
           $ja_fechada = null;
+          $dt_entrega_da_chamada = '';
           foreach ((array)$fila_agora as $x)
-              if ((string)$x['cha_id'] === (string)$cha_id) $ja_fechada = $x['fechada'];
+              if ((string)$x['cha_id'] === (string)$cha_id)
+              {
+                  $ja_fechada = $x['fechada'];
+                  $dt_entrega_da_chamada = $x['dt'];
+              }
 
           $data = date_create_from_format('d/m/Y', trim((string)request_get("prazo", "")));
           $hora = trim((string)request_get("prazo_hh", ""));
@@ -68,6 +76,16 @@
                   "Esta chamada já foi fechada — o prazo de registro não muda mais.");
           else if (!$data)
               adiciona_mensagem_status(MSG_TIPO_ERRO, "Data inválida. Use dd/mm/aaaa.");
+          else if (!prazo_contabil_valido(date_format($data, 'Y-m-d') . ' ' . $hora . ':00',
+                                          $dt_entrega_da_chamada))
+              // O PRAZO TEM DE SER DEPOIS DA ENTREGA, e a base já acumulou o inverso: uma
+              // chamada com prazo semanas ANTES da própria entrega, outra com um ano antes
+              // por erro de digitação do ano. Nenhuma das duas pôde ser corrigida depois —
+              // prazo vencido tranca o registro de entrega, e sem registro não há o que
+              // conferir. A guarda vinha da tela antiga e quase se perdeu na mudança.
+              adiciona_mensagem_status(MSG_TIPO_ERRO,
+                  "O prazo precisa cair num dia posterior ao da entrega ("
+                  . date('d/m/Y', strtotime($dt_entrega_da_chamada)) . ").");
           else
           {
               $ok = executa_sql("UPDATE chamadas SET cha_dt_prazo_contabil = "
@@ -387,5 +405,16 @@
 </p>
 
 <?php } ?>
+
+<script type="text/javascript">
+	// A classe .data não vira calendário sozinha: cada tela liga o seu, e esta nascia sem.
+	$(function() {
+		$(".data").datepicker({
+			format: 'dd/mm/yyyy',
+			language: 'pt-BR',
+			autoclose: true
+		});
+	});
+</script>
 
 <?php footer(); ?>

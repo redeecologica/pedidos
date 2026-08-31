@@ -3040,6 +3040,23 @@ verifica("e a posicao do produtor ja conta esse pagamento, sem precisar saber qu
     $linha_pp !== null && round($linha_pp['pago'], 2) == 250.00,
     var_export($linha_pp, true));
 
+// COMPROVANTE, como no pagamento de cestante: e o que transforma "consta que pagamos" em
+// "aqui esta". Quem cobra de novo por engano e justamente quem nao achou o registro.
+$tra_comp = lanca_pagamento_a_produtor_da_rede('2026-04-17', $con_forn_t, 15.00, $con_origem,
+    'com comprovante', 'https://banco.exemplo/extrato/123');
+verifica("o pagamento guarda o comprovante que a tela coleta",
+    $tra_comp !== null
+ && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_comp)
+    === 'https://banco.exemplo/extrato/123',
+    var_export(valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_comp), true));
+
+// Opcional de verdade: pagamento em dinheiro nao tem link, e exigir um faria inventar.
+$tra_scomp = lanca_pagamento_a_produtor_da_rede('2026-04-17', $con_forn_t, 15.00, $con_origem, 'sem');
+verifica("sem comprovante o campo fica NULL, e nao string vazia",
+    $tra_scomp !== null
+ && valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_scomp) === null,
+    var_export(valor_escalar("SELECT tra_comprovante FROM transacoes WHERE tra_id = " . (int)$tra_scomp), true));
+
 // ---- o que NAO pode virar pagamento ----
 verifica("valor zero ou negativo nao vira pagamento",
     lanca_pagamento_a_produtor_da_rede('2026-04-15', $con_forn_t, 0, $con_origem, 'x') === null

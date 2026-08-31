@@ -2085,7 +2085,8 @@ function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico,
 //
 // CONTRATO: tra_id, ou null quando não pôde virar lançamento. A recusa é silenciosa pelo
 // mesmo motivo de lanca_movimento_nucleo(): quem sabe dizer o que faltou é a tela.
-function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_origem, $historico)
+function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_origem, $historico,
+                                            $comprovante = null)
 {
 	$valor = round((float)$valor, 2);
 	if ($valor <= 0) return null;
@@ -2109,7 +2110,16 @@ function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_ori
 	$historico = (is_string($historico) || is_int($historico)) ? trim((string)$historico) : '';
 	if ($historico === '') $historico = 'pagamento a produtor';
 
-	return lanca_transacao($dt, 'pagamento_produtor', $con_produtor, $con_origem, $valor, $historico);
+	// COMPROVANTE, como no pagamento de cestante: link do extrato, ou o que baste para
+	// achar a transferência depois. É o que transforma "consta que pagamos" em "aqui
+	// está" — e quem cobra de novo por engano é justamente quem não achou o registro.
+	// Opcional: pagamento em dinheiro não tem link, e exigir um faria inventar.
+	$extras = array();
+	$comprovante = (is_string($comprovante) || is_int($comprovante)) ? trim((string)$comprovante) : '';
+	if ($comprovante !== '') $extras['comprovante'] = $comprovante;
+
+	return lanca_transacao($dt, 'pagamento_produtor', $con_produtor, $con_origem, $valor,
+		$historico, $extras);
 }
 
 
