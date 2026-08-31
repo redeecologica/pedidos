@@ -3175,6 +3175,33 @@ verifica("abrir duas vezes nao dobra o estoque",
     lanca_abertura_do_estoque($cha_est) === 0
     && estoque_desde($est0) == ($ja_tinha ? 0.00 : 160.00));
 
+// DUAS CORRENTES. Secos e Secos Bimestral tem estoques independentes — a chamada
+// anterior de uma Secos e a Secos anterior, nunca a Bimestral. Cada uma abre a sua.
+//
+// Guardando pela CONTA em vez de pela corrente, abrir a primeira trancava a segunda para
+// sempre, e o estoque inicial dela nunca entrava: a conta ficava a menos, em silencio.
+$prodt_bim = valor_escalar("SELECT prodt_id FROM produtotipos WHERE prodt_nome LIKE 'Secos Bime%'");
+if ($prodt_bim)
+{
+    $cha_bim = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+        VALUES (" . (int)$prodt_bim . ",'2026-09-19 23:59:59','2026-09-01 00:00:00','2026-09-15 23:59:59',0.00)");
+    executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+        VALUES (" . (int)$cha_bim . "," . (int)$prod_est_id . ",1)");
+    executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
+        VALUES (" . (int)$cha_bim . "," . (int)$prod_est_id . ",7,7)");
+
+    $antes_bim = round(-saldo_da_conta($con_estoque), 2);
+    $ab_bim = lanca_abertura_do_estoque($cha_bim);
+
+    verifica("a outra corrente abre a SUA abertura, mesmo com a primeira ja aberta",
+        $ab_bim > 0 && round(-saldo_da_conta($con_estoque) - $antes_bim, 2) == 56.00,
+        "ab=" . var_export($ab_bim, true)
+            . " delta=" . round(-saldo_da_conta($con_estoque) - $antes_bim, 2));
+
+    verifica("e abrir a mesma corrente duas vezes continua nao dobrando",
+        lanca_abertura_do_estoque($cha_bim) === 0);
+}
+
 // daqui para baixo o ponto de partida e o que a abertura deixou
 $est1 = round(-saldo_da_conta($con_estoque), 2);
 
