@@ -1,5 +1,9 @@
 <?php  
   require  "common.inc.php"; 
+  // abas_entregas() mora aqui. Cada tela declara o que usa em vez de o menu
+  // carregar o arquivo nas 87 páginas: o Balanço vive na barra de Entregas, e
+  // nenhuma outra parte do sistema precisa dele.
+  require_once(__DIR__ . "/balanco.inc.php"); 
   verifica_seguranca($_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS]);    
   
   top();
@@ -39,12 +43,7 @@ $cha_taxa_percentual = $row["cha_taxa_percentual"];
 
 ?>
 
- <ul class="nav nav-tabs">
-  <li><a href="entregas.php">Entregas</a></li>
-  <li><a href="entrega_nucleos_consolidado.php"><i class="glyphicon glyphicon-road"></i> Recebido pelo Núcleo</a></li>
-  <li><a href="entrega_cestantes_consolidado.php"><i class="glyphicon glyphicon-grain"></i> Entregue aos Cestantes</a></li>  
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-eye-open"></i> Divergências</a></li>    
-</ul>
+<?php abas_entregas('divergencias'); ?>
 
 <br>
 
