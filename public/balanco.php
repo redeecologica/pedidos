@@ -233,7 +233,7 @@
 
 <?php if ($conf === null) { ?>
 
-  <div class="alert alert-info">Escolha uma chamada para conferir onde a mercadoria entrou e saiu.</div>
+  <div class="alert alert-info">Escolha uma chamada para conferir onde o produto entrou e saiu.</div>
 
 <?php } else { ?>
 
@@ -244,7 +244,7 @@
 <?php
   // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado −81,00" se lê como o que o rótulo
   // afirma, com um menos que ninguém sabe interpretar sem uma referência de qual é o
-  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais mercadoria do
+  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
   // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
   // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
   // sinal do lançamento.
@@ -253,12 +253,12 @@
   if ($saldo_conf > 0.005)
   {
       $rot_saldo = 'pago e não cobrado';
-      $sub_saldo = 'a Rede pagou por mercadoria que ninguém foi cobrado';
+      $sub_saldo = 'a Rede pagou por produto que ninguém foi cobrado';
   }
   else if ($saldo_conf < -0.005)
   {
       $rot_saldo = 'recebido e não pago';
-      $sub_saldo = 'entrou mais mercadoria do que a Rede pagou ao produtor';
+      $sub_saldo = 'entrou mais produto do que a Rede pagou ao produtor';
   }
   else
   {
@@ -276,7 +276,7 @@
         <?php } ?>
         <?php
           // A DEMANDA, e o único número da tabela que não depende de alguém conferir
-          // mercadoria — todos os outros são contagem posterior. Vem crua: o que foi
+          // produto — todos os outros são contagem posterior. Vem crua: o que foi
           // pedido, sem nada abatido de estoque. Sem ela a corrente começa pelo meio,
           // e não dá para ver se a chamada atendeu o que pediram.
           //
@@ -301,8 +301,8 @@
         <?php
           // Finanças confirma POR ÚLTIMO, e a ordem da tabela diz isso: ela olha as
           // justificativas que os núcleos escreveram depois da entrega, e só então fecha o
-          // número que paga o produtor. Posta no meio, parecia etapa do caminho da
-          // mercadoria; no fim, é o julgamento que ela de fato é.
+          // número que paga o produtor. Posta no meio, parecia etapa do caminho do
+          // produto; no fim, é o julgamento que ela de fato é.
         ?>
         <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
@@ -325,9 +325,9 @@
       // diferença direta entre as duas primeiras linhas, e isso faz quem lê desconfiar do
       // número — a explicação em prosa dizia só metade da verdade: que o estoque
       // desconta. Ele entra NOS DOIS SENTIDOS, e soma quando a entrega consumiu
-      // mercadoria que já estava guardada.
+      // produto que já estava guardado.
       $dif_direta  = round($conf['confirmado'] - $conf['total']['distribuiu'], 2);
-      // positivo = o estoque encolheu, ou seja, saiu mercadoria guardada sem ser cobrada
+      // positivo = o estoque encolheu, ou seja, saiu produto guardado sem ser cobrado
       $mov_estoque = round($conf['estoque']['antes'] - $conf['estoque']['depois'], 2);
     ?>
     <table class="table table-condensed" style="margin-bottom:10px;">
@@ -369,18 +369,18 @@
 
       if ($tem_mutirao)
       {
-          // A versão anterior dizia que a mercadoria consumida "saiu sem ninguém ser
-          // cobrado por ela", e isso se lê de dois jeitos: como fato da conta, ou como
+          // A versão anterior dizia que o produto consumido "saiu sem ninguém ser
+          // cobrado por ele", e isso se lê de dois jeitos: como fato da conta, ou como
           // acusação de que alguém deixou de cobrar. Agora o texto fala do que a conta
           // faz — de que lado cada parcela entra — e não do que teria acontecido.
           $detalhes[] = 'O <strong>estoque entra nos dois sentidos</strong>, e é aí que o'
                       . ' número costuma surpreender.'
                       . '<br><br>Se o estoque <strong>encolheu</strong> nesta chamada, saiu'
-                      . ' mercadoria do que estava guardado. A Rede pagou por ela numa'
-                      . ' chamada anterior, e ela está entre a mercadoria desta aqui — então'
-                      . ' entra do lado do que foi pago, e <strong>soma</strong>.'
-                      . '<br><br>Se o estoque <strong>cresceu</strong>, ficou mercadoria'
-                      . ' guardada para a próxima chamada. A Rede pagou por ela, mas ela não'
+                      . ' produto do que estava guardado. A Rede pagou por ele numa chamada'
+                      . ' anterior, e ele está entre o que saiu nesta aqui — então entra do'
+                      . ' lado do que foi pago, e <strong>soma</strong>.'
+                      . '<br><br>Se o estoque <strong>cresceu</strong>, ficou produto'
+                      . ' guardado para a próxima chamada. A Rede pagou por ele, mas ele não'
                       . ' foi entregue agora e continua sendo dela — então sai da conta desta'
                       . ' chamada, e <strong>desconta</strong>.'
                       . '<br><br>As duas primeiras linhas sozinhas respondem "<em>nesta'
@@ -388,7 +388,7 @@
                       . ' pergunta passa a ser "<em>de tudo que estava disponível para'
                       . ' entregar, quanto não virou cobrança?</em>".';
 
-          $detalhes[] = 'A mesma mercadoria é contada <strong>cinco vezes</strong>, por gente'
+          $detalhes[] = 'O mesmo produto é contado <strong>cinco vezes</strong>, por gente'
                       . ' diferente, e cada distância entre duas contagens significa uma'
                       . ' coisa. Mutirão contra Finanças é o que ela <strong>abateu</strong>'
                       . ' ao ler as justificativas — produto vencido sai da conta do produtor.'
@@ -406,8 +406,8 @@
       {
           $detalhes[] = 'Nesta chamada o produtor entrega <strong>direto no núcleo</strong>:'
                       . ' não há contagem do mutirão, remessa a caminho nem estoque guardado'
-                      . ' entre chamadas, e por isso essas linhas não aparecem. A mercadoria'
-                      . ' é contada <strong>três vezes</strong> — o núcleo confirma o que'
+                      . ' entre chamadas, e por isso essas linhas não aparecem. O produto'
+                      . ' é contado <strong>três vezes</strong> — o núcleo confirma o que'
                       . ' chegou, o cestante recebe, e Finanças fecha o que paga o produtor.'
                       . ' Confirmado contra entregue é o que ficou <strong>no núcleo</strong>;'
                       . ' confirmado contra Finanças é o que ela <strong>abateu</strong> ao ler'
@@ -416,7 +416,7 @@
     ?>
     <p class="small text-muted">
       <?php if ($saldo_conf < -0.005) { ?>
-      <strong>Recebido e não pago</strong> é o contrário do caso comum: saiu mais mercadoria
+      <strong>Recebido e não pago</strong> é o contrário do caso comum: saiu mais produto
       — entregue aos cestantes, mais o que ficou guardado — do que a Rede pagou ao produtor.
       Costuma ser produto que chegou a mais e foi aceito, ou contagem de recebimento que
       ficou abaixo do que de fato entrou.
@@ -649,7 +649,7 @@
   — alguém desiste e outro leva — e <strong>entrega parcial</strong> anotada em outra linha.
   <br>Diferença <strong>positiva</strong>: o núcleo confirmou receber mais do que entregou.
   <strong>Negativa</strong>: entregou sem ter confirmado o recebimento — a conta não fecha
-  por falta de registro, não por falta de mercadoria.
+  por falta de registro, não por falta de produto.
 </p>
 
 <?php } ?>

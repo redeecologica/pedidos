@@ -70,7 +70,7 @@ insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_un
 $prod_est_id = 900003;
 
 
-echo "\nbalanco da chamada: onde a mercadoria entrou e saiu\n";
+echo "\nbalanco da chamada: onde o produto entrou e saiu\n";
 // ---------------------------------------------------------------------------
 
 // Chamada propria: dois nucleos, um deles com entrega faltando de proposito.
@@ -175,7 +175,7 @@ verifica("avisa so as linhas que PODEM explicar a diferenca",
     var_export($n['sem_registro'], true));
 
 // A DEMANDA CRUA, e o unico numero da tabela que nao depende de alguem conferir
-// mercadoria. Fixture: nucleo 1 pediu 50 e levou 50; nucleo 2 pediu 30 + 10 do outro
+// produto. Fixture: nucleo 1 pediu 50 e levou 50; nucleo 2 pediu 30 + 10 do outro
 // produto no mesmo pedido, mais 10 do cf2b. Tudo a preco de venda 10.
 verifica("o balanco traz o que os cestantes PEDIRAM, e nao so o que levaram",
     is_array($cf) && ($n = nuc_da_conf($cf, $nuc_cf1)) && round($n['pediu'],2) == 500.00,
@@ -205,15 +205,15 @@ verifica("o nao cobrado e o que a Rede pagou sem ninguem ser cobrado",
     round($cf['nao_cobrado'],2) == 100.00,
     var_export($cf['nao_cobrado'], true));
 
-// ESTOQUE entra na conta: sem ele, mercadoria guardada seria lida como perda.
+// ESTOQUE entra na conta: sem ele, produto guardado seria lida como perda.
 executa_sql("INSERT INTO estoque (est_cha, est_prod, est_prod_qtde_antes, est_prod_qtde_depois)
     VALUES (" . (int)$cha_cf . "," . (int)$prod_est_id . ",0,10)");
 $cf2 = balanco_da_chamada($cha_cf);
-verifica("mercadoria que ficou guardada sai do 'nao cobrado'",
+verifica("produto que ficou guardado sai do 'nao cobrado'",
     round($cf2['estoque']['depois'],2) == 100.00 && round($cf2['nao_cobrado'],2) == 0.00,
     "estoque=" . json_encode($cf2['estoque']) . " nao_cobrado=" . $cf2['nao_cobrado']);
 
-// O NUMERO VIRA NEGATIVO, e isso nao e defeito: quer dizer que saiu mais mercadoria —
+// O NUMERO VIRA NEGATIVO, e isso nao e defeito: quer dizer que saiu mais produto —
 // entregue mais guardada — do que a Rede pagou. Visto na chamada 1123 da base, com
 // -81,00. A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra
 // "recebido e nao pago", porque "pago e nao cobrado -81,00" afirma o contrario do que
@@ -385,7 +385,7 @@ verifica("e distingue quem nao teve entrega ANOTADA de quem levou zero",
 
 // A linha que existe SO pela justificativa. entrega_divergencia_justificativa.php:65
 // cria assim quando ainda nao havia linha: grava o texto e deixa dist_quantidade_recebido
-// NULL. Ha dezenas dessas na base, com texto explicando que a mercadoria foi para outro
+// NULL. Ha dezenas dessas na base, com texto explicando que o produto foi para outro
 // nucleo — a justificativa existe JUSTAMENTE porque nao houve recebimento.
 //
 // Sem esta linha no detalhe, o aviso "1 justificada" da tabela de cima contava uma

@@ -1,7 +1,7 @@
 <?php
-// BALANÇO DA CHAMADA — onde a mercadoria entrou e onde saiu, em dinheiro.
+// BALANÇO DA CHAMADA — onde o produto entrou e onde saiu, em dinheiro.
 //
-// A tela lê o que o time JÁ REGISTRA hoje — distribuição, entrega ao cestante, recebimento
+// A tela lê o que o núcleo JÁ REGISTRA hoje — distribuição, entrega ao cestante, recebimento
 // confirmado, estoque — e traduz em reais. Não grava nada, e não depende de tabela nova:
 // todas as que consulta existem desde sempre. É por isso que ela sobe antes do módulo
 // financeiro, e não junto dele.
@@ -112,9 +112,9 @@ function compara_nome_de_nucleo($a, $b)
 }
 
 
-// O balanço de uma chamada: onde a mercadoria entrou e onde saiu, em dinheiro.
+// O balanço de uma chamada: onde o produto entrou e onde saiu, em dinheiro.
 //
-// A mesma mercadoria é medida em três lugares diferentes, e cada distância entre eles
+// O mesmo produto é medida em três lugares diferentes, e cada distância entre eles
 // significa uma coisa:
 //
 //   A  o que os NÚCLEOS confirmaram receber   (distribuicao.dist_quantidade_recebido)
@@ -204,7 +204,7 @@ function balanco_da_chamada($cha_id)
 	$sql.= "SUM(pp.pedprod_entregue * p.prod_valor_venda) v, ";
 	// A DEMANDA CRUA: o que os cestantes pediram, sem nada abatido. É o primeiro número
 	// da corrente e o único que não depende de ninguém conferir nada — todos os outros
-	// são alguém contando mercadoria depois. Sem ele a tabela começa pelo estoque, e não
+	// são alguém contando produto depois. Sem ele a tabela começa pelo estoque, e não
 	// dá para ver se a chamada atendeu o que foi pedido.
 	$sql.= "SUM(pp.pedprod_quantidade * p.prod_valor_venda) q, ";
 	// SÓ AS LINHAS QUE PODEM EXPLICAR A DIFERENÇA. Contar toda linha pedida sem entrega
@@ -377,7 +377,7 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	$sql.= "AND d.dist_nuc = " . prep_para_bd($nuc_id) . " ";
 	// Recebido, OU explicado por escrito. Exigir só o recebido deixava de fora a
 	// justificativa que existe justamente porque não houve recebimento — e há dezenas
-	// dessas na base, com texto explicando que a mercadoria foi para outro núcleo. A tela
+	// dessas na base, com texto explicando que o produto foi para outro núcleo. A tela
 	// contava essas no aviso de justificativas e não mostrava nenhuma ao clicar: o mesmo
 	// defeito do aviso de linhas em branco, um nível abaixo.
 	//
