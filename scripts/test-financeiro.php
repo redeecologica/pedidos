@@ -3740,6 +3740,71 @@ verifica("carregar o financeiro traz junto as funcoes do balanco",
 
 
 // ---------------------------------------------------------------------------
+echo "\nposicao da Rede: onde o dinheiro esta, e o que esta pendurado\n";
+// ---------------------------------------------------------------------------
+
+$pos = posicao_da_rede();
+
+verifica("a posicao vem com os dois blocos",
+    is_array($pos) && isset($pos['caixa']) && isset($pos['pendurado']),
+    var_export(is_array($pos) ? array_keys($pos) : $pos, true));
+
+// O SINAL VIRA PALAVRA: conta que SEGURA dinheiro tem saldo negativo no razao, e sai
+// daqui positiva. Sem isso a tela mostraria o contrario do que se fala.
+$saldo_cru = saldo_da_conta($con_a);
+$na_lista  = null;
+foreach ($pos['caixa']['contas'] as $c) if ((int)$c['con_id'] === (int)$con_a) $na_lista = $c;
+verifica("conta de dinheiro entra no caixa com o sinal invertido",
+    $na_lista !== null && round($na_lista['em_caixa'],2) == round(-$saldo_cru,2),
+    "saldo cru=" . var_export($saldo_cru,true) . " em_caixa=" . var_export($na_lista===null?null:$na_lista['em_caixa'],true));
+
+// A CONTA DE RESULTADO FICA FORA DO CAIXA — e o ponto inteiro da separacao. Ela e do tipo
+// 'rede' como as outras, mas nao guarda dinheiro: soma-la misturaria "quanto temos" com
+// "como estamos".
+$principal_pos = conta_da_rede();
+$no_caixa = false;
+foreach ($pos['caixa']['contas'] as $c) if ((int)$c['con_id'] === (int)$principal_pos) $no_caixa = true;
+verifica("a conta de resultado NAO entra no caixa, e sai em campo proprio",
+    !$no_caixa && isset($pos['resultado']),
+    json_encode(array_map(function($c){ return $c['con_id']; }, $pos['caixa']['contas'])));
+
+// O total e a soma das contas mais o que esta com os nucleos — dinheiro da Rede que so
+// esta na mao de outra pessoa.
+verifica("o total do caixa soma as contas e o que esta com os nucleos",
+    round($pos['caixa']['total'],2)
+    == round($pos['caixa']['em_contas'] + $pos['caixa']['nucleos'], 2),
+    json_encode($pos['caixa']));
+
+// DEVEDOR E CREDOR CONTADOS SEPARADAMENTE: a soma liquida esconderia que ha gente devendo
+// enquanto outra tem credito, e sao duas conversas.
+verifica("cestante que deve e cestante com credito nao se anulam",
+    $pos['pendurado']['cestantes_devem'] >= 0
+ && $pos['pendurado']['cestantes_credito'] >= 0
+ && $pos['pendurado']['cestantes_quantos'] >= 0,
+    json_encode($pos['pendurado']));
+
+// O a pagar aos produtores NAO sai do razao — e derivado. Tem de bater com a tela que ja
+// mostra isso, senao sao dois caminhos para o mesmo numero.
+$prod_pos = posicao_dos_produtores(DATA_CORTE_FINANCEIRO, '2200-01-01 00:00:00');
+$soma_prod = 0.0;
+foreach ((array)$prod_pos as $x) if ($x['saldo'] > 0.005) $soma_prod = round($soma_prod + $x['saldo'], 2);
+verifica("o a pagar aos produtores bate com posicao_dos_produtores()",
+    round($pos['pendurado']['produtores_a_pagar'],2) == $soma_prod,
+    "posicao=" . $pos['pendurado']['produtores_a_pagar'] . " direto=" . $soma_prod);
+
+// CONTRATO: consulta que nao roda e null, e nao um retrato de zeros — numa tela que
+// resume dinheiro, zero e uma afirmacao.
+executa_sql("CREATE TEMPORARY TABLE contas (con_id mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_pos = (executa_sql("SELECT con_tipo FROM contas") === false);
+$pos_sem_bd = posicao_da_rede();
+executa_sql("DROP TEMPORARY TABLE contas");
+
+verifica("a sombra faz o servidor recusar a posicao", $sombra_pos);
+verifica("posicao de consulta recusada e null, e nao um retrato zerado",
+    $pos_sem_bd === null, var_export($pos_sem_bd, true));
+
+
+// ---------------------------------------------------------------------------
 echo "\nmaterializacao: o debito derivado vira lancamento\n";
 // ---------------------------------------------------------------------------
 

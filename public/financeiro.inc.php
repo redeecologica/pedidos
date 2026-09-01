@@ -3308,6 +3308,7 @@ function abas_financeiras_do_grupo($grupo)
 
 	if (pode_ver_financas_da_rede())
 	{
+		$abas['caixa']      = array('caixa_rede.php',         'Caixa da Rede',      'glyphicon-briefcase');
 		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento contábil', 'glyphicon-lock');
 		$abas['despesas']   = array('despesas_rede.php',      'Despesas da Rede',   'glyphicon-globe');
 		$abas['quotas']     = array('quotas_rateio.php',      'Quotas de rateio',   'glyphicon-equalizer');
@@ -3352,6 +3353,110 @@ function pode_ver_financas_da_rede()
 {
 	return pode_ver_financeiro()
 	    && (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+}
+
+
+// A POSIÇÃO DA REDE, num retrato só: onde o dinheiro está agora, e o que está pendurado.
+//
+// É a pergunta que nenhuma tela respondia. Havia o caixa de cada núcleo, a conta de cada
+// cestante e a fila dos produtores — cada um o seu pedaço, e nada que somasse. Quem cuida
+// do dinheiro da Rede precisa dos dois números antes de qualquer outro: quanto há, e
+// quanto está comprometido.
+//
+// O SINAL VIRA PALAVRA, como no resto do módulo. No razão, conta que SEGURA dinheiro tem
+// saldo negativo — dinheiro que entra soma negativo, dinheiro que sai soma positivo. As
+// três telas que já mostram saldo (caixa do núcleo, conta do cestante, estoque no
+// fechamento) exibem todas `-saldo`, e esta faz o mesmo: os números que saem daqui já
+// vêm no sentido em que se fala deles.
+//
+// A CONTA DE RESULTADO FICA FORA DO CAIXA, e é o ponto inteiro da separação. Ela é do
+// tipo 'rede' como as outras, mas não guarda dinheiro: acumula o que a Rede absorveu de
+// custo e o que os cestantes lhe devem. Somá-la ao caixa misturaria "quanto temos" com
+// "como estamos", que são perguntas diferentes e se respondem em blocos diferentes.
+//
+// CONTRATO: array, ou null quando alguma das consultas não roda. Zero é resposta; falha
+// não pode virar zero numa tela que resume dinheiro.
+function posicao_da_rede()
+{
+	$saldos = array();
+	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, c.con_chave, n.nuc_nome_curto, ";
+	$sql.= "IFNULL((SELECT SUM(l.lan_valor) FROM lancamentos l WHERE l.lan_con = c.con_id),0) saldo ";
+	$sql.= "FROM contas c LEFT JOIN nucleos n ON n.nuc_id = c.con_nuc ";
+	$sql.= "WHERE c.con_archive = 0";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) $saldos[] = $row;
+
+	$contas_caixa = array();
+	$em_nucleos = 0.0;
+	$cestantes_devem = 0.0;   $cestantes_quantos = 0;
+	$cestantes_credito = 0.0; $credito_quantos = 0;
+	$estoque = 0.0;
+	$resultado = 0.0;
+
+	foreach ($saldos as $c)
+	{
+		// -saldo: o sentido em que se fala do número
+		$tem = round(-(float)$c['saldo'], 2);
+
+		if ($c['con_tipo'] === 'rede')
+		{
+			if ((string)$c['con_chave'] === CONTA_CHAVE_REDE) { $resultado = $tem; continue; }
+			$contas_caixa[] = array(
+				'con_id'   => (int)$c['con_id'],
+				'nome'     => (string)$c['con_nome'],
+				'em_caixa' => $tem,
+			);
+		}
+		else if ($c['con_tipo'] === 'nucleo')   $em_nucleos = round($em_nucleos + $tem, 2);
+		else if ($c['con_tipo'] === 'estoque')  $estoque    = round($estoque + $tem, 2);
+		else if ($c['con_tipo'] === 'cestante')
+		{
+			// devedores e credores contados SEPARADAMENTE: a soma líquida esconderia
+			// que há gente devendo enquanto outra tem crédito, e são duas conversas
+			if ($tem > 0.005)       { $cestantes_devem   = round($cestantes_devem + $tem, 2);   $cestantes_quantos++; }
+			else if ($tem < -0.005) { $cestantes_credito = round($cestantes_credito - $tem, 2); $credito_quantos++; }
+		}
+	}
+
+	usort($contas_caixa, function ($a, $b) { return strcasecmp($a['nome'], $b['nome']); });
+
+	$em_contas = 0.0;
+	foreach ($contas_caixa as $c) $em_contas = round($em_contas + $c['em_caixa'], 2);
+
+	// O A PAGAR AOS PRODUTORES NÃO SAI DO RAZÃO: o que eles têm a receber é derivado da
+	// confirmação de Finanças, e só o que já foi pago vira lançamento. posicao_dos_produtores()
+	// é quem junta os dois lados, e é dela que este número tem de vir — dois caminhos para
+	// o mesmo número divergiriam no primeiro ajuste.
+	$prod = posicao_dos_produtores(DATA_CORTE_FINANCEIRO, '2200-01-01 00:00:00');
+	if ($prod === null) return null;
+
+	$a_pagar = 0.0; $prod_quantos = 0;
+	$adiantado = 0.0; $adiantado_quantos = 0;
+	foreach ($prod as $x)
+	{
+		if ($x['saldo'] > 0.005)       { $a_pagar   = round($a_pagar + $x['saldo'], 2);   $prod_quantos++; }
+		else if ($x['saldo'] < -0.005) { $adiantado = round($adiantado - $x['saldo'], 2); $adiantado_quantos++; }
+	}
+
+	return array(
+		'caixa' => array(
+			'contas'   => $contas_caixa,
+			'em_contas'=> $em_contas,
+			'nucleos'  => $em_nucleos,
+			'total'    => round($em_contas + $em_nucleos, 2),
+		),
+		'pendurado' => array(
+			'cestantes_devem'    => $cestantes_devem,    'cestantes_quantos' => $cestantes_quantos,
+			'cestantes_credito'  => $cestantes_credito,  'credito_quantos'   => $credito_quantos,
+			'produtores_a_pagar' => $a_pagar,            'produtores_quantos'=> $prod_quantos,
+			'produtores_adiantado' => $adiantado,        'adiantado_quantos' => $adiantado_quantos,
+			'estoque'            => $estoque,
+		),
+		// não entra no caixa: é como a Rede está, não quanto ela tem
+		'resultado' => $resultado,
+	);
 }
 
 
