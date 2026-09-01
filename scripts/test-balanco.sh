@@ -55,6 +55,21 @@ if [ -z "$ANTES" ]; then
   exit 2
 fi
 
+# O BIND MOUNT DO macOS SERVE ARQUIVO EM CACHE, e o PHP dentro do container pode ler uma
+# versão anterior de financeiro.inc.php mesmo depois de o arquivo mudar no disco. O
+# resultado é o pior tipo de falha: a suíte reprova (ou aprova) por causa de um arquivo
+# que já não existe, e a corrida seguinte diz outra coisa sem nada ter mudado.
+#
+# Aconteceu três vezes numa sessão, e duas delas levaram a conclusão errada — uma vez
+# para "quebrei algo" e outra para "está verde". Reiniciar o container é o que limpa, e
+# custa poucos segundos contra um resultado em que não se pode confiar.
+echo ">> Limpando o cache do bind mount (macOS serve arquivo velho)..."
+docker compose restart web-modern >/dev/null 2>&1
+for _ in $(seq 1 20); do
+  docker compose exec -T web-modern php -r 'exit(0);' >/dev/null 2>&1 && break
+  sleep 1
+done
+
 docker compose exec -T web-modern php < scripts/test-balanco.php
 TESTES=$?
 
