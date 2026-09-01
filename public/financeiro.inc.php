@@ -3389,6 +3389,142 @@ function pode_ver_financas_da_rede()
 }
 
 
+// O RESULTADO DA REDE, mês a mês do ano: a operação inteira se paga?
+//
+// É o equilíbrio do núcleo olhado de cima. A receita é a MESMA — associação, taxa e
+// margem —, só que de todos os núcleos somados; não é dinheiro novo, é o mesmo dinheiro
+// visto de outro lugar, e a tela precisa dizer isso ou alguém soma os dois.
+//
+// O CUSTO TEM DUAS METADES que o núcleo não vê juntas: as despesas que os núcleos
+// lançaram no caixa deles, e as despesas centrais da Rede ANTES do rateio. O rateio não
+// entra: ele é atribuição interna, move custo da Rede para os núcleos no papel e não
+// muda um centavo do total. Somá-lo contaria o mesmo gasto duas vezes.
+//
+// A CONFERÊNCIA QUE SÓ EXISTE AQUI: a soma dos resultados dos núcleos, menos o que a Rede
+// deixou de ratear, tem de dar este resultado. Vem da álgebra — o resultado do núcleo é
+// receita menos despesa própria menos rateio, e o da Rede é receita menos despesa própria
+// menos despesa da Rede; a diferença entre os dois é exatamente a sobra. Quando não bate,
+// há rateio apontando para núcleo que não entra na conta, ou despesa sem perna de custo.
+//
+// UMA CONSULTA POR ANO, e não doze: a receita sai agrupada por mês numa varredura só —
+// medido em cerca de um segundo sobre a base inteira. Doze chamadas da versão do núcleo
+// levariam doze vezes isso, e a tela é de olhar o ano.
+//
+// CONTRATO: array, ou null quando alguma consulta não roda.
+function resultado_da_rede($ano)
+{
+	$ano = (int)$ano;
+	if ($ano < 2000 || $ano > 2200) return null;
+
+	$de  = sprintf('%04d-01-01 00:00:00', $ano);
+	$ate = sprintf('%04d-01-01 00:00:00', $ano + 1);
+
+	$zeros = array();
+	for ($m = 1; $m <= 12; $m++)
+		$zeros[$m] = array(
+			'associacao' => 0.0, 'taxa' => 0.0, 'margem_nao_associado' => 0.0,
+			'margem_produto' => 0.0, 'outras' => 0.0, 'receita' => 0.0,
+			'despesas_nucleos' => 0.0, 'despesas_rede' => 0.0, 'custo' => 0.0,
+			'rateado' => 0.0, 'sobra' => 0.0, 'resultado' => 0.0,
+		);
+
+	$mes = $zeros;
+	$v = function ($x) { return ($x === null) ? 0.0 : round((float)$x, 2); };
+
+	// ---- receita: a mesma conta do equilíbrio do núcleo, sem o recorte de ped_nuc ----
+	$sql = "SELECT MONTH(c.cha_dt_entrega) m, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome LIKE 'Associa%' ";
+	$sql.= "     THEN pr.prod_valor_venda * pp.pedprod_entregue ELSE 0 END) associacao, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado <> '0' ";
+	$sql.= "     THEN pr.prod_valor_venda * pp.pedprod_entregue * c.cha_taxa_percentual ELSE 0 END) taxa, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado = '0' ";
+	$sql.= "     THEN (pr.prod_valor_venda_margem - pr.prod_valor_compra) * pp.pedprod_entregue ELSE 0 END) margem_na, ";
+	$sql.= "SUM(CASE WHEN pt.prodt_nome NOT LIKE 'Associa%' AND p.ped_usr_associado <> '0' ";
+	$sql.= "     THEN (pr.prod_valor_venda - pr.prod_valor_compra) * pp.pedprod_entregue ELSE 0 END) margem_a ";
+	$sql.= "FROM pedidos p ";
+	$sql.= "JOIN pedidoprodutos pp  ON pp.pedprod_ped = p.ped_id ";
+	$sql.= "JOIN chamadas c         ON c.cha_id = p.ped_cha ";
+	$sql.= "JOIN produtotipos pt    ON pt.prodt_id = c.cha_prodt ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = p.ped_cha AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos pr        ON pr.prod_id = pp.pedprod_prod ";
+	$sql.= "WHERE p.ped_fechado = 1 AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND pr.prod_ini_validade <= c.cha_dt_entrega AND pr.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "AND c.cha_dt_entrega >= " . prep_para_bd($de) . " AND c.cha_dt_entrega < " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY m";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$m = (int)$r['m'];
+		if (!isset($mes[$m])) continue;
+		$mes[$m]['associacao']           = $v($r['associacao']);
+		$mes[$m]['taxa']                 = $v($r['taxa']);
+		$mes[$m]['margem_nao_associado'] = $v($r['margem_na']);
+		$mes[$m]['margem_produto']       = $v($r['margem_a']);
+	}
+
+	// ---- despesas e outras receitas lançadas nos caixas dos núcleos ----
+	$sql = "SELECT MONTH(t.tra_dt) m, t.tra_tipo tipo, SUM(ABS(l.lan_valor)) v ";
+	$sql.= "FROM lancamentos l ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "JOIN contas c     ON c.con_id = l.lan_con AND c.con_tipo = 'nucleo' ";
+	$sql.= "WHERE t.tra_tipo IN ('despesa','receita') ";
+	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY m, tipo";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$m = (int)$r['m'];
+		if (!isset($mes[$m])) continue;
+		if ((string)$r['tipo'] === 'receita') $mes[$m]['outras']           = $v($r['v']);
+		else                                  $mes[$m]['despesas_nucleos'] = $v($r['v']);
+	}
+
+	// ---- despesas centrais da Rede, e quanto delas foi rateado ----
+	$con_rede_r = conta_da_rede();
+	if (!$con_rede_r) return null;
+
+	$sql = "SELECT MONTH(t.tra_dt) m, SUM(ABS(l.lan_valor)) v, ";
+	$sql.= "IFNULL((SELECT SUM(r.rat_valor) FROM rateios r ";
+	$sql.= "        WHERE r.rat_tra IN (SELECT t2.tra_id FROM transacoes t2 ";
+	$sql.= "          WHERE t2.tra_tipo = 'despesa_rede' AND MONTH(t2.tra_dt) = MONTH(t.tra_dt) ";
+	$sql.= "            AND t2.tra_dt >= " . prep_para_bd($de) . " AND t2.tra_dt < " . prep_para_bd($ate) . ")),0) rateado ";
+	$sql.= "FROM lancamentos l ";
+	$sql.= "JOIN transacoes t ON t.tra_id = l.lan_tra ";
+	$sql.= "WHERE t.tra_tipo = 'despesa_rede' AND l.lan_con = " . prep_para_bd($con_rede_r) . " ";
+	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
+	$sql.= "GROUP BY m";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$m = (int)$r['m'];
+		if (!isset($mes[$m])) continue;
+		$mes[$m]['despesas_rede'] = $v($r['v']);
+		$mes[$m]['rateado']       = $v($r['rateado']);
+	}
+
+	// ---- fecha cada mês, e o ano ----
+	$ano_tot = $zeros[1];
+	foreach ($mes as $m => $x)
+	{
+		$mes[$m]['receita'] = round($x['associacao'] + $x['taxa'] + $x['margem_nao_associado']
+		                          + $x['margem_produto'] + $x['outras'], 2);
+		$mes[$m]['custo']   = round($x['despesas_nucleos'] + $x['despesas_rede'], 2);
+		$mes[$m]['sobra']   = round($x['despesas_rede'] - $x['rateado'], 2);
+		$mes[$m]['resultado'] = round($mes[$m]['receita'] - $mes[$m]['custo'], 2);
+
+		foreach ($ano_tot as $k => $_) $ano_tot[$k] = round($ano_tot[$k] + $mes[$m][$k], 2);
+	}
+
+	return array('ano' => $ano, 'meses' => $mes, 'ano_total' => $ano_tot);
+}
+
+
 // A POSIÇÃO DA REDE, num retrato só: onde o dinheiro está agora, e o que está pendurado.
 //
 // É a pergunta que nenhuma tela respondia. Havia o caixa de cada núcleo, a conta de cada

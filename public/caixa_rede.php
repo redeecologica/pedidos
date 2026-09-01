@@ -14,10 +14,17 @@
       exit();
   }
 
+  $ano = (int)request_get("ano", date('Y'));
+  if ($ano < 2000 || $ano > 2200) $ano = (int)date('Y');
+
   top();
   abas_financeiras('rede', 'caixa');
 
   $pos = posicao_da_rede();
+  $des = resultado_da_rede($ano);
+
+  $nome_mes = array(1=>'janeiro',2=>'fevereiro',3=>'março',4=>'abril',5=>'maio',6=>'junho',
+                    7=>'julho',8=>'agosto',9=>'setembro',10=>'outubro',11=>'novembro',12=>'dezembro');
 
   escreve_mensagem_status();
 ?>
@@ -158,6 +165,105 @@
   cestantes lhe devem. O desempenho mês a mês, com as despesas, é a próxima parte desta
   tela.
 </p>
+
+<legend style="font-size:medium;">Desempenho de <?php echo(h($ano)); ?></legend>
+
+<form class="form-inline hidden-print" method="get" action="caixa_rede.php" style="margin-bottom:10px;">
+  <div class="form-group">
+    <label for="ano">Ano:&nbsp;</label>
+    <select id="ano" name="ano" class="form-control" onchange="this.form.submit();">
+      <?php for ($a = (int)date('Y') + 1; $a >= 2024; $a--) { ?>
+      <option value="<?php echo(h($a)); ?>"<?php echo($a === $ano ? ' selected' : ''); ?>><?php echo(h($a)); ?></option>
+      <?php } ?>
+    </select>
+  </div>
+</form>
+
+<?php if ($des === null) { ?>
+  <div class="alert alert-danger">Não foi possível montar o desempenho do ano.</div>
+<?php } else { ?>
+
+<div class="tabela-rolante">
+<table class="table table-bordered table-condensed table-striped">
+  <thead>
+    <tr>
+      <th rowspan="2">Mês</th>
+      <th colspan="4" class="text-center">O que a Rede gerou de próprio</th>
+      <th colspan="2" class="text-center">O que custou</th>
+      <th rowspan="2" class="text-right">Resultado</th>
+    </tr>
+    <tr>
+      <th class="text-right">Associação</th>
+      <th class="text-right">Taxa</th>
+      <th class="text-right">Margem</th>
+      <th class="text-right">Outras</th>
+      <th class="text-right">Nos núcleos</th>
+      <th class="text-right">Da Rede</th>
+    </tr>
+  </thead>
+  <tbody>
+  <?php
+    $algum = false;
+    foreach ($des['meses'] as $m => $x) {
+        // mês sem nada não vira linha: doze linhas zeradas escondem as que têm número
+        if (abs($x['receita']) < 0.005 && abs($x['custo']) < 0.005) continue;
+        $algum = true;
+  ?>
+    <tr>
+      <td><?php echo(h($nome_mes[$m])); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['associacao']))); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['taxa']))); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['margem_nao_associado'] + $x['margem_produto']))); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['outras']))); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['despesas_nucleos']))); ?></td>
+      <td class="text-right"><?php echo(h(formata_moeda($x['despesas_rede']))); ?></td>
+      <?php
+        // TOM. Mês no vermelho não é acusação — a Rede opera perto do equilíbrio de
+        // propósito. O número colorido diz o que precisa dizer sem levantar a voz, como
+        // no equilíbrio do núcleo.
+      ?>
+      <td class="text-right"><strong class="<?php echo($x['resultado'] < -0.005 ? 'text-danger' : ($x['resultado'] > 0.005 ? 'text-success' : '')); ?>">
+        <?php echo(h(formata_moeda($x['resultado']))); ?>
+      </strong></td>
+    </tr>
+  <?php }
+    if (!$algum) { ?>
+    <tr><td colspan="8" class="text-muted">Nada registrado em <?php echo(h($ano)); ?>.</td></tr>
+  <?php } else { $a = $des['ano_total']; ?>
+    <tr class="active">
+      <th>o ano</th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['associacao']))); ?></th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['taxa']))); ?></th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['margem_nao_associado'] + $a['margem_produto']))); ?></th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['outras']))); ?></th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['despesas_nucleos']))); ?></th>
+      <th class="text-right"><?php echo(h(formata_moeda($a['despesas_rede']))); ?></th>
+      <th class="text-right"><strong class="<?php echo($a['resultado'] < -0.005 ? 'text-danger' : ($a['resultado'] > 0.005 ? 'text-success' : '')); ?>">
+        <?php echo(h(formata_moeda($a['resultado']))); ?>
+      </strong></th>
+    </tr>
+  <?php } ?>
+  </tbody>
+</table>
+</div>
+
+<p class="small text-muted">
+  <strong>Esta receita não é dinheiro novo.</strong> É a mesma associação, taxa e margem
+  que aparece no equilíbrio de cada núcleo — aqui somada, ali repartida. Somar as duas
+  telas faria a Rede parecer arrecadar o dobro.
+  <br><strong>O rateio não entra no custo</strong>, e é de propósito: ele move custo da
+  Rede para os núcleos no papel e não muda um centavo do total. Contá-lo aqui somaria o
+  mesmo gasto duas vezes. O que entra é a despesa da Rede inteira, antes de repartir, mais
+  o que os núcleos gastaram do caixa deles.
+  <br><strong>Sobrou com a Rede</strong> no ano:
+  <strong><?php echo(h(formata_moeda($des['ano_total']['sobra']))); ?></strong> —
+  a parte das despesas centrais que não foi carimbada em núcleo nenhum. É também a
+  distância entre este resultado e a soma dos resultados dos núcleos: os dois só fecham
+  quando ela é zero. Centavos aqui são a sobra da divisão; um valor alto quer dizer que
+  alguma despesa ficou sem rateio.
+</p>
+
+<?php } ?>
 
 <?php } ?>
 
