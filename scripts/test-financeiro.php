@@ -3739,6 +3739,27 @@ verifica("carregar o financeiro traz junto as funcoes do balanco",
 // vez. E ele quem cobre isso, porque so uma pagina de verdade exercita as duas vias.
 
 
+// O TOTAL DA DESPESA VEM JUNTO DO RATEIO. So o pedaco nao deixa julgar nada: "82,00 de
+// hospedagem" nao diz se e a conta toda ou um oitavo dela, e e a fatia que faz a conversa
+// ser outra. O total sai da perna de custo, mesmo lugar de onde despesas_da_rede() le.
+$rat_tot = rateios_do_nucleo($nuc_pop, '2026-04-01', '2026-05-01');
+$com_total = null;
+foreach ((array)$rat_tot as $l) if ($l['total'] !== null && $l['total'] > 0) { $com_total = $l; break; }
+
+verifica("o rateio traz o total da despesa, e nao so a fatia",
+    $com_total !== null && $com_total['total'] >= $com_total['valor'],
+    json_encode($com_total));
+
+// O total tem de ser o MESMO que a lista de despesas mostra — dois caminhos para o mesmo
+// numero divergiriam no primeiro ajuste.
+$da_lista = null;
+foreach ((array)despesas_da_rede('2026-04-01','2026-05-01') as $x)
+    if ($com_total !== null && $x['tra_id'] === $com_total['tra_id']) $da_lista = $x;
+verifica("e esse total bate com o da lista de despesas da Rede",
+    $da_lista !== null && round($da_lista['valor'],2) == round($com_total['total'],2),
+    "rateio=" . ($com_total===null?'?':$com_total['total']) . " lista=" . ($da_lista===null?'?':$da_lista['valor']));
+
+
 // ---------------------------------------------------------------------------
 echo "\nposicao da Rede: onde o dinheiro esta, e o que esta pendurado\n";
 // ---------------------------------------------------------------------------

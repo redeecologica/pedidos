@@ -2158,8 +2158,17 @@ function lanca_pagamento_a_produtor_da_rede($dt, $con_produtor, $valor, $con_ori
 // CONTRATO: array (vazio quando não houve rateio), ou null quando a consulta não roda.
 function rateios_do_nucleo($nuc_id, $de, $ate)
 {
-	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, r.rat_valor ";
+	$con_rede_rat = conta_da_rede();
+	if (!$con_rede_rat) return null;
+
+	// O TOTAL DA DESPESA VEM JUNTO. Sem ele o núcleo vê o pedaço que lhe coube e não tem
+	// como julgá-lo: "R$ 82,00 de hospedagem" não diz se é a conta inteira ou uma fatia,
+	// e é a fatia que faz a conversa ser outra. Sai da perna de custo — a conta principal
+	// da Rede —, que é o mesmo lugar de onde despesas_da_rede() lê o valor.
+	$sql = "SELECT t.tra_id, t.tra_dt, t.tra_categoria, t.tra_historico, r.rat_valor, ";
+	$sql.= "ABS(l.lan_valor) total ";
 	$sql.= "FROM rateios r JOIN transacoes t ON t.tra_id = r.rat_tra ";
+	$sql.= "LEFT JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_con = " . prep_para_bd($con_rede_rat) . " ";
 	$sql.= "WHERE r.rat_nuc = " . prep_para_bd($nuc_id) . " ";
 	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
 	$sql.= "ORDER BY t.tra_dt, t.tra_id";
@@ -2180,6 +2189,9 @@ function rateios_do_nucleo($nuc_id, $de, $ate)
 			'categoria_rotulo' => isset($categorias[$cat]) ? $categorias[$cat] : $cat,
 			'historico' => (string)$row['tra_historico'],
 			'valor'     => round((float)$row['rat_valor'], 2),
+			// null quando a perna de custo não está lá — transação meia gravada. A tela
+			// mostra travessão em vez de inventar um total.
+			'total'     => ($row['total'] === null) ? null : round((float)$row['total'], 2),
 		);
 	}
 
