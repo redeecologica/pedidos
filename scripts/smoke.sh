@@ -7,6 +7,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Ver ambiente.sh: cache do bind mount e mysqld emulado crescendo ate o OOM.
+# A smoke varre 89 paginas, entao e a que mais alimenta esse crescimento.
+. "$(dirname "$0")/ambiente.sh"
+prepara_ambiente || exit 2
+
 EMAIL="smoke@dev.local"
 SENHA="smoke-fase2"
 COOKIES=$(mktemp)
