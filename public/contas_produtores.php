@@ -229,7 +229,7 @@
           <button type="button" class="btn btn-default btn-xs abre-pagamento"
                   data-forn="<?php echo(h($f['forn_id'])); ?>"
                   title="registrar um pagamento JÁ FEITO a este produtor — o sistema anota, não transfere">
-            <i class="glyphicon glyphicon-pencil"></i> <span class="rotulo">registrar</span>
+            <i class="glyphicon glyphicon-usd"></i> <span class="rotulo">registrar</span>
           </button>
         <?php } ?>
       </td>
@@ -279,7 +279,12 @@
                      value="<?php echo(h(date('d/m/Y'))); ?>" />
             </div>
             <div class="col-sm-3">
-              <label for="pg_valor">Valor pago a <?php echo(h($f['nome'])); ?></label>
+              <?php
+                // O NOME NÃO SE REPETE nos campos: a linha de cima do quadro já diz de
+                // quem é, com nome curto e completo. Repetir em cada rótulo alonga o
+                // campo sem acrescentar nada, e empurra o valor para fora da vista.
+              ?>
+              <label for="pg_valor">Valor pago</label>
               <input type="text" id="pg_valor" name="valor" class="form-control numero" required="required"
                      value="<?php echo(h($sugerido_pg)); ?>" />
               <span class="help-block small">
@@ -299,7 +304,7 @@
 
           <div class="row" style="margin-top:8px;">
             <div class="col-sm-5">
-              <label for="pg_historico">Descrição do pagamento a <?php echo(h($f['nome'])); ?></label>
+              <label for="pg_historico">Descrição</label>
               <input type="text" id="pg_historico" name="historico" class="form-control" maxlength="200"
                      placeholder="Referente a que entrega, ou o mês pago" />
             </div>

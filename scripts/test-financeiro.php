@@ -1454,18 +1454,23 @@ verifica("conta de cestante nao aparece entre os destinos",
 // O nome sai do banco, e não de um literal: um teste do bloco de identidade renomeia a
 // conta da Rede à mão, de propósito, para provar que a busca é por con_chave. Literal
 // aqui daria dois nomes DIFERENTES e o teste ficaria verde sem duplicata nenhuma.
-$nome_da_rede = valor_escalar("SELECT con_nome FROM contas WHERE con_id = " . (int)$con_rede);
+// A CONTA DE RESULTADO NAO E DESTINO. Estes testes usavam $con_rede (a principal, de
+// con_chave) como contraparte de repasse e como destino, por conveniencia — mas ela e a
+// contraparte que acumula custo e divida, nao um lugar onde dinheiro fica. A tela nunca
+// a ofereceu depois da correcao, e o fixture passa a refletir producao: $con_a e uma
+// conta da Rede SEM chave, que e o que a lista de destinos de fato oferece.
+$nome_da_rede = valor_escalar("SELECT con_nome FROM contas WHERE con_id = " . (int)$con_a);
 $con_rede_dup = cria_conta('rede', array('con_nome' => $nome_da_rede));
 $dest_dup     = contas_de_destino();
 
 verifica("rotulo repetido ganha desempate visivel nas DUAS contas, e o unico fica limpo",
     is_numeric($con_rede_dup) && $con_rede_dup != $con_rede && is_array($dest_dup)
     && $dest_dup[$con_rede] !== $dest_dup[$con_rede_dup]
-    && strpos($dest_dup[$con_rede], '#' . $con_rede) !== false
+    && strpos($dest_dup[$con_a], '#' . $con_a) !== false
     && strpos($dest_dup[$con_rede_dup], '#' . $con_rede_dup) !== false
     && strpos($dest_dup[$con_nuc_t], '#') === false,
     "nome no banco=" . json_encode($nome_da_rede)
-        . " rede=" . json_encode(isset($dest_dup[$con_rede]) ? $dest_dup[$con_rede] : null)
+        . " rede=" . json_encode(isset($dest_dup[$con_a]) ? $dest_dup[$con_a] : null)
         . " dup=" . json_encode(isset($dest_dup[$con_rede_dup]) ? $dest_dup[$con_rede_dup] : null)
         . " nucleo=" . json_encode(isset($dest_dup[$con_nuc_t]) ? $dest_dup[$con_nuc_t] : null));
 
@@ -1474,7 +1479,7 @@ verifica("rotulo repetido ganha desempate visivel nas DUAS contas, e o unico fic
 executa_sql("DELETE FROM contas WHERE con_id = " . (int)$con_rede_dup);
 
 verifica("desfeita a duplicata, o rotulo da conta da Rede volta a ficar limpo",
-    strpos(contas_de_destino()[$con_rede], '#') === false);
+    strpos(contas_de_destino()[$con_a], '#') === false);
 
 $saldo_antes_cest = saldo_da_conta($con_t);
 $saldo_antes_nuc  = saldo_da_conta($con_nuc_t);
@@ -2064,7 +2069,7 @@ $p = pernas_de($tra_desp);
 verifica("despesa: caixa +45 e contrapartida -45, sem tocar na Rede",
     $tra_desp && isset($p[$con_caixa]) && $p[$con_caixa] == 45.00
              && isset($p[$con_contra]) && $p[$con_contra] == -45.00
-             && !isset($p[$con_rede]),
+             && !isset($p[$con_a]),
     "tra=" . var_export($tra_desp, true) . " pernas=" . json_encode($p));
 
 verifica("e guarda QUEM recebeu, que nao tem conta e nao teria onde ficar",
@@ -2089,10 +2094,10 @@ verifica("despesa grava a categoria",
 // tra_tipo, e e por isso que a categoria existe: sem ela o relatorio nao conseguiria
 // dizer se o dinheiro foi gasto ou entregue.
 $tra_rep = lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-02 10:00:00', 300.00,
-    $con_rede, array('historico' => 'repasse da entrega de julho'));
+    $con_a, array('historico' => 'repasse da entrega de julho'));
 $p = pernas_de($tra_rep);
 verifica("repasse: nucleo +300 e rede -300, mesmas pernas da despesa",
-    $tra_rep && $p[$con_caixa] == 300.00 && $p[$con_rede] == -300.00,
+    $tra_rep && $p[$con_caixa] == 300.00 && $p[$con_a] == -300.00,
     "tra=" . var_export($tra_rep, true) . " pernas=" . json_encode($p));
 
 verifica("repasse NAO tem categoria",
@@ -2115,7 +2120,7 @@ $tra_rec = lanca_movimento_nucleo($nuc_livre[3], 'receita', '2026-08-04 10:00:00
 $p = pernas_de($tra_rec);
 verifica("outra receita: caixa -60 e contrapartida +60 (o caixa cresce)",
     $tra_rec && $p[$con_caixa] == -60.00 && $p[$con_contra] == 60.00
-             && !isset($p[$con_rede]),
+             && !isset($p[$con_a]),
     "tra=" . var_export($tra_rec, true) . " pernas=" . json_encode($p));
 
 verifica("as quatro somam zero, como toda transacao do modulo",
@@ -2127,13 +2132,13 @@ echo "\nCaixa do nucleo: o que NAO pode virar lancamento\n";
 // ---------------------------------------------------------------------------
 
 verifica("tipo que nao existe e recusado",
-    lanca_movimento_nucleo($nuc_livre[3], 'saque', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+    lanca_movimento_nucleo($nuc_livre[3], 'saque', '2026-08-05 10:00:00', 10.00, $con_a) === null);
 
 verifica("despesa SEM categoria e recusada",
-    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_a) === null);
 
 verifica("despesa com categoria inventada e recusada",
-    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_rede,
+    lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-05 10:00:00', 10.00, $con_a,
         array('categoria' => 'churrasco')) === null);
 
 // O formulario manda mv_categoria em TODO lancamento — esconder o campo com
@@ -2143,7 +2148,7 @@ verifica("despesa com categoria inventada e recusada",
 // Num caixa DIFERENTE do que o bloco do extrato confere, senao esta linha entraria
 // naquela contagem e o teste de "as quatro formas" passaria a medir cinco.
 $tra_cat_ign = lanca_movimento_nucleo($nuc_livre[2], 'repasse', '2026-08-05 10:00:00', 10.00,
-    $con_rede, array('categoria' => 'passagens'));
+    $con_a, array('categoria' => 'passagens'));
 
 verifica("categoria fora de despesa e IGNORADA, e o lancamento acontece",
     $tra_cat_ign > 0, var_export($tra_cat_ign, true));
@@ -2161,7 +2166,7 @@ verifica("repasse contra conta de PRODUTOR e recusado",
     lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_forn_t) === null);
 
 verifica("pagamento a produtor contra conta da REDE e recusado",
-    lanca_movimento_nucleo($nuc_livre[3], 'pagamento_produtor', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+    lanca_movimento_nucleo($nuc_livre[3], 'pagamento_produtor', '2026-08-05 10:00:00', 10.00, $con_a) === null);
 
 verifica("contraparte igual a propria conta do nucleo e recusada",
     lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, $con_caixa) === null);
@@ -2172,11 +2177,11 @@ verifica("contraparte em ARRAY nao derruba a pagina, so recusa",
     lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 10.00, array(1)) === null);
 
 verifica("valor zero e negativo sao recusados",
-    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 0, $con_rede) === null
-    && lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', -5, $con_rede) === null);
+    lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', 0, $con_a) === null
+    && lanca_movimento_nucleo($nuc_livre[3], 'repasse', '2026-08-05 10:00:00', -5, $con_a) === null);
 
 verifica("nucleo SEM conta e recusado",
-    lanca_movimento_nucleo(99999999, 'repasse', '2026-08-05 10:00:00', 10.00, $con_rede) === null);
+    lanca_movimento_nucleo(99999999, 'repasse', '2026-08-05 10:00:00', 10.00, $con_a) === null);
 
 // Nenhuma das recusas acima pode ter deixado meia transacao gravada.
 verifica("nenhuma recusa gravou transacao pela metade",
@@ -2208,8 +2213,8 @@ if (!$caixa_form)
 
 verifica("o caixa deste bloco existe (guarda do fixture)", $caixa_form > 0, var_export($caixa_form, true));
 
-foreach (array('despesa' => $con_rede, 'repasse' => $con_rede,
-               'receita' => $con_rede, 'pagamento_produtor' => $con_forn_t) as $tipo_form => $contra)
+foreach (array('despesa' => $con_a, 'repasse' => $con_a,
+               'receita' => $con_a, 'pagamento_produtor' => $con_forn_t) as $tipo_form => $contra)
 {
     // exatamente o que a tela monta: categoria SEMPRE, historico e comprovante sempre
     $tra_form = lanca_movimento_nucleo($nuc_livre[1], $tipo_form, '2026-08-06 10:00:00', 25.00,
@@ -2274,11 +2279,11 @@ $so_forn = contas_de_destino_do_tipo('produtor');
 $todas_d = contas_de_destino();
 
 verifica("contas_de_destino_do_tipo('rede') traz a conta da Rede e nenhum produtor",
-    is_array($so_rede) && isset($so_rede[$con_rede]) && !isset($so_rede[$con_forn_t]),
-    "rede=$con_rede forn=$con_forn_t · " . json_encode(array_keys((array)$so_rede)));
+    is_array($so_rede) && isset($so_rede[$con_a]) && !isset($so_rede[$con_forn_t]),
+    "rede=$con_a forn=$con_forn_t · " . json_encode(array_keys((array)$so_rede)));
 
 verifica("contas_de_destino_do_tipo('produtor') traz o produtor e nenhuma conta da Rede",
-    is_array($so_forn) && isset($so_forn[$con_forn_t]) && !isset($so_forn[$con_rede]));
+    is_array($so_forn) && isset($so_forn[$con_forn_t]) && !isset($so_forn[$con_a]));
 
 // Herda o recorte de contas_de_destino(), e nao um SELECT proprio: e essa heranca que
 // mantem as regras de arquivamento e o desempate de rotulo valendo nas duas.
@@ -2288,8 +2293,8 @@ verifica("o filtro por tipo e SUBCONJUNTO da lista de destinos, nunca acrescenta
     && count(array_diff_key($so_forn, $todas_d)) === 0);
 
 verifica("os rotulos sao os MESMOS da lista completa",
-    is_array($so_rede) && isset($so_rede[$con_rede]) && $so_rede[$con_rede] === $todas_d[$con_rede],
-    var_export(isset($so_rede[$con_rede]) ? $so_rede[$con_rede] : null, true));
+    is_array($so_rede) && isset($so_rede[$con_a]) && $so_rede[$con_a] === $todas_d[$con_a],
+    var_export(isset($so_rede[$con_a]) ? $so_rede[$con_a] : null, true));
 
 verifica("tipo que nao existe devolve lista vazia, e nao null",
     contas_de_destino_do_tipo('marciano') === array());
@@ -2433,10 +2438,10 @@ registra_pagamento($usr_fx, '2025-12-10', 100.00, $con_fx, '', '');
 // 2026: janeiro entra 1.000; fevereiro gasta 45 de passagem, 500 de motorista,
 // repassa 300 e recebe 60 de doacao.
 registra_pagamento($usr_fx, '2026-01-15', 1000.00, $con_fx, '', '');
-lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-03', 45.00,  $con_rede, array('categoria' => 'passagens'));
-lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-10', 500.00, $con_rede, array('categoria' => 'motorista'));
-lanca_movimento_nucleo($nuc_fx, 'repasse', '2026-02-20', 300.00, $con_rede);
-lanca_movimento_nucleo($nuc_fx, 'receita', '2026-02-25', 60.00,  $con_rede);
+lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-03', 45.00,  $con_a, array('categoria' => 'passagens'));
+lanca_movimento_nucleo($nuc_fx, 'despesa', '2026-02-10', 500.00, $con_a, array('categoria' => 'motorista'));
+lanca_movimento_nucleo($nuc_fx, 'repasse', '2026-02-20', 300.00, $con_a);
+lanca_movimento_nucleo($nuc_fx, 'receita', '2026-02-25', 60.00,  $con_a);
 
 $fx = fluxo_de_caixa_mensal($nuc_fx, 2026);
 
@@ -2826,7 +2831,7 @@ executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quan
     VALUES (" . (int)$ped_ass . "," . (int)$prod_ass_id . ",1,1)");
 
 // DESPESA PROPRIA do nucleo: motorista, 40
-lanca_movimento_nucleo($nuc_res, 'despesa', '2026-05-15', 40.00, $con_rede, array('categoria' => 'motorista'));
+lanca_movimento_nucleo($nuc_res, 'despesa', '2026-05-15', 40.00, $con_a, array('categoria' => 'motorista'));
 
 // OUTRA RECEITA do proprio nucleo: doacao de 25. Por decisao do time, ela conta para o
 // equilibrio do nucleo — quem consegue doacao esta de fato em melhor situacao.
@@ -2948,6 +2953,29 @@ verifica("a lista mostra quanto sobrou para a Rede em cada despesa",
                     && round($so_um['rateado'], 2) == 10.00
                     && round($so_um['sobra'], 2) == 90.00,
     var_export($so_um, true));
+
+// A CONTA DE RESULTADO DA REDE NAO E DESTINO DE NADA. Ela e do tipo 'rede', entao
+// entrava na lista de destinos — e vinha PRIMEIRO, o que a tornava a opcao
+// pre-selecionada de todo pagamento de cestante e de todo repasse de nucleo. Dinheiro
+// registrado ali entraria no resultado sem passar por caixa nenhum, e o saldo de quem de
+// fato esta com o dinheiro nunca fecharia.
+$principal = conta_da_rede();
+verifica("a conta de resultado da Rede nao aparece entre os destinos",
+    is_array($dest_sem = contas_de_destino()) && !isset($dest_sem[$principal]),
+    "principal=$principal · na lista=" . var_export(isset($dest_sem[$principal]), true));
+
+// E as contas de dinheiro CONTINUAM la — a exclusao e de uma so, pela chave.
+verifica("mas as contas de dinheiro da Rede continuam sendo destino",
+    isset($dest_sem[$con_origem]),
+    json_encode(array_keys((array)$dest_sem)));
+
+// Como registra_pagamento() valida o destino contra essa lista, a recusa vem de graca.
+verifica("pagamento de cestante para a conta de resultado e recusado",
+    registra_pagamento($usr_t, '2026-04-20', 10.00, $principal, '', '') === null);
+
+// Idem o repasse do nucleo, que exige conta do tipo 'rede' E presenca na lista.
+verifica("repasse de nucleo para a conta de resultado e recusado",
+    lanca_movimento_nucleo($nuc_t, 'repasse', '2026-04-20', 10.00, $principal) === null);
 
 // COMPROVANTE DA DESPESA, opcional de verdade: a despesa se lanca quando se monta o mes,
 // e o extrato aparece depois. Exigir na criacao faria inventar algo, ou adiar o

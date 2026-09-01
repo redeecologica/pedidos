@@ -1079,7 +1079,20 @@ function contas_de_destino_por_grupo($nuc_prioritario = null)
 	$sql.= "FROM contas c ";
 	$sql.= "LEFT JOIN nucleos n ON n.nuc_id = c.con_nuc ";
 	$sql.= "LEFT JOIN fornecedores f ON f.forn_id = c.con_forn ";
+	// A CONTA DE RESULTADO DA REDE NÃO É DESTINO DE NADA. Ela é do tipo 'rede', então
+	// entrava na lista — e vinha PRIMEIRO, o que a tornava a opção pré-selecionada de
+	// todo pagamento de cestante e de todo repasse de núcleo. Ela não é um lugar onde
+	// dinheiro fica: é a contraparte que acumula o que a Rede absorveu de custo e o que
+	// os cestantes lhe devem. Dinheiro registrado ali entraria no resultado sem passar
+	// por caixa nenhum, e o saldo de quem de fato está com o dinheiro nunca fecharia.
+	//
+	// Excluída pela CHAVE, e não chamando conta_da_rede(): aquela função CRIA a conta
+	// quando não existe, e uma lista não pode gravar nada por ser aberta.
+	//
+	// As contas de contrapartida e de estoque já ficavam de fora por serem de outro
+	// tipo — esta era a única a vazar.
 	$sql.= "WHERE c.con_archive = 0 AND c.con_tipo IN ('nucleo','rede','produtor') ";
+	$sql.= "AND (c.con_chave IS NULL OR c.con_chave <> " . prep_para_bd(CONTA_CHAVE_REDE) . ") ";
 	$sql.= "AND (c.con_tipo <> 'nucleo' OR n.nuc_archive = 0) ";
 	$sql.= "AND (c.con_tipo <> 'produtor' OR f.forn_archive = 0) ";
 	$sql.= "ORDER BY grupo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto";
