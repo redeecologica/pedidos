@@ -3419,6 +3419,17 @@ function resultado_da_rede($ano)
 	$de  = sprintf('%04d-01-01 00:00:00', $ano);
 	$ate = sprintf('%04d-01-01 00:00:00', $ano + 1);
 
+	// A DATA DE CORTE MANDA, e aqui ela não é detalhe: a receita sai de `pedidos`, que
+	// existe desde 2013, e o custo sai do razão, que começa no corte. Sem a trava, todo
+	// mês anterior aparecia com receita cheia e custo zero — lucrativo por falta de
+	// dado, que é o pior tipo de número numa tela de desempenho.
+	//
+	// O ano inteiro antes do corte devolve doze meses vazios, marcados: é diferente de
+	// "não houve movimento", e a tela diz qual dos dois é.
+	$corte = DATA_CORTE_FINANCEIRO;
+	if ($de < $corte) $de = $corte;
+	$mes_corte = (substr($corte, 0, 4) == $ano) ? (int)substr($corte, 5, 2) : 0;
+
 	$zeros = array();
 	for ($m = 1; $m <= 12; $m++)
 		$zeros[$m] = array(
@@ -3426,6 +3437,9 @@ function resultado_da_rede($ano)
 			'margem_produto' => 0.0, 'outras' => 0.0, 'receita' => 0.0,
 			'despesas_nucleos' => 0.0, 'despesas_rede' => 0.0, 'custo' => 0.0,
 			'rateado' => 0.0, 'sobra' => 0.0, 'resultado' => 0.0,
+			// mês que o razão não alcança: sem dado de custo, e por isso sem veredito
+			'antes_do_corte' => ($ano < (int)substr($corte, 0, 4))
+			                    || ($mes_corte > 0 && $m < $mes_corte),
 		);
 
 	$mes = $zeros;
@@ -3510,6 +3524,7 @@ function resultado_da_rede($ano)
 
 	// ---- fecha cada mês, e o ano ----
 	$ano_tot = $zeros[1];
+	unset($ano_tot['antes_do_corte']);
 	foreach ($mes as $m => $x)
 	{
 		$mes[$m]['receita'] = round($x['associacao'] + $x['taxa'] + $x['margem_nao_associado']
@@ -3518,10 +3533,14 @@ function resultado_da_rede($ano)
 		$mes[$m]['sobra']   = round($x['despesas_rede'] - $x['rateado'], 2);
 		$mes[$m]['resultado'] = round($mes[$m]['receita'] - $mes[$m]['custo'], 2);
 
+		// mês fora do alcance do razão não entra no total: somar receita sem o custo dela
+		// daria um ano melhor do que foi
+		if ($mes[$m]['antes_do_corte']) continue;
 		foreach ($ano_tot as $k => $_) $ano_tot[$k] = round($ano_tot[$k] + $mes[$m][$k], 2);
 	}
 
-	return array('ano' => $ano, 'meses' => $mes, 'ano_total' => $ano_tot);
+	return array('ano' => $ano, 'meses' => $mes, 'ano_total' => $ano_tot,
+	             'corte' => $corte);
 }
 
 

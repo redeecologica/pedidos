@@ -3860,6 +3860,36 @@ verifica("o ano vem com os doze meses",
 verifica("ano fora de faixa e recusado",
     resultado_da_rede(1500) === null && resultado_da_rede(3000) === null);
 
+// A DATA DE CORTE MANDA, e aqui nao e detalhe: a receita sai de `pedidos`, que existe
+// desde 2013, e o custo sai do razao, que comeca no corte. Sem a trava, todo mes anterior
+// aparecia com receita cheia e custo zero — lucrativo por falta de dado, que e o pior
+// tipo de numero numa tela de desempenho. Medido na base: o ano saltava de deficit para
+// um superavit de cinco digitos so por incluir os meses que o razao nao alcanca.
+$mes_do_corte = (int)substr(DATA_CORTE_FINANCEIRO, 5, 2);
+$ano_do_corte = (int)substr(DATA_CORTE_FINANCEIRO, 0, 4);
+
+verifica("mes anterior ao corte vem marcado, e mes de dentro nao",
+    $rr['meses'][1]['antes_do_corte'] === ($ano_do_corte == 2026 && 1 < $mes_do_corte)
+ && $rr['meses'][12]['antes_do_corte'] === false,
+    "corte=" . DATA_CORTE_FINANCEIRO . " jan=" . var_export($rr['meses'][1]['antes_do_corte'],true));
+
+// E ele NAO entra no total do ano: somar receita sem o custo dela daria um ano melhor do
+// que foi.
+$soma_pos_corte = 0.0;
+foreach ($rr['meses'] as $x) if (!$x['antes_do_corte']) $soma_pos_corte = round($soma_pos_corte + $x['resultado'], 2);
+verifica("o total do ano ignora os meses anteriores ao corte",
+    round($rr['ano_total']['resultado'],2) == $soma_pos_corte,
+    "ano=" . $rr['ano_total']['resultado'] . " soma pos-corte=" . $soma_pos_corte);
+
+// Ano inteiro antes do corte: doze meses marcados, e nao um ano de zeros que se leria
+// como "nao houve movimento".
+$rr_velho = resultado_da_rede($ano_do_corte - 1);
+$todos_marcados = true;
+foreach ((array)$rr_velho['meses'] as $x) if (!$x['antes_do_corte']) $todos_marcados = false;
+verifica("ano inteiro antes do corte vem com os doze meses marcados",
+    is_array($rr_velho) && $todos_marcados && round($rr_velho['ano_total']['resultado'],2) == 0.00,
+    var_export(is_array($rr_velho) ? $rr_velho['ano_total']['resultado'] : $rr_velho, true));
+
 // A RECEITA E A MESMA do equilibrio do nucleo, sem o recorte de ped_nuc. Entao a de um
 // nucleo qualquer tem de caber dentro da da Rede — nunca passar dela.
 $rn = resultado_do_nucleo($nuc_pop, 2026, 5);
