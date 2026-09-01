@@ -28,6 +28,13 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
+# O ambiente local tem duas armadilhas que fazem a suite mentir sem avisar: o
+# cache do bind mount do macOS e o mysqld emulado que cresce ate a VM morrer.
+# ambiente.sh explica as duas e cuida das duas. Falhar aqui e melhor que passar
+# verde sobre codigo velho ou banco morto.
+. "$(dirname "$0")/ambiente.sh"
+prepara_ambiente || exit 2
+
 TABELAS="chamadas chamadaprodutos distribuicao estoque pedidos pedidoprodutos produtos usuarios nucleos fornecedores"
 
 # todas as contagens numa linha só, separadas por tab
