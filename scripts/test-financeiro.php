@@ -1947,14 +1947,23 @@ verifica("com nucleo em foco aparece o grupo 'Nucleo deste painel'",
 verifica("sem nucleo em foco NAO aparece esse grupo",
     !in_array('Núcleo deste painel', array_map(function ($x) { return $x['titulo']; }, (array)$g_sem), true));
 
-// A ordem dos grupos e a ordem em que a pessoa procura.
+// A ORDEM DOS GRUPOS E A ORDEM EM QUE A PESSOA PROCURA, e o primeiro lugar e do nucleo
+// dela. O cestante entrega o dinheiro a quem responde pelo proprio nucleo na esmagadora
+// maioria das vezes; as contas da Rede vinham no topo e punham a opcao mais rara acima
+// da mais comum, numa lista em que a primeira ja vem selecionada.
 $pos_rede = array_search('Contas da Rede', $titulos, true);
 $pos_foco = array_search('Núcleo deste painel', $titulos, true);
 $pos_prod = array_search('Produtores', $titulos, true);
-verifica("ordem: Rede, nucleo em foco, ... , produtores por ultimo",
-    $pos_rede !== false && $pos_foco !== false && $pos_prod !== false
-    && $pos_rede < $pos_foco && $pos_foco < $pos_prod,
+verifica("ordem: nucleo da pessoa, Rede, outros, produtores por ultimo",
+    $pos_foco !== false && $pos_rede !== false && $pos_prod !== false
+    && $pos_foco < $pos_rede && $pos_rede < $pos_prod,
     implode(' | ', $titulos));
+
+// SEM nucleo em foco a Rede volta a ser o primeiro: ali nao ha "o nucleo desta tela",
+// e a conta da Rede e o destino mais provavel.
+$tit_sem = array_map(function ($x) { return $x['titulo']; }, (array)$g_sem);
+verifica("sem nucleo em foco, as contas da Rede vem primeiro",
+    array_search('Contas da Rede', $tit_sem, true) === 0, implode(' | ', $tit_sem));
 
 // ---------------------------------------------------------------------------
 echo "\ncomprovante como link\n";

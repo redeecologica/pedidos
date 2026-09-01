@@ -1073,8 +1073,13 @@ function contas_de_destino_por_grupo($nuc_prioritario = null)
 	$sql = "SELECT c.con_id, c.con_tipo, c.con_nome, n.nuc_nome_curto, f.forn_nome_curto, ";
 	// a ordem vive no SQL para o desempate de rótulo, abaixo, receber a lista já pronta
 	$sql.= "CASE c.con_tipo ";
-	$sql.= "  WHEN 'rede' THEN 0 ";
-	$sql.= "  WHEN 'nucleo' THEN IF(c.con_nuc = $nuc_bd, 1, 2) ";
+	// O NÚCLEO DA PESSOA VEM PRIMEIRO, quando há um em foco. É para onde o cestante
+	// paga na esmagadora maioria das vezes — entrega o dinheiro a quem responde pelo
+	// núcleo dele —, e deixar as contas da Rede no topo punha a opção mais rara acima
+	// da mais comum. Sem núcleo em foco a lista começa pelas contas da Rede, que aí é
+	// o destino mais provável.
+	$sql.= "  WHEN 'nucleo' THEN IF(c.con_nuc = $nuc_bd, " . ($nuc_bd ? "0" : "2") . ", 2) ";
+	$sql.= "  WHEN 'rede' THEN 1 ";
 	$sql.= "  ELSE 3 END grupo ";
 	$sql.= "FROM contas c ";
 	$sql.= "LEFT JOIN nucleos n ON n.nuc_id = c.con_nuc ";
@@ -1154,8 +1159,8 @@ function contas_de_destino_por_grupo($nuc_prioritario = null)
 	// a mesma coisa — "o núcleo desta tela" não existe — e viram um bloco só.
 	$em_foco = (is_numeric($nuc_prioritario) && (int)$nuc_prioritario > 0);
 	$titulos = array(
-		0 => 'Contas da Rede',
-		1 => 'Núcleo deste painel',
+		0 => 'Núcleo deste painel',
+		1 => 'Contas da Rede',
 		2 => $em_foco ? 'Outros núcleos' : 'Núcleos',
 		3 => 'Produtores',
 	);
