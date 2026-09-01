@@ -204,7 +204,12 @@
   <tbody>
   <?php
     $algum = false;
+    $pulados_corte = 0;
     foreach ($des['meses'] as $m => $x) {
+        // MÊS ANTES DO CORTE não vira linha, e é contado à parte: ali a receita existe e
+        // o custo não, porque o razão ainda não tinha começado. Mostrá-lo daria um mês
+        // lucrativo por falta de dado.
+        if ($x['antes_do_corte']) { $pulados_corte++; continue; }
         // mês sem nada não vira linha: doze linhas zeradas escondem as que têm número
         if (abs($x['receita']) < 0.005 && abs($x['custo']) < 0.005) continue;
         $algum = true;
@@ -228,7 +233,15 @@
     </tr>
   <?php }
     if (!$algum) { ?>
-    <tr><td colspan="8" class="text-muted">Nada registrado em <?php echo(h($ano)); ?>.</td></tr>
+    <tr><td colspan="8" class="text-muted">
+      <?php if ($pulados_corte >= 12) { ?>
+        Todo o ano de <?php echo(h($ano)); ?> é anterior ao início da contabilidade
+        (<?php echo(h(date('m/Y', strtotime($des['corte'])))); ?>), e por isso não há
+        desempenho a mostrar.
+      <?php } else { ?>
+        Nada registrado em <?php echo(h($ano)); ?>.
+      <?php } ?>
+    </td></tr>
   <?php } else { $a = $des['ano_total']; ?>
     <tr class="active">
       <th>o ano</th>
@@ -255,6 +268,13 @@
   Rede para os núcleos no papel e não muda um centavo do total. Contá-lo aqui somaria o
   mesmo gasto duas vezes. O que entra é a despesa da Rede inteira, antes de repartir, mais
   o que os núcleos gastaram do caixa deles.
+  <?php if ($pulados_corte > 0 && $pulados_corte < 12) { ?>
+  <br><strong><?php echo(h($pulados_corte)); ?> mês(es) deste ano ficaram de fora</strong>:
+  são anteriores a <?php echo(h(date('m/Y', strtotime($des['corte'])))); ?>, quando a
+  contabilidade começou. Neles a receita existe — sai dos pedidos, que são de sempre — mas
+  o custo não, porque o razão ainda não estava em uso. Mostrá-los daria meses lucrativos
+  por falta de dado.
+  <?php } ?>
   <br><strong>Sobrou com a Rede</strong> no ano:
   <strong><?php echo(h(formata_moeda($des['ano_total']['sobra']))); ?></strong> —
   a parte das despesas centrais que não foi carimbada em núcleo nenhum. É também a
