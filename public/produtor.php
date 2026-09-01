@@ -1,5 +1,6 @@
 <?php  
   require  "common.inc.php"; 
+  require  "financeiro.inc.php";
   
   $action = request_get("action",-1);
   if($action==-1) redireciona(PAGINAPRINCIPAL);
@@ -37,6 +38,22 @@
 			 $res = executa_sql($sql);
 			 
  			 if($forn_id=="") $forn_id = id_inserido();			 
+
+			 // Conta do produtor nasce junto com ele, e também quando um produtor
+			 // arquivado volta a ser ativo — o gancho roda em TODO salvar, e a condição
+			 // abaixo é o que decide. Sem isto, quem cadastra precisaria lembrar de abrir
+			 // a tela de Contas e clicar em "criar as que faltam", e ninguém lembra.
+			 //
+			 // Só ATIVO ganha conta: produtor arquivado não é destino de pagamento
+			 // válido, e a conta seria lixo — é a mesma regra de cria_contas_que_faltam()
+			 // e de contas_de_destino().
+			 //
+			 // cria_conta() devolve null se a conta já existir (UNIQUE de con_forn), então
+			 // salvar de novo não duplica. O retorno é ignorado de propósito: o cadastro do
+			 // produtor não pode falhar porque a conta dele já estava lá.
+			 if($forn_id!="" && request_get('forn_archive','0') != '1' && function_exists('cria_conta'))
+			 	cria_conta('produtor', array('con_forn' => $forn_id,
+			 	                             'con_nome' => request_get('forn_nome_curto','')));
 			
 			 if($res) 
 				{							 

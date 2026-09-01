@@ -22,7 +22,7 @@ HASH=$(docker compose exec -T web-modern php -r 'require "/var/www/html/settings
 docker compose exec -T -e MYSQL_PWD=root db mysql -uroot pedidos -e "
   INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
   SELECT 'Usuário Smoke', 'smoke', '$EMAIL', '$HASH', '0',
-         (SELECT nuc_id FROM nucleos ORDER BY nuc_id LIMIT 1) FROM DUAL
+         (SELECT nuc_id FROM nucleos WHERE nuc_archive = 0 ORDER BY nuc_id LIMIT 1) FROM DUAL
   WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE usr_email='$EMAIL');
   UPDATE usuarios SET usr_senha='$HASH', usr_archive='0' WHERE usr_email='$EMAIL';
   INSERT INTO usuariopapeis (usrp_usr, usrp_pap, usrp_por_usr)
