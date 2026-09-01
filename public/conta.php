@@ -4,8 +4,11 @@
 
   // Mesma trava de contas.php, e pelo mesmo motivo: verifica_seguranca() valida
   // qualquer chamada de PAP_ADM sem olhar o parâmetro (common.inc.php:103-110).
-  if (!pode_ver_financeiro()
-      || (empty($_SESSION[PAP_RESP_FINANCAS]) && empty($_SESSION[PAP_ADM])))
+  // SÓ ADMINISTRADOR, como em contas.php. As duas telas eram a mesma decisão com travas
+  // diferentes: a lista exigia ADM e o editor aceitava RESP_FINANÇAS, então bastava
+  // chegar aqui pela URL para criar uma conta da Rede sem passar pela lista. Criar conta
+  // é decisão de quem administra o sistema, e quase nunca muda.
+  if (!pode_ver_financeiro() || empty($_SESSION[PAP_ADM]))
   {
       adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
       redireciona(PAGINAPRINCIPAL);

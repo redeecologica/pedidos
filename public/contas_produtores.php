@@ -208,7 +208,7 @@
       // adiantamento existem.
       $sugerido_pg = ($a['saldo'] > 0.005) ? formata_moeda($a['saldo']) : '';
     ?>
-    <tr<?php echo($em_pagamento ? ' class="info"' : ($f['arquivado'] ? ' class="text-muted"' : '')); ?>>
+    <tr class="linha-produtor<?php echo($em_pagamento ? ' info' : ($f['arquivado'] ? ' text-muted' : '')); ?>" data-forn="<?php echo(h($f['forn_id'])); ?>">
       <td>
         <?php echo(h($f['nome'])); ?>
         <?php if ($f['arquivado']) { ?>&nbsp;<span class="label label-default">arquivado</span><?php } ?>
@@ -219,14 +219,18 @@
       <td class="hidden-print text-right">
         <?php if (!$tem_conta) { ?>
           <span class="text-muted small" title="produtor sem conta no razão: crie em Contas, no botão de criar as que faltam">sem conta</span>
-        <?php } else if ($em_pagamento) { ?>
-          <a class="btn btn-default btn-xs" href="contas_produtores.php?ano=<?php echo(h($ano)); ?>&amp;mes=<?php echo(h($mes)); ?>">cancelar</a>
         <?php } else { ?>
-          <a class="btn btn-default btn-xs"
-             href="contas_produtores.php?ano=<?php echo(h($ano)); ?>&amp;mes=<?php echo(h($mes)); ?>&amp;pagar=<?php echo(h($f['forn_id'])); ?>#pg"
-             title="registrar um pagamento JÁ FEITO a este produtor — o sistema anota, não transfere">
-            <i class="glyphicon glyphicon-pencil"></i> registrar
-          </a>
+          <?php
+            // SEM RECARREGAR. O formulário de cada produtor já vem no HTML, escondido, e
+            // o botão só o mostra — a página fica exatamente onde está. Recarregando, a
+            // pessoa perdia a rolagem numa lista de quase trinta linhas e precisava achar
+            // de novo o produtor que tinha acabado de escolher.
+          ?>
+          <button type="button" class="btn btn-default btn-xs abre-pagamento"
+                  data-forn="<?php echo(h($f['forn_id'])); ?>"
+                  title="registrar um pagamento JÁ FEITO a este produtor — o sistema anota, não transfere">
+            <i class="glyphicon glyphicon-pencil"></i> <span class="rotulo">registrar</span>
+          </button>
         <?php } ?>
       </td>
       <td class="text-right"><?php echo(h(formata_moeda($f['a_receber']))); ?></td>
@@ -238,8 +242,8 @@
         <strong><?php echo(h(formata_moeda($a['saldo']))); ?></strong>
       </td>
     </tr>
-    <?php if ($em_pagamento && $tem_conta) { ?>
-    <tr id="pg">
+    <?php if ($tem_conta) { ?>
+    <tr class="linha-pagamento" data-forn="<?php echo(h($f['forn_id'])); ?>"<?php echo($em_pagamento ? '' : ' style="display:none;"'); ?>>
       <td colspan="8" style="background:#f7f7f7;">
         <?php if (!count((array)$origens)) { ?>
           <div class="alert alert-warning" style="margin:8px 0;">
@@ -277,7 +281,7 @@
             <div class="col-sm-3">
               <label for="pg_valor">Valor pago a <?php echo(h($f['nome'])); ?></label>
               <input type="text" id="pg_valor" name="valor" class="form-control numero" required="required"
-                     value="<?php echo(h($sugerido_pg)); ?>" autofocus />
+                     value="<?php echo(h($sugerido_pg)); ?>" />
               <span class="help-block small">
                 <?php echo($sugerido_pg !== '' ? 'Vem preenchido com o que falta — confira e ajuste.'
                                                : 'Nada consta em aberto para este produtor.'); ?>
@@ -361,6 +365,31 @@
 			format: 'dd/mm/yyyy',
 			language: 'pt-BR',
 			autoclose: true
+		});
+	});
+
+	// ABRE E FECHA NO LUGAR. O formulário de cada produtor já veio no HTML, escondido —
+	// abrir é mostrar o que está aqui, e a página não se mexe. Antes recarregava, e numa
+	// lista de quase trinta linhas a pessoa perdia a rolagem e precisava achar de novo o
+	// produtor que tinha acabado de escolher.
+	$(function() {
+		$('.abre-pagamento').on('click', function () {
+			var forn  = $(this).data('forn');
+			var linha = $('tr.linha-pagamento[data-forn="' + forn + '"]');
+			var abrir = !linha.is(':visible');
+
+			// um de cada vez: dois formulários abertos convidam a preencher um e
+			// confirmar o outro
+			$('tr.linha-pagamento').hide();
+			$('tr.linha-produtor').removeClass('info');
+			$('.abre-pagamento .rotulo').text('registrar');
+
+			if (abrir) {
+				linha.show();
+				$('tr.linha-produtor[data-forn="' + forn + '"]').addClass('info');
+				$(this).find('.rotulo').text('fechar');
+				linha.find('input[name="valor"]').focus();
+			}
 		});
 	});
 </script>

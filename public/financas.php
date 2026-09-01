@@ -26,30 +26,37 @@
       <div class="panel-body">
          <ul>
           <li>
-		  <strong>Recebimento dos produtores</strong> — registre o total que foi entregue pelos produtores. É a base do pagamento a eles, e o número que Finanças confirma depois de ler as justificativas de divergência.
+          <strong>Recebido dos produtores</strong> — registre o total que os produtores
+          entregaram. É a base do pagamento a eles, e o número que Finanças confirma depois
+          de ler as justificativas de divergência.
           </li>
           <?php if (pode_ver_financas_da_rede()) { ?>
           <br>
           <li>
-          <strong>Fechamento de chamadas</strong> — congela o que a chamada mexeu: o estoque de secos e o débito de cada cestante. Só depois do prazo contábil, e uma chamada por vez.
+          <strong>Fechamento contábil</strong> — o prazo para registro da entrega e o
+          congelamento, na mesma tela. Enquanto o prazo não vence, os núcleos ainda anotam
+          e corrigem; depois dele os números param, e aí se congela o que a chamada mexeu —
+          o estoque de secos e o débito de cada cestante. Uma chamada por vez.
           </li>
           <br>
           <li>
-          <strong>Despesas da Rede</strong> — lance os custos do mês e confirme quanto cabe a cada núcleo. O rateio é sugerido, nunca automático.
+          <strong>Despesas da Rede</strong> — lance os custos do mês e confirme quanto cabe
+          a cada núcleo. O rateio é sugerido, nunca automático. Despesa deste mês ou do
+          passado ainda pode ser corrigida no lugar; mais velha, só por lançamento de
+          ajuste. O comprovante é opcional e pode ser preenchido depois.
           </li>
           <br>
           <li>
-          <strong>Quotas de rateio</strong> — quanto cada núcleo pesa na divisão por entrega. Sugerida pelo tipo do núcleo, e editável.
+          <strong>Quotas de rateio</strong> — quanto cada núcleo pesa na divisão por
+          entrega. Sugerida pelo tipo do núcleo, e editável.
           </li>
           <br>
           <li>
-          <strong>Contas</strong> — as contas da Rede e as que nascem sozinhas para núcleo, produtor e cestante.
+          <strong>Caixa Produtores</strong> — a quem a Rede deve, e quanto. Traz quem tem
+          conta aberta mesmo sem movimento no mês, porque quem espera não some da fila. É
+          daqui que se registra um pagamento já feito — o sistema anota, não transfere.
           </li>
           <?php } ?>
-          <br>
-          <li>
-          <strong>Prazos</strong> — o prazo final para edição das informações de entrega de cada chamada. É ele que autoriza o congelamento.
-          </li>          
          </ul>     
           
         
