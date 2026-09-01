@@ -181,10 +181,10 @@
       <th colspan="3" class="text-center">Acumulado desde <?php echo(h(date('m/Y', strtotime(DATA_CORTE_FINANCEIRO)))); ?></th>
     </tr>
     <tr>
-      <th class="text-right">A receber</th>
+      <th class="text-right">A pagar</th>
       <th class="text-right">Pago</th>
       <th class="text-right">Falta</th>
-      <th class="text-right">A receber</th>
+      <th class="text-right">A pagar</th>
       <th class="text-right">Pago</th>
       <th class="text-right">Falta</th>
     </tr>
@@ -349,7 +349,7 @@
 </table>
 
 <p class="small text-muted">
-  <strong>A receber</strong> é o que o produtor entregou e Finanças confirmou — o mesmo
+  <strong>A pagar</strong> é o que o produtor entregou e Finanças confirmou — o mesmo
   número da Previsão de Pagamento, a preço de compra. Ele é <strong>calculado</strong>, não
   gravado: acompanha a confirmação e não pode divergir dela.
   <br><strong>Pago</strong> vem do razão, e junta os dois caminhos: o cestante que pagou
