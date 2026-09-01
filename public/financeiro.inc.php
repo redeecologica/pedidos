@@ -143,8 +143,8 @@ if (!defined('CONTA_CHAVE_REDE')) define('CONTA_CHAVE_REDE', 'rede_principal');
 // tela, e ela não é destino de pagamento (contas_de_destino filtra por tipo).
 if (!defined('CONTA_CHAVE_CONTRAPARTIDA')) define('CONTA_CHAVE_CONTRAPARTIDA', 'contrapartida');
 
-// O estoque de secos que a Rede guarda entre uma chamada e outra. Mercadoria parada é
-// ATIVO — a Rede pagou o produtor por ela e ainda não vendeu —, e não prejuízo.
+// O estoque de secos que a Rede guarda entre uma chamada e outra. Produto parado é
+// ATIVO — a Rede pagou o produtor por ele e ainda não vendeu —, e não prejuízo.
 if (!defined('CONTA_CHAVE_ESTOQUE')) define('CONTA_CHAVE_ESTOQUE', 'estoque');
 
 // Data em que o módulo entra em operação. Entrega anterior a ela NÃO vira débito
@@ -2113,8 +2113,8 @@ function lanca_despesa_da_rede($dt, $categoria, $valor, $con_origem, $historico,
 //
 // NÃO É DESPESA, e por isso não passa por lanca_despesa_da_rede(). Despesa da Rede é
 // custo de manter a Rede de pé, e por isso se rateia entre os núcleos. Pagar produtor é
-// quitar o que a Rede JÁ DEVE pela mercadoria que ele entregou — o custo daquela
-// mercadoria já foi para quem a recebeu, no débito do cestante. Rateando, cada núcleo
+// quitar o que a Rede JÁ DEVE pelo produto que ele entregou — o custo daquele
+// produto já foi para quem o recebeu, no débito do cestante. Rateando, cada núcleo
 // seria cobrado de novo pelo mesmo produto, agora pela conta do produtor.
 //
 // Por isso não grava linha em `rateios`, e por isso o tipo continua sendo
@@ -2827,18 +2827,18 @@ function define_quotas_de_rateio($quotas)
 // ============================================================================
 // ESTOQUE
 //
-// Em Secos a Rede guarda mercadoria entre uma chamada e outra — e ao montar o pedido
+// Em Secos a Rede guarda produto entre uma chamada e outra — e ao montar o pedido
 // seguinte abate da demanda o que já tem. A tabela `estoque` registra isso por chamada
 // e produto, com a quantidade ANTES e DEPOIS.
 //
-// POR QUE ISSO PRECISA ESTAR NO RAZÃO. Mercadoria parada é ATIVO: a Rede pagou o
-// produtor por ela e ainda não vendeu. Sem essa conta, o resultado da Rede oscila por
-// causa de mercadoria que só mudou de lugar — no mês em que ela estoca, paga ao produtor
+// POR QUE ISSO PRECISA ESTAR NO RAZÃO. Produto parado é ATIVO: a Rede pagou o
+// produtor por ele e ainda não vendeu. Sem essa conta, o resultado da Rede oscila por
+// causa de produto que só mudou de lugar — no mês em que ela estoca, paga ao produtor
 // e não cobra de ninguém, e parece prejuízo; no mês em que consome, cobra sem pagar, e
 // parece lucro. Nenhuma das duas leituras é verdade.
 //
-// Medido na cópia de produção, chamada 1159: sem o estoque a conta acusava R$ 3.741 de
-// "perda"; com ele, uma fração pequena do recebido. O resto era mercadoria guardada.
+// Medido numa chamada de secos da cópia de produção: sem o estoque a conta acusava uma
+// perda alta; com ele, uma fração pequena do recebido. O resto era produto guardado.
 //
 // A PREÇO DE COMPRA, por decisão da Rede: é o que ela desembolsou, que é o que ativo
 // significa. A preço de venda embutiria margem ainda não realizada.
@@ -3096,8 +3096,8 @@ function chamadas_a_fechar($de, $ate)
 // depois de alguém corrigir o estoque lança a correção, sem reescrever o lançamento
 // anterior — que talvez já tenha sido conferido num fechamento.
 //
-// A DATA é a da entrega da chamada, e não a de hoje: é o dia em que a mercadoria de fato
-// ficou parada, e é por essa data que o fluxo de caixa e o resultado agrupam.
+// A DATA é a da entrega da chamada, e não a de hoje: é o dia em que o produto de fato
+// ficou parado, e é por essa data que o fluxo de caixa e o resultado agrupam.
 //
 // CONTRATO: tra_id quando lançou · 0 quando não havia o que lançar · null quando a
 // chamada não existe ou a consulta não roda. Os três são coisas diferentes, e "não havia
@@ -3120,11 +3120,11 @@ function lanca_estoque_da_chamada($cha_id)
 	$falta = round(-$pend['falta'], 2);
 	if (abs($falta) < 0.005) return 0;          // nada a lançar — ver o CONTRATO
 
-	$historico = ($falta < 0) ? 'mercadoria que ficou em estoque'
+	$historico = ($falta < 0) ? 'produto que ficou em estoque'
 	                          : 'estoque consumido na entrega';
 
 	// falta < 0: o estoque passa a segurar mais valor, e a posição da Rede melhora —
-	// ela não perdeu aquele dinheiro, tem mercadoria. falta > 0: o estoque devolve o
+	// ela não perdeu aquele dinheiro, tem produto. falta > 0: o estoque devolve o
 	// valor e o custo se realiza contra a venda.
 	if ($falta < 0)
 		return lanca_transacao($v['dt'], 'estoque', $con_estoque, $con_rede, -$falta,

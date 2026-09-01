@@ -386,7 +386,7 @@
 
 <p class="small text-muted">
   Fechar uma chamada lança duas coisas. <strong>O estoque</strong> que ela mexeu —
-  mercadoria que sobrou vira ativo da Rede, mercadoria consumida vira custo da entrega —,
+  produto que sobrou vira ativo da Rede, produto consumido vira custo da entrega —,
   e <strong>o débito de cada cestante</strong>, que até aqui era calculado a cada leitura e
   passa a ser um lançamento.
   <br>O <strong>prazo para registro da entrega</strong> é o que separa as duas fases, e por
