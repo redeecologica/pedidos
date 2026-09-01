@@ -214,9 +214,9 @@ verifica("produto que ficou guardado sai do 'nao cobrado'",
     "estoque=" . json_encode($cf2['estoque']) . " nao_cobrado=" . $cf2['nao_cobrado']);
 
 // O NUMERO VIRA NEGATIVO, e isso nao e defeito: quer dizer que saiu mais produto —
-// entregue mais guardada — do que a Rede pagou. Visto na chamada 1123 da base, com
-// -81,00. A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra
-// "recebido e nao pago", porque "pago e nao cobrado -81,00" afirma o contrario do que
+// entregue mais guardado — do que a Rede pagou. Acontece em chamada real de secos.
+// A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra "recebido e
+// nao pago", porque "pago e nao cobrado" com um menos na frente afirma o contrario do que
 // aconteceu. Se a funcao parasse de devolver negativo, o rotulo nunca mais apareceria e
 // nada reclamaria.
 executa_sql("UPDATE estoque SET est_prod_qtde_depois = 30

@@ -242,9 +242,9 @@
 </legend>
 
 <?php
-  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado −81,00" se lê como o que o rótulo
-  // afirma, com um menos que ninguém sabe interpretar sem uma referência de qual é o
-  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
+  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado" com um menos na frente se lê como
+  // o que o rótulo afirma, mais um sinal que ninguém sabe interpretar sem uma referência
+  // de qual é o lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
   // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
   // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
   // sinal do lançamento.

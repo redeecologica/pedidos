@@ -136,7 +136,7 @@
         <tr>
           <td>
             <a href="fechamento_chamada.php">estoque guardado</a>
-            <small class="text-muted">&mdash; mercadoria paga que ainda não saiu</small>
+            <small class="text-muted">&mdash; produto pago que ainda não saiu</small>
           </td>
           <td class="text-right"><?php echo(h(formata_moeda($p['estoque']))); ?></td>
         </tr>

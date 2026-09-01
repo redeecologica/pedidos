@@ -3130,7 +3130,7 @@ verifica("e a fixture de tres pernas se limpa, para o invariante seguir conferiv
 // ---------------------------------------------------------------------------
 // A Rede paga produtor direto — nao e despesa, e nao se rateia.
 //
-// A Rede quita o que JA DEVE pela mercadoria entregue. O custo dela ja foi para quem a
+// A Rede quita o que JA DEVE pelo produto entregue. O custo dele ja foi para quem o
 // recebeu, no debito do cestante; rateando, cada nucleo seria cobrado de novo pelo mesmo
 // produto. Por isso funcao propria, e nao mais uma area de despesa.
 $saldo_forn_antes = saldo_da_conta($con_forn_t);
@@ -3441,7 +3441,7 @@ verifica("lista vazia e recusada, e nao devolve sucesso sem gravar nada",
 
 
 // ---------------------------------------------------------------------------
-echo "\nestoque: mercadoria parada e ativo, nao prejuizo\n";
+echo "\nestoque: produto parado e ativo, nao prejuizo\n";
 // ---------------------------------------------------------------------------
 
 // Chamada de secos propria, com produto de compra 8 e venda 10 — a diferenca entre os

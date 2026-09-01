@@ -426,8 +426,8 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 			'justificativa'=> trim((string)$r['justificativa']),
 			'em_branco'    => array(),
 			// TODA linha de cestante deste produto, e não só as em branco: é o registro
-			// que deu origem à nota. Quem lê "chegou quebrado no núcleo · R$ 49,00"
-			// precisa poder ver de quem era o mel, quem pediu e quem levou — sem isso a
+			// que deu origem à nota. Quem lê uma justificativa curta ao lado de um valor
+			// precisa poder ver de quem era aquele produto, quem pediu e quem levou — sem isso a
 			// justificativa é palavra sem lastro, e conferir vira abrir outra tela.
 			'cestantes'    => array());
 
