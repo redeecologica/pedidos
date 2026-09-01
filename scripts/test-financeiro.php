@@ -3739,6 +3739,28 @@ verifica("carregar o financeiro traz junto as funcoes do balanco",
 // vez. E ele quem cobre isso, porque so uma pagina de verdade exercita as duas vias.
 
 
+// O RATEIO ABERTO SAI NA MESMA ORDEM da lista de despesas: as duas telas se conferem uma
+// contra a outra, e ordens diferentes fariam procurar linha a linha. A clausula mora numa
+// funcao so, senao as duas copias divergiriam na primeira area nova.
+$rat_ord = rateios_do_nucleo($nuc_pop, '2026-04-01', '2026-05-01');
+$ordem_cats2 = array_keys(categorias_de_despesa_da_rede());
+$pos2 = array();
+foreach ((array)$rat_ord as $l) $pos2[] = array_search($l['categoria'], $ordem_cats2, true);
+$ok_ord = true;
+for ($k = 1; $k < count($pos2); $k++) if ($pos2[$k] < $pos2[$k-1]) $ok_ord = false;
+
+verifica("o rateio aberto vem agrupado por area, na mesma ordem das despesas",
+    $ok_ord, json_encode(array_map(function ($l) { return $l['categoria']; }, (array)$rat_ord)));
+
+$dentro2 = true;
+for ($k = 1; $k < count($rat_ord); $k++)
+    if ($rat_ord[$k]['categoria'] === $rat_ord[$k-1]['categoria']
+        && strcasecmp($rat_ord[$k]['historico'], $rat_ord[$k-1]['historico']) < 0) $dentro2 = false;
+
+verifica("e dentro da area, pela descricao da despesa",
+    $dentro2, json_encode(array_map(function ($l) {
+        return $l['categoria'] . '/' . $l['historico']; }, (array)$rat_ord)));
+
 // O TOTAL DA DESPESA VEM JUNTO DO RATEIO. So o pedaco nao deixa julgar nada: "82,00 de
 // hospedagem" nao diz se e a conta toda ou um oitavo dela, e e a fatia que faz a conversa
 // ser outra. O total sai da perna de custo, mesmo lugar de onde despesas_da_rede() le.

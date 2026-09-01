@@ -1912,6 +1912,28 @@ function categorias_de_despesa_da_rede()
 }
 
 
+// A ORDEM DAS DESPESAS DA REDE, como fragmento de SQL: por área, na sequência que a
+// caixa de seleção oferece, e depois pela descrição.
+//
+// Numa função porque duas telas ordenam a mesma coisa — a lista de despesas e o rateio
+// aberto no equilíbrio do núcleo. Duas cópias divergiriam na primeira área nova, e aí as
+// mesmas linhas apareceriam em ordens diferentes em telas que se conferem uma contra a
+// outra.
+//
+// A ordem das áreas é a de categorias_de_despesa_da_rede(), e não a alfabética: é a mesma
+// que a caixa de seleção oferece. Categoria gravada que saiu do código cai no FIM —
+// FIELD() devolve 0 para quem não está na lista, e sem a primeira cláusula ela viria
+// antes de todas. Linha órfã tem de ser visível, não discreta.
+function ordem_por_area_e_descricao($col_categoria, $col_historico)
+{
+	$ordem = array();
+	foreach (array_keys(categorias_de_despesa_da_rede()) as $ck) $ordem[] = prep_para_bd($ck);
+	$lista = implode(', ', $ordem);
+
+	return "FIELD($col_categoria, $lista) = 0, FIELD($col_categoria, $lista), $col_historico";
+}
+
+
 // Quanto cada núcleo pesa no rateio por entrega. Núcleo semanal entrega 4 vezes ao mês
 // e pesa 4; quinzenal 2; mensal 1.
 //
@@ -2171,7 +2193,10 @@ function rateios_do_nucleo($nuc_id, $de, $ate)
 	$sql.= "LEFT JOIN lancamentos l ON l.lan_tra = t.tra_id AND l.lan_con = " . prep_para_bd($con_rede_rat) . " ";
 	$sql.= "WHERE r.rat_nuc = " . prep_para_bd($nuc_id) . " ";
 	$sql.= "AND t.tra_dt >= " . prep_para_bd($de) . " AND t.tra_dt < " . prep_para_bd($ate) . " ";
-	$sql.= "ORDER BY t.tra_dt, t.tra_id";
+	// MESMA ORDEM da lista de despesas da Rede: as duas telas se conferem uma contra a
+	// outra, e ordens diferentes fariam procurar linha a linha.
+	$sql.= "ORDER BY " . ordem_por_area_e_descricao('t.tra_categoria', 't.tra_historico');
+	$sql.= ", t.tra_dt, t.tra_id";
 
 	$res = executa_sql($sql);
 	if (!$res) return null;
@@ -2381,12 +2406,8 @@ function despesas_da_rede($de, $ate)
 	// alfabética: é a mesma que a caixa de seleção oferece, e duas ordens diferentes para
 	// a mesma lista fazem quem confere perder o lugar. Categoria gravada que saiu do
 	// código cai no fim, em vez de sumir no meio.
-	$ordem = array();
-	foreach (array_keys(categorias_de_despesa_da_rede()) as $ck) $ordem[] = prep_para_bd($ck);
-
-	$sql.= "ORDER BY FIELD(t.tra_categoria, " . implode(', ', $ordem) . ") = 0, ";
-	$sql.= "FIELD(t.tra_categoria, " . implode(', ', $ordem) . "), ";
-	$sql.= "t.tra_historico, t.tra_dt, t.tra_id";
+	$sql.= "ORDER BY " . ordem_por_area_e_descricao('t.tra_categoria', 't.tra_historico');
+	$sql.= ", t.tra_dt, t.tra_id";
 
 	$res = executa_sql($sql);
 	if (!$res) return null;
