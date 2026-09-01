@@ -180,19 +180,54 @@
   <p class="text-muted">Nenhum custo da Rede foi rateado para este núcleo em <?php echo(h($nome_mes[$mes] . ' de ' . $ano)); ?>.</p>
 <?php } else { ?>
 <table class="table table-bordered table-condensed table-striped">
-  <thead><tr><th>Data</th><th>Área</th><th>Despesa da Rede</th><th class="text-right">Coube a este núcleo</th></tr></thead>
+  <?php
+    // A DESPESA INTEIRA E A FATIA, lado a lado. Só o pedaço não deixa julgar nada:
+    // "R$ 82,00 de hospedagem" não diz se é a conta toda ou um oitavo dela, e é a fatia
+    // que faz a conversa ser outra. Com o total ao lado, o núcleo vê o tamanho do custo
+    // da Rede e o quanto dele lhe coube — que é a pergunta que o rateio levanta.
+  ?>
+  <thead><tr>
+    <th>Data</th><th>Área</th><th>Despesa da Rede</th>
+    <th class="text-right">Total da despesa</th>
+    <th class="text-right">Coube a este núcleo</th>
+    <th class="text-right">%</th>
+  </tr></thead>
   <tbody>
-    <?php foreach ($r['custo']['rateio'] as $l) { ?>
+    <?php
+      $soma_total_desp = 0.0;
+      foreach ($r['custo']['rateio'] as $l) {
+          if ($l['total'] !== null) $soma_total_desp = round($soma_total_desp + $l['total'], 2);
+    ?>
     <tr>
       <td><?php echo(h(date('d/m/Y', strtotime($l['dt'])))); ?></td>
-      <td><span class="label label-default"><?php echo(h($l['categoria_rotulo'])); ?></span></td>
+      <td><?php echo(h($l['categoria_rotulo'])); ?></td>
       <td><?php echo(h($l['historico'])); ?></td>
+      <td class="text-right">
+        <?php echo($l['total'] === null
+                   ? '<span class="text-muted">&mdash;</span>'
+                   : h(formata_moeda($l['total']))); ?>
+      </td>
       <td class="text-right"><?php echo(h(formata_moeda($l['valor']))); ?></td>
+      <td class="text-right">
+        <?php
+          // Sem total não há percentual — e travessão é mais honesto que 0%, que se
+          // leria como "não coube nada".
+          echo(($l['total'] === null || $l['total'] <= 0.005)
+               ? '<span class="text-muted">&mdash;</span>'
+               : h(number_format(100 * $l['valor'] / $l['total'], 1, ',', '.')) . '%');
+        ?>
+      </td>
     </tr>
     <?php } ?>
     <tr class="active">
       <th colspan="3" class="text-right">total</th>
+      <th class="text-right"><?php echo(h(formata_moeda($soma_total_desp))); ?></th>
       <th class="text-right"><?php echo(h(formata_moeda($r['custo']['total_rateio']))); ?></th>
+      <th class="text-right">
+        <?php echo($soma_total_desp > 0.005
+                   ? h(number_format(100 * $r['custo']['total_rateio'] / $soma_total_desp, 1, ',', '.')) . '%'
+                   : '<span class="text-muted">&mdash;</span>'); ?>
+      </th>
     </tr>
   </tbody>
 </table>
