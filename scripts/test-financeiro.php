@@ -3848,6 +3848,73 @@ verifica("posicao de consulta recusada e null, e nao um retrato zerado",
 
 
 // ---------------------------------------------------------------------------
+echo "\nresultado da Rede: a operacao inteira se paga?\n";
+// ---------------------------------------------------------------------------
+
+$rr = resultado_da_rede(2026);
+
+verifica("o ano vem com os doze meses",
+    is_array($rr) && count($rr['meses']) === 12 && isset($rr['ano_total']),
+    var_export(is_array($rr) ? count($rr['meses']) : $rr, true));
+
+verifica("ano fora de faixa e recusado",
+    resultado_da_rede(1500) === null && resultado_da_rede(3000) === null);
+
+// A RECEITA E A MESMA do equilibrio do nucleo, sem o recorte de ped_nuc. Entao a de um
+// nucleo qualquer tem de caber dentro da da Rede — nunca passar dela.
+$rn = resultado_do_nucleo($nuc_pop, 2026, 5);
+verifica("a receita de um nucleo cabe dentro da receita da Rede no mesmo mes",
+    is_array($rn) && $rr['meses'][5]['associacao'] >= round($rn['receita']['associacao'],2) - 0.005
+                  && $rr['meses'][5]['taxa']       >= round($rn['receita']['taxa'],2) - 0.005,
+    "rede assoc=" . $rr['meses'][5]['associacao'] . " nucleo assoc=" . (is_array($rn)?$rn['receita']['associacao']:'?'));
+
+// O RATEIO NAO ENTRA NO CUSTO: ele move custo da Rede para os nucleos no papel, e conta-lo
+// somaria o mesmo gasto duas vezes. O custo e a despesa da Rede INTEIRA mais a dos nucleos.
+foreach ($rr['meses'] as $m => $x)
+{
+    if (abs($x['custo']) < 0.005) continue;
+    verifica("mes $m: custo = despesa dos nucleos + despesa da Rede, sem o rateio",
+        round($x['custo'],2) == round($x['despesas_nucleos'] + $x['despesas_rede'], 2),
+        json_encode($x));
+    break;
+}
+
+// A SOBRA e a distancia entre este resultado e a soma dos resultados dos nucleos, e sai
+// da algebra: nucleo = receita - propria - rateio; Rede = receita - propria - despesa da
+// Rede. A diferenca e exatamente despesa da Rede menos rateado.
+foreach ($rr['meses'] as $m => $x)
+{
+    if (abs($x['despesas_rede']) < 0.005) continue;
+    verifica("mes $m: a sobra e a despesa da Rede menos o que foi rateado",
+        round($x['sobra'],2) == round($x['despesas_rede'] - $x['rateado'], 2),
+        json_encode($x));
+    break;
+}
+
+// O resultado fecha por construcao, e o ano soma os meses.
+$soma_res = 0.0;
+foreach ($rr['meses'] as $x) $soma_res = round($soma_res + $x['resultado'], 2);
+verifica("o total do ano soma os doze meses",
+    round($rr['ano_total']['resultado'],2) == $soma_res,
+    "ano=" . $rr['ano_total']['resultado'] . " soma=" . $soma_res);
+
+verifica("e cada mes fecha em receita menos custo",
+    round($rr['meses'][5]['resultado'],2)
+    == round($rr['meses'][5]['receita'] - $rr['meses'][5]['custo'], 2),
+    json_encode($rr['meses'][5]));
+
+// CONTRATO: consulta que nao roda e null, e nao um ano de zeros.
+executa_sql("CREATE TEMPORARY TABLE rateios (rat_tra mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
+$sombra_rr = (executa_sql("SELECT rat_valor FROM rateios") === false);
+$rr_sem_bd = resultado_da_rede(2026);
+executa_sql("DROP TEMPORARY TABLE rateios");
+
+verifica("a sombra faz o servidor recusar o resultado da Rede", $sombra_rr);
+verifica("resultado de consulta recusada e null, e nao um ano zerado",
+    $rr_sem_bd === null, var_export($rr_sem_bd, true));
+
+
+// ---------------------------------------------------------------------------
 echo "\nmaterializacao: o debito derivado vira lancamento\n";
 // ---------------------------------------------------------------------------
 
