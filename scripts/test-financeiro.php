@@ -2383,7 +2383,12 @@ $sessao_guardada = array(
 
 function sessao_de_teste($papeis, $nuc)
 {
-    foreach (array(PAP_RESP_FINANCAS, PAP_ADM, PAP_RESP_NUCLEO, PAP_BETA_TESTER) as $p)
+    // A LISTA TEM DE CONTER TODO PAPEL QUE ALGUM TESTE LIGA. Ela é fixa, e papel que
+    // falta aqui não é limpo entre um teste e o seguinte: fica ligado e o teste de
+    // baixo passa por um motivo que não é o dele. PAP_RESP_ENTREGA entrou junto com
+    // alcanca_todo_nucleo(), que é quem o lê.
+    foreach (array(PAP_RESP_FINANCAS, PAP_ADM, PAP_RESP_NUCLEO,
+                   PAP_RESP_ENTREGA, PAP_BETA_TESTER) as $p)
         unset($_SESSION[$p]);
     foreach ($papeis as $p) $_SESSION[$p] = 1;
     $_SESSION['usr.id']  = 1;
@@ -2413,6 +2418,42 @@ verifica("financas alcanca o nucleo que pedir",
 
 verifica("financas sem pedir nada cai no nucleo da propria sessao",
     nucleo_do_caixa_em_foco("") === (int)$nuc_livre[3]);
+
+// RESPONSAVEL ENTREGA ALCANCA TODO NUCLEO. Quem corrige entrega de qualquer nucleo
+// precisa corrigir o dinheiro que a entrega gera, no mesmo nucleo — senao enxerga o
+// erro e nao alcanca o conserto. A regra mora em alcanca_todo_nucleo(), e estas
+// asercoes sao a alavanca automatica dela: sete copias soltas da lista de papeis
+// divergiriam sem que nada reclamasse.
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_ENTREGA), $nuc_livre[3]);
+
+verifica("resp. entrega alcanca o nucleo que pedir",
+    nucleo_do_caixa_em_foco((string)$nuc_livre[2]) === (int)$nuc_livre[2],
+    var_export(nucleo_do_caixa_em_foco((string)$nuc_livre[2]), true));
+
+verifica("resp. entrega lanca no caixa de OUTRO nucleo",
+    pode_lancar_no_caixa($nuc_livre[2]) === true);
+
+// A FRONTEIRA DA REDE NAO SE MOVEU. Alcancar todo nucleo nao e alcancar o dinheiro da
+// Rede: fechar chamada, lancar despesa central e mexer em quota continuam sendo de
+// RESP_FINANCAS. Sem esta asercao, alguem que amanha acrescentar um papel em
+// alcanca_todo_nucleo() abriria as duas portas achando que abriu uma.
+verifica("resp. entrega NAO alcanca as telas da Rede",
+    pode_ver_financas_da_rede() === false);
+
+// O QUE ESTA EM PRODUCAO HOJE. Sao quinze pessoas com este papel, e nenhuma delas pode
+// alcancar nada enquanto nao receber o Beta Tester.
+sessao_de_teste(array(PAP_RESP_ENTREGA), $nuc_livre[3]);
+verifica("resp. entrega SEM Beta Tester nao alcanca nucleo nenhum",
+    alcanca_todo_nucleo() === false
+    && nucleo_do_caixa_em_foco((string)$nuc_livre[2]) === ""
+    && pode_lancar_no_caixa($nuc_livre[2]) === false
+    && pode_lancar_pagamento() === false);
+
+// E o escopo de quem responde por UM nucleo continua sendo um so.
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_NUCLEO), $nuc_livre[3]);
+verifica("resp. de nucleo continua sem alcancar todo nucleo",
+    alcanca_todo_nucleo() === false
+    && pode_lancar_no_caixa($nuc_livre[2]) === false);
 
 // sem o papel Beta Tester o modulo inteiro esta fechado, e isto e o que garante que
 // a extracao nao deixou a trava para tras

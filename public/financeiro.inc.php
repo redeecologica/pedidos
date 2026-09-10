@@ -712,6 +712,28 @@ function pode_ver_financeiro()
 // NEGADO. Falhar para o lado fechado numa checagem de permissão protege; falhar para o
 // valor vazio num cálculo de dinheiro mente. As duas regras não se unificam — e a
 // desta função tem teste próprio, com a consulta quebrada de propósito.
+// QUEM ALCANÇA O DINHEIRO DE TODO NÚCLEO, e não só o do próprio. É a mesma pergunta
+// que quatro telas e três funções de permissão faziam cada uma por conta própria, com
+// a lista de papéis copiada em sete lugares. Sete cópias de uma regra de acesso é uma
+// regra que vai divergir — e a divergência aparece como alguém alcançando o caixa de
+// um núcleo que não é dele, que é o erro que este módulo não pode cometer.
+//
+// Responsável Entrega entrou aqui: quem corrige entrega de qualquer núcleo precisa
+// corrigir o dinheiro que a entrega gera, no mesmo núcleo. Sem isso a pessoa enxerga o
+// erro e não alcança o conserto.
+//
+// Começa por pode_ver_financeiro() de propósito, mesmo onde quem chama já perguntou:
+// predicado de permissão que pode ser usado sozinho tem de falhar fechado sozinho.
+function alcanca_todo_nucleo()
+{
+	if (!pode_ver_financeiro()) return false;
+
+	return !empty($_SESSION[PAP_RESP_FINANCAS])
+	    || !empty($_SESSION[PAP_RESP_ENTREGA])
+	    || !empty($_SESSION[PAP_ADM]);
+}
+
+
 function pode_ver_conta_de($usr_id)
 {
 	// usr_id chega da URL. Inteiro positivo ou nada: o que não é id não vira consulta.
@@ -725,7 +747,10 @@ function pode_ver_conta_de($usr_id)
 
 	if (!pode_ver_financeiro()) return false;
 
-	if (!empty($_SESSION[PAP_ADM]) || !empty($_SESSION[PAP_RESP_FINANCAS])) return true;
+	// Antes da consulta por núcleo, e não dentro dela: quem alcança todo núcleo não pode
+	// depender de uma busca que falha FECHADA (ver a nota de polaridade acima), senão a
+	// recusa viraria intermitente para quem deveria passar sempre.
+	if (alcanca_todo_nucleo()) return true;
 
 	if (isset($_SESSION['usr.id']) && $_SESSION['usr.id'] == $usr_id) return true;   // o próprio
 
@@ -761,9 +786,7 @@ function pode_lancar_pagamento()
 {
 	if (!pode_ver_financeiro()) return false;
 
-	return !empty($_SESSION[PAP_RESP_NUCLEO])
-	    || !empty($_SESSION[PAP_RESP_FINANCAS])
-	    || !empty($_SESSION[PAP_ADM]);
+	return alcanca_todo_nucleo() || !empty($_SESSION[PAP_RESP_NUCLEO]);
 }
 
 
@@ -1638,7 +1661,7 @@ function pode_lancar_no_caixa($nuc_id)
 {
 	if (!pode_ver_financeiro()) return false;
 
-	if (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM])) return true;
+	if (alcanca_todo_nucleo()) return true;
 
 	if (empty($_SESSION[PAP_RESP_NUCLEO]))       return false;
 	if (!isset($_SESSION['usr.nuc']))            return false;
@@ -1683,7 +1706,7 @@ function nucleos_com_caixa()
 // array, e comparar array com int é TypeError no PHP 8.
 function nucleo_do_caixa_em_foco($nuc_pedido)
 {
-	$manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+	$manda_em_todos = alcanca_todo_nucleo();
 	$nuc_sessao     = isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : "";
 
 	if (!is_string($nuc_pedido) && !is_int($nuc_pedido)) $nuc_pedido = "";

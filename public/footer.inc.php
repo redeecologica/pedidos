@@ -6,7 +6,7 @@
 <div class="container hidden-print" align="right">
     <hr>
     <a href="<?php echo(URL_GRUPO_CONSUMO); ?>" target="_blank"><?php echo(NOME_GRUPO_CONSUMO); ?></a>
- utiliza este sistema que é <a href="https://github.com/redeecologica/pedidos" target="_blank"> software livre disponibilizado na plataforma GitHub - 2013 <img src="img/copyleft-icon.png" width="12px" height="12px"/></a> 
+ utiliza este sistema que é <a href="https://github.com/redeecologica/pedidos" target="_blank"> software livre disponibilizado na plataforma GitHub - 2013-<?php echo(h(date('Y'))); ?> <img src="img/copyleft-icon.png" width="12px" height="12px"/></a> 
 
 </div>  <br />
   
