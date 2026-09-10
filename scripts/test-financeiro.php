@@ -502,7 +502,7 @@ verifica("com prazo contabil vencido a chamada e congelavel",
 
 // ---------------------------------------------------------------------------
 // Piso da data de corte: entrega anterior à entrada em operação não vira débito.
-// A suíte roda com DATA_CORTE_FINANCEIRO = 2010-01-01 (definida no topo), então
+// A suíte roda com DATA_CORTE_FINANCEIRO = 2014-01-01 (definida no topo), então
 // o par abaixo cerca exatamente essa fronteira.
 // ---------------------------------------------------------------------------
 $cha_antes_corte = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual, cha_dt_prazo_contabil)

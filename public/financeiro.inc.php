@@ -164,7 +164,7 @@ if (!defined('CONTA_CHAVE_ESTOQUE')) define('CONTA_CHAVE_ESTOQUE', 'estoque');
 // Trocar a data é livre enquanto a reconciliação não for lançada: o débito é
 // derivado, nada fica gravado, e o número se refaz sozinho. Depois de lançada, mover
 // o piso abre buraco ou sobreposição.
-if (!defined('DATA_CORTE_FINANCEIRO')) define('DATA_CORTE_FINANCEIRO', '2026-05-01 00:00:00');
+if (!defined('DATA_CORTE_FINANCEIRO')) define('DATA_CORTE_FINANCEIRO', '2026-09-01 00:00:00');
 
 
 // Chaves estáveis reservadas: chave => único con_tipo que pode carregá-la.
