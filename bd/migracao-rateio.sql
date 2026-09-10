@@ -64,6 +64,17 @@ UPDATE nucleotipos SET nuct_quota_rateio = 1.0 WHERE nuct_nome = 'Mensal';
 -- sentinelas: existem como núcleo, não entram no rateio
 UPDATE nucleos SET nuc_quota_rateio = 0.0 WHERE nuc_nome_curto IN ('Logística','Logistica','Mutirão','Mutirao');
 
+-- MERITI PESA MEIA QUOTA, e não a quota cheia do tipo Mensal. É a única exceção que
+-- não sai do tipo: veio da planilha e Aline confirmou o valor. Sem esta linha o núcleo
+-- entraria no primeiro rateio de produção com 1,0 — o dobro do combinado — e a conta
+-- só apareceria errada depois de alguém somar à mão.
+--
+-- As outras nove coincidem com o padrão do tipo, então não precisam de linha própria.
+-- Conferido comparando, núcleo a núcleo, a quota valendo no banco local (onde a suíte
+-- roda) com a que esta migração produz num ensaio sobre o schema e os dados de
+-- produção: Meriti era a única diferença.
+UPDATE nucleos SET nuc_quota_rateio = 0.5 WHERE nuc_nome_curto = 'Meriti';
+
 
 -- ---------------------------------------------------------------- DEPOIS -----
 SELECT n.nuc_nome_curto, t.nuct_nome, t.nuct_quota_rateio AS padrao_do_tipo,
