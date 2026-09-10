@@ -3310,8 +3310,11 @@ function abas_financeiras_do_grupo($grupo)
 	if ($grupo === 'nucleo')
 		return array(
 			'hub'        => array('financas_nucleo.php',  'Finanças do núcleo', ''),
-			'pagamentos' => array('conta_pagamentos.php', 'Pagamentos',         'glyphicon-piggy-bank'),
-			'caixa'      => array('conta_nucleo.php',     'Caixa',              'glyphicon-inbox'),
+			// O cofrinho saiu daqui: ele é o ícone da SEÇÃO "Finanças do núcleo" no menu
+			// principal (menu.inc.php), e repetido na aba deixava de distinguir as duas
+			// coisas. O cartão diz o que a tela faz — registrar pagamento de cestante.
+			'pagamentos' => array('conta_pagamentos.php', 'Pagamentos Cestantes',       'glyphicon-credit-card'),
+			'caixa'      => array('conta_nucleo.php',     'Despesas e Caixa do Núcleo', 'glyphicon-inbox'),
 			'fluxo'      => array('fluxo_caixa.php',      'Fluxo de caixa',     'glyphicon-stats'),
 			// "Equilíbrio", e não "Resultado": a pergunta que o núcleo faz é se ele se
 			// paga, não quanto lucrou. O ícone é o ponteiro, e não a balança — esta é
@@ -3327,7 +3330,7 @@ function abas_financeiras_do_grupo($grupo)
 	$abas = array(
 		'hub'        => array('financas.php',            'Finanças',           ''),
 		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
-		                                                 'Recebido dos produtores', 'glyphicon-road'),
+		                                 'Confirmação Recebido dos Produtores', 'glyphicon-road'),
 	);
 
 	// PRAZOS SÓ PARA QUEM AINDA NÃO TEM O FECHAMENTO. O prazo de registro de entrega
@@ -3341,11 +3344,17 @@ function abas_financeiras_do_grupo($grupo)
 
 	if (pode_ver_financas_da_rede())
 	{
-		$abas['caixa']      = array('caixa_rede.php',         'Caixa da Rede',      'glyphicon-briefcase');
+		// A ORDEM É A DO TRABALHO, não a da construção das telas: fecha-se a chamada,
+		// paga-se quem entregou, lançam-se os custos do mês, confere-se a divisão — e só
+		// então se olha onde o dinheiro parou. Caixa da Rede fica por último porque é
+		// consulta, não tarefa.
 		$abas['fechamento'] = array('fechamento_chamada.php', 'Fechamento contábil', 'glyphicon-lock');
+		// Mesma maleta do Caixa da Rede, por decisão de quem usa: as duas respondem
+		// "onde está o dinheiro da Rede". Os rótulos é que separam.
+		$abas['produtores'] = array('contas_produtores.php',  'A Pagar Produtores', 'glyphicon-briefcase');
 		$abas['despesas']   = array('despesas_rede.php',      'Despesas da Rede',   'glyphicon-globe');
 		$abas['quotas']     = array('quotas_rateio.php',      'Quotas de rateio',   'glyphicon-equalizer');
-		$abas['produtores'] = array('contas_produtores.php',  'Caixa Produtores',   'glyphicon-leaf');
+		$abas['caixa']      = array('caixa_rede.php',         'Caixa da Rede',      'glyphicon-briefcase');
 	}
 
 	return $abas;

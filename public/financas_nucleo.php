@@ -24,13 +24,14 @@
   <div class="panel-body">
     <ul>
       <li>
-        <strong>Pagamentos</strong> — registre o que cada cestante pagou e para onde o dinheiro
+        <strong>Pagamentos Cestantes</strong> — registre o que cada cestante pagou e para onde o dinheiro
         foi: o caixa do núcleo, uma conta da Rede, ou direto a um produtor. É daqui que sai
         o saldo que cada pessoa vê em Meu Saldo.
       </li>
       <br>
       <li>
-        <strong>Caixa</strong> — o extrato do dinheiro que está com o núcleo, e onde se lançam
+        <strong>Despesas e Caixa do Núcleo</strong> — o extrato do dinheiro que está com o
+        núcleo, e onde se lançam
         despesa, repasse à Rede, pagamento a produtor e outras receitas. O pagamento de
         cestante aparece aqui sozinho, vindo da aba anterior.
       </li>

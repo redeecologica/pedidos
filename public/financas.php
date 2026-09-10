@@ -26,9 +26,9 @@
       <div class="panel-body">
          <ul>
           <li>
-          <strong>Recebido dos produtores</strong> — registre o total que os produtores
-          entregaram. É a base do pagamento a eles, e o número que Finanças confirma depois
-          de ler as justificativas de divergência.
+          <strong>Confirmação Recebido dos Produtores</strong> — registre o total que os
+          produtores entregaram. É a base do pagamento a eles, e o número que Finanças
+          confirma depois de ler as justificativas de divergência.
           </li>
           <?php if (pode_ver_financas_da_rede()) { ?>
           <br>
@@ -37,6 +37,12 @@
           congelamento, na mesma tela. Enquanto o prazo não vence, os núcleos ainda anotam
           e corrigem; depois dele os números param, e aí se congela o que a chamada mexeu —
           o estoque de secos e o débito de cada cestante. Uma chamada por vez.
+          </li>
+          <br>
+          <li>
+          <strong>A Pagar Produtores</strong> — a quem a Rede deve, e quanto. Traz quem tem
+          conta aberta mesmo sem movimento no mês, porque quem espera não some da fila. É
+          daqui que se registra um pagamento já feito — o sistema anota, não transfere.
           </li>
           <br>
           <li>
@@ -52,9 +58,9 @@
           </li>
           <br>
           <li>
-          <strong>Caixa Produtores</strong> — a quem a Rede deve, e quanto. Traz quem tem
-          conta aberta mesmo sem movimento no mês, porque quem espera não some da fila. É
-          daqui que se registra um pagamento já feito — o sistema anota, não transfere.
+          <strong>Caixa da Rede</strong> — onde o dinheiro está, o que ainda não entrou nem
+          saiu, e o desempenho mês a mês do ano. É consulta, não tarefa: nada se lança
+          daqui. Por isso fica no fim da barra, depois do trabalho que a alimenta.
           </li>
           <?php } ?>
          </ul>     
