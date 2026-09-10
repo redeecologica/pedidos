@@ -3327,10 +3327,18 @@ function abas_financeiras_do_grupo($grupo)
 	// mesmo sem Beta Tester. Por isso a barra se divide: as antigas sempre, as novas só
 	// para quem chega nelas. Oferecer link que a tela vai recusar é pior do que não
 	// oferecer — a pessoa clica, leva "sem permissão" e volta para a página inicial.
+	// ROLLOUT INVISÍVEL. Quem não tem Beta Tester tem de ver a tela de Finanças
+	// EXATAMENTE como ela está hoje em produção: os mesmos dois destinos, com os
+	// mesmos nomes. Renomear a aba de quem não recebeu nada de novo faz a pessoa
+	// procurar o que mudou — e para ela não mudou nada. Os nomes novos entram junto
+	// com as telas que os justificam.
+	$novo = pode_ver_financas_da_rede();
+
 	$abas = array(
 		'hub'        => array('financas.php',            'Finanças',           ''),
 		'recebimento'=> array('recebimento.php?action=0&recebimento=final',
-		                                 'Confirmação Recebido dos Produtores', 'glyphicon-road'),
+		                      $novo ? 'Confirmação Recebido dos Produtores'
+		                            : 'Confirmação Entrega dos Produtores', 'glyphicon-road'),
 	);
 
 	// PRAZOS SÓ PARA QUEM AINDA NÃO TEM O FECHAMENTO. O prazo de registro de entrega
@@ -3339,10 +3347,10 @@ function abas_financeiras_do_grupo($grupo)
 	// essa pessoa a tela antiga continua sendo a única forma de definir o prazo.
 	// Tirá-la da barra dos dois lados deixaria RESP_FINANÇAS sem Beta Tester sem
 	// caminho nenhum até ela.
-	if (!pode_ver_financas_da_rede())
-		$abas['prazos'] = array('financas_prazos.php', 'Prazos', 'glyphicon-calendar');
+	if (!$novo)
+		$abas['prazos'] = array('financas_prazos.php', 'Configuração Prazos', 'glyphicon-calendar');
 
-	if (pode_ver_financas_da_rede())
+	if ($novo)
 	{
 		// A ORDEM É A DO TRABALHO, não a da construção das telas: fecha-se a chamada,
 		// paga-se quem entregou, lançam-se os custos do mês, confere-se a divisão — e só

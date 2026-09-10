@@ -25,12 +25,27 @@
       <div class="panel-heading">Instruções para Finanças</div>
       <div class="panel-body">
          <ul>
+          <?php if (!pode_ver_financas_da_rede()) { ?>
+          <?php
+            // O TEXTO DE PRODUÇÃO, PALAVRA POR PALAVRA. Quem não entrou no piloto abre
+            // esta tela e encontra o que sempre encontrou — inclusive a instrução do
+            // prazo, cuja aba continua na barra para ela. Uma aba sem explicação ao lado
+            // de outra explicada se lê como coisa pela metade.
+          ?>
+          <li>
+          Acesse a aba "Confirmação Entrega Produtores" para registrar o total que foi entregue pelos produtores. Esta informação será a base para os relatórios de previsão de pagamento aos produtores.
+          </li>
+          <br>
+          <li>
+          Acesse a aba "Configuração Prazos" para configurar o prazo final para edição das informações de entrega de cada chamada.
+          </li>
+          <?php } else { ?>
           <li>
           <strong>Confirmação Recebido dos Produtores</strong> — registre o total que os
           produtores entregaram. É a base do pagamento a eles, e o número que Finanças
           confirma depois de ler as justificativas de divergência.
           </li>
-          <?php if (pode_ver_financas_da_rede()) { ?>
+
           <br>
           <li>
           <strong>Fechamento contábil</strong> — o prazo para registro da entrega e o
