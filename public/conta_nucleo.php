@@ -15,7 +15,7 @@
   // recusa é pode_lancar_no_caixa(), lá dentro, que começa por pode_ver_financeiro().
   //
   // Antes de top(), para a recusa sair com o cabeçalho ainda não enviado.
-  $manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+  $manda_em_todos = alcanca_todo_nucleo();
   $nuc_id = nucleo_do_caixa_em_foco(request_get("nuc_id", ""));
 
   if ($nuc_id === "")

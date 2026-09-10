@@ -6,7 +6,7 @@
 
   // Mesma regra de escopo do caixa e do fluxo, e pela mesma função: a spec exige o
   // núcleo IMPOSTO e não sugerido, e três cópias dela divergiriam.
-  $manda_em_todos = (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM]));
+  $manda_em_todos = alcanca_todo_nucleo();
   $nuc_id = nucleo_do_caixa_em_foco(request_get("nuc_id", ""));
 
   if ($nuc_id === "")
