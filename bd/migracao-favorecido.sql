@@ -1,3 +1,15 @@
+-- ============================================================================
+-- SUPERADA POR bd/migracao-cria-razao.sql — NÃO RODE ESTE ARQUIVO EM PRODUÇÃO.
+--
+-- Produção nunca teve a forma antiga da tabela: ela não tinha transacoes nenhuma.
+-- migracao-cria-razao.sql cria a tabela já com tra_favorecido, então este
+-- ADD COLUMN encontraria a coluna existente e o banco recusaria a passada inteira.
+--
+-- O arquivo fica no repositório porque serve a uma base que JÁ tenha a forma antiga —
+-- uma cópia local velha, por exemplo. Para produção, o roteiro é de dois passos:
+-- migracao-cria-razao.sql e depois migracao-rateio.sql, e mais nada.
+-- ============================================================================
+
 -- Quem recebeu o dinheiro. Passada ÚNICA, à mão. Nenhum script lê este arquivo.
 --
 -- POR QUE UMA COLUNA, E NÃO O HISTÓRICO
