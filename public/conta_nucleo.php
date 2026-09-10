@@ -360,7 +360,7 @@
 
 <p class="small text-muted">
   O saldo é quanto dinheiro está com o núcleo.
-  Pagamento de cestante aparece aqui sozinho — ele se lança em <strong>Pagamentos</strong>.
+  Pagamento de cestante aparece aqui sozinho — ele se lança em <strong>Pagamentos Cestantes</strong>.
 </p>
 
 <table class="table table-striped table-bordered table-condensed extrato-caixa">
