@@ -46,7 +46,11 @@ SELECT
 ALTER TABLE nucleotipos ADD COLUMN nuct_quota_rateio decimal(3,1) NOT NULL DEFAULT 1.0;
 ALTER TABLE nucleos     ADD COLUMN nuc_quota_rateio  decimal(3,1) DEFAULT NULL;
 
-CREATE TABLE rateios (
+-- IF NOT EXISTS é seguro aqui e caro de não ter: se esta passada quebrar depois da
+-- criação, repetir o arquivo esbarraria na tabela existente. Os dois ADD COLUMN acima
+-- continuam sem rede — o MySQL 5.6 não tem ADD COLUMN IF NOT EXISTS —, e é por isso
+-- que o bloco ANTES imprime o que já existe antes de qualquer escrita.
+CREATE TABLE IF NOT EXISTS rateios (
   rat_tra   int(10) unsigned      NOT NULL,
   rat_nuc   mediumint(6) unsigned NOT NULL,
   rat_valor decimal(10,2)         NOT NULL,
