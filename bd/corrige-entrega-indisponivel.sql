@@ -2,32 +2,31 @@
 -- Passada ÚNICA, para rodar à mão. Não é lida por script nenhum.
 --
 -- O QUE SÃO
--- 75 linhas, em apenas 2 chamadas de toda a história da base:
---
---   duas chamadas antigas, uma de Frescos e uma de Secos Bimestral. Poucas dezenas de
---   linhas na primeira, um punhado na segunda. Os ids saem do bloco ANTES, abaixo.
+-- Poucas dezenas de linhas em toda a história da base, concentradas em duas chamadas
+-- antigas: uma de Frescos, com quase todas, e uma de Secos Bimestral, com um punhado.
+-- Os ids saem do bloco ANTES, abaixo.
 --
 -- POR QUE SÃO ERRO DE DADO, E NÃO ENTREGA
 -- Três sinais, todos na mesma direção:
 --
 --   1. chaprod_disponibilidade = '0' — o produto estava marcado como indisponível.
---      Na 450 são 108 dos 118 produtos do Lindomar (Brejal - Horta Orgânica), ou
---      seja, o produtor inteiro ficou fora daquela chamada.
+--      Na chamada de Frescos, quase todos os produtos de um mesmo produtor estavam
+--      assim: o produtor inteiro ficou fora daquela chamada.
 --   2. chaprod_recebido_confirmado é NULL — ninguém confirmou que a Rede recebeu
 --      esses produtos do produtor. É a coluna que rel_previsao_pagamento.php usa
 --      para calcular quanto pagar a ele.
---   3. 70 das 75 linhas têm pedprod_entregue IDÊNTICO a pedprod_quantidade. Onde
+--   3. Quase todas as linhas têm pedprod_entregue IDÊNTICO a pedprod_quantidade. Onde
 --      alguém confere entrega de verdade os números divergem com frequência — é o
---      que acontece nas 1.388 linhas de produto disponível dessas mesmas chamadas.
+--      que acontece nas linhas de produto disponível dessas mesmas chamadas.
 --
--- Setenta linhas iguais ao pedido, sem recebimento confirmado e com o produto
--- marcado fora, são quantidade que sobrou do pedido e nunca foi corrigida — não
--- entrega que aconteceu.
+-- Linhas iguais ao pedido, sem recebimento confirmado e com o produto marcado fora,
+-- são quantidade que sobrou do pedido e nunca foi corrigida — não entrega que
+-- aconteceu.
 --
 -- POR QUE NULL E NÃO 0
--- A base usa NULL para "não registrado" (6,6 milhões de linhas) e 0 para "alguém
--- registrou zero" (41 mil). Nas próprias chamadas 450 e 1015 as linhas irmãs são
--- NULL: 9.641 e 2.829. Gravar 0 afirmaria que alguém conferiu e viu zero, o que não
+-- A base usa NULL para "não registrado" (milhões de linhas) e 0 para "alguém
+-- registrou zero" (uma fração pequena disso). Nas próprias chamadas corrigidas as
+-- linhas irmãs são NULL. Gravar 0 afirmaria que alguém conferiu e viu zero, o que não
 -- aconteceu. NULL diz o que de fato se sabe: não há registro de entrega.
 --
 -- O QUE NÃO MUDA
@@ -38,7 +37,7 @@
 -- que foi entregue.
 --
 -- COMO RODAR (faça backup antes)
---   1. bloco ANTES — ele IMPRIME as 75 linhas com o valor atual. Guarde essa saída:
+--   1. bloco ANTES — ele IMPRIME as linhas afetadas com o valor atual. Guarde essa saída:
 --      é a única cópia do que está sendo apagado, porque pedidoprodutos não tem
 --      coluna de histórico.
 --   2. UPDATE
@@ -82,9 +81,9 @@ JOIN chamadaprodutos cp ON cp.chaprod_cha = p.ped_cha AND cp.chaprod_prod = pp.p
 WHERE p.ped_fechado = 1 AND pp.pedprod_entregue > 0 AND cp.chaprod_disponibilidade = '0';
 
 -- e as duas chamadas continuam com as entregas legítimas intactas. Ensaiado em
--- transação com rollback na cópia local: 450 vai de 1006 para 933 entregas (as 73
--- corrigidas) e 1015 de 457 para 455 (as 2). Nenhuma outra linha é tocada — o
--- chaprod_disponibilidade = '0' do WHERE é o que garante isso.
+-- transação com rollback na cópia local: cada chamada perdeu exatamente as linhas
+-- corrigidas, e nenhuma outra linha foi tocada — o chaprod_disponibilidade = '0' do
+-- WHERE é o que garante isso.
 SELECT p.ped_cha AS chamada, COUNT(*) AS linhas_entregues_que_ficaram
 FROM pedidos p
 JOIN pedidoprodutos pp ON pp.pedprod_ped = p.ped_id
