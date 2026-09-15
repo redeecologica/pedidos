@@ -9,7 +9,10 @@ cd "$(dirname "$0")/.."
 source scripts/prod.env
 
 echo ">> Sondando canal SSH (Locaweb desliga sozinho após ~3h)..."
-SONDA=$(ssh -o BatchMode=yes -o ConnectTimeout=10 "${PROD_SSH_USER}@${PROD_SSH_HOST}" 'echo VIVO' 2>/dev/null || true)
+# -n pelo mesmo motivo do backup, abaixo: sem ele a sonda às vezes engole o SIM que
+# vem por pipe. É corrida — depende de o ssh ler o stdin antes de o echo remoto
+# terminar —, então funciona numa rodada e na seguinte o deploy para sem aviso.
+SONDA=$(ssh -n -o BatchMode=yes -o ConnectTimeout=10 "${PROD_SSH_USER}@${PROD_SSH_HOST}" 'echo VIVO' 2>/dev/null || true)
 [[ "$SONDA" == "VIVO" ]] || { echo "ERRO: canal SSH morto. Reabilite no painel e repita." >&2; exit 1; }
 
 BRANCH=$(git branch --show-current)
@@ -38,7 +41,9 @@ ssh -n "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
 echo ">> DRY-RUN do rsync (nada é alterado ainda):"
 rsync -avzn --itemize-changes "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -40
 echo
-read -r -p ">> Confirma o deploy? Digite SIM para prosseguir: " CONFIRMA
+# Sem confirmação na entrada, o read falha e o set -e encerraria o script calado,
+# logo depois do dry-run. O || faz a falta de resposta cair no "Abortado." abaixo.
+read -r -p ">> Confirma o deploy? Digite SIM para prosseguir: " CONFIRMA || CONFIRMA=""
 [[ "$CONFIRMA" == "SIM" ]] || { echo "Abortado."; exit 1; }
 
 rsync -avz "$SRC"/ "${PROD_SSH_USER}@${PROD_SSH_HOST}:${PROD_WEB_ROOT}/" | tail -5
