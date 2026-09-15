@@ -357,6 +357,24 @@ verifica("o detalhe traz o produto que diverge, com a justificativa ja escrita",
     && $det[0]['justificativa'] === 'chegou quebrado',
     is_array($det) ? json_encode($det) : var_export($det, true));
 
+// O QUE O NUCLEO PEDIU de cada produto, em unidades, ao lado do que confirmou receber e
+// do que entregou. Soma TODA linha de cestante, inclusive a que ficou em branco: cf2b
+// pediu 10 e ninguem anotou a entrega, mas o pedido existiu. Sem essa linha a coluna
+// diria que o nucleo pediu 30, e os 40 confirmados pareceriam sobra.
+verifica("o detalhe soma o que os cestantes pediram do produto, inclusive quem ficou em branco",
+    is_array($det) && isset($det[0]['pediu']) && round($det[0]['pediu'], 2) == 40.00,
+    json_encode(is_array($det) ? $det[0] : $det));
+
+// A DIFERENCA EM UNIDADES, e a em R$ continua a mesma. 40 confirmados menos 30 entregues
+// sao 10 unidades; a R$ 10 cada, os mesmos R$ 100 de antes. As duas tem de fechar entre
+// si pelo preco: se nao fecharem, uma das contas esta errada.
+verifica("e a diferenca em unidades, que fecha com a diferenca em R$ pelo preco",
+    is_array($det) && isset($det[0]['diferenca_qtd'])
+    && round($det[0]['diferenca_qtd'], 2) == 10.00
+    && round($det[0]['diferenca'], 2) == 100.00
+    && abs($det[0]['diferenca_qtd'] * $det[0]['preco'] - $det[0]['diferenca']) < 0.005,
+    json_encode(is_array($det) ? $det[0] : $det));
+
 // Os nomes sao o que torna a linha investigavel: "4 em branco" manda abrir outra tela.
 verifica("e NOMEIA quem ficou em branco, com o que cada um pediu",
     is_array($det) && count($det[0]['em_branco']) === 1
