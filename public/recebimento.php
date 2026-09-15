@@ -1,5 +1,6 @@
 <?php  
   require  "common.inc.php"; 
+  require_once(__DIR__ . "/financeiro.inc.php"); 
   verifica_seguranca($_SESSION[PAP_RESP_MUTIRAO] || $_SESSION[PAP_RESP_ENTREGA]  || $_SESSION[PAP_RESP_FINANCAS] );
   top();
 ?>
@@ -144,12 +145,11 @@
 		else
 		{
 			?>
-                <ul class="nav nav-tabs">
-                  <li><a href="financas.php">Finanças</a></li>
-                  <li class="active"><a href="#"><i class="glyphicon glyphicon-road"></i> Confirmação Entrega dos Produtores</a></li>
-                  <li><a href="financas_prazos.php"><i class="glyphicon glyphicon-calendar"></i> Configuração Prazos</a></li>  
-                </ul>
-                <br>
+                <?php
+                  // Barra centralizada: copiada aqui, ela ficava com as três abas de
+                  // antes do módulo e fazia as novas sumirem ao chegar nesta tela.
+                  abas_financeiras('rede', 'recebimento');
+                ?>
             <?php
 		}
 		

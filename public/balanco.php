@@ -73,17 +73,28 @@
   // chamada dizer sozinha o que ela mostra.
   function tabela_detalhe($linhas, $tem_mutirao)
   {
-      $cols = $tem_mutirao ? 7 : 6;
+      $cols = $tem_mutirao ? 9 : 8;
       $num  = function ($v) { return rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ','); };
 ?>
 <table class="table table-bordered table-condensed table-striped" style="margin-bottom:0;">
   <thead>
     <tr>
       <th>Produto</th>
+      <?php
+        // O PEDIDO LOGO DEPOIS DO NOME, na mesma ordem da linha do núcleo logo acima: o
+        // detalhe conta a mesma história, produto a produto, e as duas tabelas precisam
+        // se ler na mesma sequência.
+      ?>
+      <th class="text-right">Pedido</th>
       <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregue</th>
-      <th class="text-right">Diferença</th>
+      <?php
+        // o mesmo "(recebido e entregue)" da tabela de cima, pelo mesmo motivo: com o
+        // Pedido na linha, um "Diferença" solto convida a supor que é contra ele
+      ?>
+      <th class="text-right" title="o que o núcleo confirmou receber menos o que entregou, em unidades">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right" title="a mesma diferença, a preço de venda">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th>Justificativa</th>
       <th>Linhas em branco</th>
     </tr>
@@ -92,6 +103,7 @@
   <?php foreach ($linhas as $d) { ?>
     <tr>
       <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
+      <td class="text-right"><?php echo(h($num($d['pediu']))); ?></td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
         <?php echo($d['enviou'] > 0 ? h($num($d['enviou']))
@@ -100,6 +112,13 @@
       <?php } ?>
       <td class="text-right"><?php echo(h($num($d['recebeu']))); ?></td>
       <td class="text-right"><?php echo(h($num($d['entregue']))); ?></td>
+      <?php
+        // cada diferença se marca pelo PRÓPRIO valor: produto sem preço diverge em
+        // unidades e fecha em zero real
+      ?>
+      <td class="text-right<?php echo(abs($d['diferenca_qtd']) > 0.005 ? ' text-danger' : ''); ?>">
+        <?php echo(h($num($d['diferenca_qtd']))); ?>
+      </td>
       <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
         <?php echo(h(formata_moeda($d['diferenca']))); ?>
       </td>
@@ -242,9 +261,9 @@
 </legend>
 
 <?php
-  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado −81,00" se lê como o que o rótulo
-  // afirma, com um menos que ninguém sabe interpretar sem uma referência de qual é o
-  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
+  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado" com um menos na frente se lê como
+  // o que o rótulo afirma, mais um sinal que ninguém sabe interpretar sem uma referência
+  // de qual é o lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
   // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
   // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
   // sinal do lançamento.
@@ -492,8 +511,11 @@
         // "Diferença" solto convida a supor que é contra o pedido — a coluna mais à
         // esquerda —, e não contra as duas ao lado. Ela é recebido menos entregue, e é
         // esse par que ela mede.
+        //
+        // E diz R$ porque o detalhe de cada núcleo traz a mesma diferença também em
+        // unidades: sem a moeda no cabeçalho, as duas se confundem.
       ?>
-      <th class="text-right">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th></th>
     </tr>
   </thead>

@@ -422,12 +422,14 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 			// NULL quando a linha só existe pela justificativa: o núcleo não confirmou
 			// recebimento nenhum daquele produto, e 0,00 diria que confirmou zero.
 			'recebeu'      => ($r['recebeu'] === null) ? 0.0 : round((float)$r['recebeu'], 2),
+			// o que os cestantes do núcleo pediram, somado abaixo linha a linha
+			'pediu'        => 0.0,
 			'entregue'     => 0.0,
 			'justificativa'=> trim((string)$r['justificativa']),
 			'em_branco'    => array(),
 			// TODA linha de cestante deste produto, e não só as em branco: é o registro
-			// que deu origem à nota. Quem lê "chegou quebrado no núcleo · R$ 49,00"
-			// precisa poder ver de quem era o mel, quem pediu e quem levou — sem isso a
+			// que deu origem à nota. Quem lê uma justificativa curta ao lado de um valor
+			// precisa poder ver de quem era aquele produto, quem pediu e quem levou — sem isso a
 			// justificativa é palavra sem lastro, e conferir vira abrir outra tela.
 			'cestantes'    => array());
 
@@ -454,6 +456,11 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 		$pediu    = round((float)$r['pediu'], 2);
 		$entregue = ($r['entregue'] === null) ? null : round((float)$r['entregue'], 2);
 
+		// Soma TODA linha, inclusive a que ficou em branco: o pedido existiu mesmo que
+		// ninguém tenha anotado a entrega. Somar só as preenchidas faria o recebido
+		// parecer sobra justamente onde falta anotação.
+		$produtos[$id]['pediu'] = round($produtos[$id]['pediu'] + $pediu, 2);
+
 		// cestante que não pediu e nada recebeu não é registro, é linha de grade
 		if ($pediu > 0 || ($entregue !== null && $entregue > 0))
 			$produtos[$id]['cestantes'][] = array(
@@ -476,7 +483,10 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	$linhas = array();
 	foreach ($produtos as $x)
 	{
-		$x['diferenca'] = round(($x['recebeu'] - $x['entregue']) * $x['preco'], 2);
+		// a mesma diferença em unidades e em R$: quem confere o produto conta unidades, e
+		// quem fecha a conta soma reais
+		$x['diferenca_qtd'] = round($x['recebeu'] - $x['entregue'], 2);
+		$x['diferenca']     = round(($x['recebeu'] - $x['entregue']) * $x['preco'], 2);
 
 		if (abs($x['diferenca']) < 0.005 && !count($x['em_branco']) && $x['justificativa'] === '')
 			continue;
