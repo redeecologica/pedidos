@@ -89,8 +89,12 @@
       <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregue</th>
-      <th class="text-right" title="o que o núcleo confirmou receber menos o que entregou, em unidades">Diferença</th>
-      <th class="text-right" title="a mesma diferença, a preço de venda">Diferença (R$)</th>
+      <?php
+        // o mesmo "(recebido e entregue)" da tabela de cima, pelo mesmo motivo: com o
+        // Pedido na linha, um "Diferença" solto convida a supor que é contra ele
+      ?>
+      <th class="text-right" title="o que o núcleo confirmou receber menos o que entregou, em unidades">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right" title="a mesma diferença, a preço de venda">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th>Justificativa</th>
       <th>Linhas em branco</th>
     </tr>
@@ -507,8 +511,11 @@
         // "Diferença" solto convida a supor que é contra o pedido — a coluna mais à
         // esquerda —, e não contra as duas ao lado. Ela é recebido menos entregue, e é
         // esse par que ela mede.
+        //
+        // E diz R$ porque o detalhe de cada núcleo traz a mesma diferença também em
+        // unidades: sem a moeda no cabeçalho, as duas se confundem.
       ?>
-      <th class="text-right">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th></th>
     </tr>
   </thead>
