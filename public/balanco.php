@@ -73,17 +73,24 @@
   // chamada dizer sozinha o que ela mostra.
   function tabela_detalhe($linhas, $tem_mutirao)
   {
-      $cols = $tem_mutirao ? 7 : 6;
+      $cols = $tem_mutirao ? 9 : 8;
       $num  = function ($v) { return rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ','); };
 ?>
 <table class="table table-bordered table-condensed table-striped" style="margin-bottom:0;">
   <thead>
     <tr>
       <th>Produto</th>
+      <?php
+        // O PEDIDO LOGO DEPOIS DO NOME, na mesma ordem da linha do núcleo logo acima: o
+        // detalhe conta a mesma história, produto a produto, e as duas tabelas precisam
+        // se ler na mesma sequência.
+      ?>
+      <th class="text-right">Pedido</th>
       <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregue</th>
-      <th class="text-right">Diferença</th>
+      <th class="text-right" title="o que o núcleo confirmou receber menos o que entregou, em unidades">Diferença</th>
+      <th class="text-right" title="a mesma diferença, a preço de venda">Diferença (R$)</th>
       <th>Justificativa</th>
       <th>Linhas em branco</th>
     </tr>
@@ -92,6 +99,7 @@
   <?php foreach ($linhas as $d) { ?>
     <tr>
       <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
+      <td class="text-right"><?php echo(h($num($d['pediu']))); ?></td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
         <?php echo($d['enviou'] > 0 ? h($num($d['enviou']))
@@ -100,6 +108,13 @@
       <?php } ?>
       <td class="text-right"><?php echo(h($num($d['recebeu']))); ?></td>
       <td class="text-right"><?php echo(h($num($d['entregue']))); ?></td>
+      <?php
+        // cada diferença se marca pelo PRÓPRIO valor: produto sem preço diverge em
+        // unidades e fecha em zero real
+      ?>
+      <td class="text-right<?php echo(abs($d['diferenca_qtd']) > 0.005 ? ' text-danger' : ''); ?>">
+        <?php echo(h($num($d['diferenca_qtd']))); ?>
+      </td>
       <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
         <?php echo(h(formata_moeda($d['diferenca']))); ?>
       </td>
