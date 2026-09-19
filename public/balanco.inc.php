@@ -136,6 +136,11 @@ function compara_nome_de_nucleo($a, $b)
 // vai para produtor nenhum, e B inteiro é da Rede. Sem essa divisão a tela dizia que a
 // Rede "pagou ao produtor" um dinheiro que nunca saiu.
 //
+// E A ARRECADAÇÃO EM TAXAS, AO LADO E FORA DA CONTA: o que se cobrou além do preço de
+// venda — a taxa da chamada, dos associados, e a margem de quem não é associado. É
+// referência do que a chamada gerou para a Rede, e não entra no confirmado nem no não
+// cobrado.
+//
 // O CONTADOR DE ENTREGAS NÃO REGISTRADAS vem junto de propósito. Sem ele, alguém leria
 // como perda do núcleo o que é apenas entrega que ninguém anotou — e cobraria do núcleo
 // por um erro de digitação. Medido na base: linha pedida sem entrega registrada é
@@ -144,7 +149,7 @@ function compara_nome_de_nucleo($a, $b)
 // CONTRATO: array, ou null quando a chamada não existe ou a consulta não roda.
 function balanco_da_chamada($cha_id)
 {
-	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome, pt.prodt_mutirao "
+	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, c.cha_taxa_percentual, pt.prodt_nome, pt.prodt_mutirao "
 	     . "FROM chamadas c "
 	     . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
 	     . "WHERE c.cha_id = " . prep_para_bd($cha_id));
@@ -332,6 +337,48 @@ function balanco_da_chamada($cha_id)
 		);
 	}
 
+	// ---- a arrecadação em taxas: o que se cobra ALÉM do preço de venda — referência, fora da conta ----
+	//
+	// A conta acima é inteira a preço de venda. Por fora dela o cestante paga mais duas
+	// coisas, e são elas que esta parte mede: o associado paga a TAXA da chamada sobre o
+	// que recebeu, e quem não é associado paga o preço COM MARGEM, e não a taxa. Nenhum
+	// real daqui aparece na conta, então somar as duas coisas não conta nada duas vezes.
+	//
+	// A MESMA CONTA DO DÉBITO DO CESTANTE (debitos_derivados, em financeiro.inc.php): pedido
+	// fechado, produto disponível, o entregue de cada pedido arredondado, e a taxa
+	// arredondada POR PEDIDO. Somar e arredondar no fim daria centavos a menos — e o Balanço
+	// tem de dizer o que os cestantes de fato pagam.
+	$taxa_pct = ($cha['cha_taxa_percentual'] === null) ? 0.0 : (float)$cha['cha_taxa_percentual'];
+
+	$sql = "SELECT ped.ped_id, ped.ped_usr_associado assoc, ";
+	$sql.= "SUM(p.prod_valor_venda * pp.pedprod_entregue) venda, ";
+	$sql.= "SUM(p.prod_valor_venda_margem * pp.pedprod_entregue) com_margem ";
+	$sql.= "FROM pedidos ped ";
+	$sql.= "JOIN pedidoprodutos pp  ON pp.pedprod_ped = ped.ped_id ";
+	$sql.= "JOIN chamadas c         ON c.cha_id = ped.ped_cha ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = c.cha_id AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos p         ON p.prod_id = pp.pedprod_prod ";
+	$sql.= "  AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "WHERE ped.ped_cha = " . prep_para_bd($id) . " AND ped.ped_fechado = 1 ";
+	$sql.= "AND cp.chaprod_disponibilidade <> '0' AND pp.pedprod_entregue > 0 ";
+	$sql.= "GROUP BY ped.ped_id, ped.ped_usr_associado";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$taxa = 0.0;
+	$nao_associados = 0.0;
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$venda = round((float)$r['venda'], 2);
+		if ($r['assoc'] == '0')
+			// o que ele paga acima da venda. Pode ser NEGATIVO: há produto com preço de
+			// não associado abaixo do de associado, e a tela troca a palavra
+			$nao_associados += round((float)$r['com_margem'], 2) - $venda;
+		else
+			$taxa += round($venda * $taxa_pct, 2);
+	}
+
 	return array(
 		'cha_id'     => $id,
 		'tipo'       => (string)$cha['prodt_nome'],
@@ -356,6 +403,14 @@ function balanco_da_chamada($cha_id)
 		'nao_cobrado' => round($confirmado + $estoque['antes'] - $total['distribuiu'] - $estoque['depois'], 2),
 		// o julgamento de Finanças ao ler as justificativas
 		'abatido'     => round($total['recebeu'] - $confirmado, 2),
+		// o que se cobrou além do preço de venda. REFERÊNCIA: nada daqui entra no
+		// confirmado nem no não cobrado
+		'receita'     => array(
+			'taxa_percentual' => $taxa_pct,
+			'taxa'            => round($taxa, 2),
+			'nao_associados'  => round($nao_associados, 2),
+			'alem_da_venda'   => round($taxa + $nao_associados, 2),
+		),
 	);
 }
 

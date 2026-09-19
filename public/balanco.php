@@ -482,6 +482,51 @@
       Tudo a <strong>preço de venda</strong>, menos a linha do produtor, que é a preço de
       compra. A pergunta aqui é quanto disto virou dívida de alguém.
     </p>
+
+    <?php
+      // A ARRECADAÇÃO EM TAXAS, PARA REFERÊNCIA. É o que se cobrou além do preço de venda — a
+      // taxa dos associados e a margem de quem não é associado —, e fica FORA da conta: a
+      // conta acima é inteira a preço de venda, então nenhum real daqui aparece nela. A taxa
+      // é a mesma do Entregue aos Cestantes, somada nos núcleos.
+      //
+      // O número sai sempre positivo e a palavra diz o sentido, como no resto da tela: há
+      // produto com preço de não associado abaixo do de associado.
+      $rec       = $conf['receita'];
+      $tem_taxa  = ($rec['taxa_percentual'] > 0.00001);
+      $tem_nao_a = (abs($rec['nao_associados']) > 0.005);
+      $pct_taxa  = formata_numero_de_mysql(round($rec['taxa_percentual'] * 100, 2));
+    ?>
+    <p class="small" style="margin:16px 0 4px;"><strong>Arrecadação em taxas nesta chamada</strong><br>
+      <span class="text-muted">para referência — não entra na conta acima</span></p>
+    <table class="table table-condensed" style="margin-bottom:10px;">
+      <tbody>
+        <?php if ($tem_taxa) { ?>
+        <tr>
+          <td class="small">taxa de <?php echo(h($pct_taxa)); ?>% dos associados
+            <span class="text-muted">&mdash; sobre o entregue a associados</span></td>
+          <td class="text-right small"><?php echo(h(formata_moeda($rec['taxa']))); ?></td>
+        </tr>
+        <?php } else { ?>
+        <tr><td class="small text-muted" colspan="2">sem taxa nesta chamada</td></tr>
+        <?php } ?>
+        <?php if ($tem_nao_a) { ?>
+        <tr>
+          <td class="small"><?php echo($rec['nao_associados'] > 0 ? 'margem' : 'desconto'); ?> de quem não é associado
+            <span class="text-muted">&mdash; o que ele paga <?php echo($rec['nao_associados'] > 0 ? 'acima' : 'abaixo'); ?> do preço de venda</span></td>
+          <td class="text-right small"><?php echo(h(formata_moeda(abs($rec['nao_associados'])))); ?></td>
+        </tr>
+        <?php } ?>
+        <?php
+          // o total só quando há duas linhas: com uma só, ele repetiria o número dela
+          if ($tem_taxa && $tem_nao_a) { ?>
+        <tr class="active">
+          <th class="small"><?php echo($rec['alem_da_venda'] >= -0.005 ? 'cobrado além do preço de venda'
+                                                                  : 'abaixo do preço de venda, no total'); ?></th>
+          <th class="text-right small"><?php echo(h(formata_moeda(abs($rec['alem_da_venda'])))); ?></th>
+        </tr>
+        <?php } ?>
+      </tbody>
+    </table>
   </div>
 </div>
 

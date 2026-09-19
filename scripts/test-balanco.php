@@ -656,6 +656,110 @@ foreach ((array)$rn_cf as $n) {
 verifica("distribuido e recebido batem com o Balanco, nucleo a nucleo",
     $batem, implode(' | ', $pares));
 
+// ---- a receita que a Rede cobra ALEM do preco de venda ----
+//
+// Referencia, fora da conta do nao cobrado. O associado paga a taxa da chamada sobre o
+// que recebeu; quem nao e associado paga o preco com margem, e nao a taxa. As duas coisas
+// sao o que se cobra por fora do preco de venda — e a conta do Balanco inteira e a preco
+// de venda, entao nenhum real aparece nos dois lugares.
+//
+// Chamada com taxa de 5%: o associado recebe 20 a 10 — 200, taxa 10,00. Quem nao e
+// associado recebe 5 com margem 13 — paga 3 acima da venda em cada, 15,00. E um produto
+// que ficou INDISPONIVEL e mesmo assim foi entregue ao associado nao entra: o debito do
+// cestante tambem nao o cobra.
+$cha_tx = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-08-08 23:59:59','2026-07-28 00:00:00','2026-08-04 23:59:59',0.05)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_tx . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_tx . "," . (int)$prod_cf2_id . ",'0')");
+$ped_tx1 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_tx . "," . (int)$usr_cf1 . "," . (int)$nuc_cf1 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx1 . "," . (int)$prod_est_id . ",20,20)");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx1 . "," . (int)$prod_cf2_id . ",10,10)");
+$ped_tx2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_tx . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx2 . "," . (int)$prod_est_id . ",5,5)");
+
+$cf_tx  = balanco_da_chamada($cha_tx);
+$rec_tx = (is_array($cf_tx) && isset($cf_tx['receita'])) ? $cf_tx['receita'] : null;
+
+verifica("a taxa da chamada incide sobre o entregue a associados, sem o indisponivel",
+    is_array($rec_tx) && round($rec_tx['taxa_percentual'], 4) == 0.05 && round($rec_tx['taxa'], 2) == 10.00,
+    json_encode($rec_tx));
+verifica("quem nao e associado paga a margem acima do preco de venda, e nao a taxa",
+    is_array($rec_tx) && round($rec_tx['nao_associados'], 2) == 15.00,
+    json_encode($rec_tx));
+verifica("e o cobrado alem do preco de venda soma as duas",
+    is_array($rec_tx) && round($rec_tx['alem_da_venda'], 2) == 25.00,
+    json_encode($rec_tx));
+
+// A RECEITA NAO ENTRA NA CONTA. A mesma chamada sem taxa tem de devolver o mesmo
+// confirmado e o mesmo nao cobrado: se a taxa um dia vazar para a conta, e aqui que
+// aparece.
+executa_sql("UPDATE chamadas SET cha_taxa_percentual = 0.00 WHERE cha_id = " . (int)$cha_tx);
+$cf_tx0 = balanco_da_chamada($cha_tx);
+verifica("mudar a taxa da chamada nao mexe no confirmado nem no nao cobrado",
+    is_array($cf_tx) && is_array($cf_tx0) && isset($cf_tx0['receita'])
+    && abs($cf_tx['confirmado'] - $cf_tx0['confirmado']) < 0.005
+    && abs($cf_tx['nao_cobrado'] - $cf_tx0['nao_cobrado']) < 0.005
+    && round($cf_tx0['receita']['taxa'], 2) == 0.00,
+    json_encode(array(is_array($cf_tx) ? $cf_tx['nao_cobrado'] : null, is_array($cf_tx0) ? $cf_tx0['nao_cobrado'] : null)));
+
+// ARREDONDADA POR PEDIDO, como o debito do cestante: dois associados que recebem 0,10
+// cada um pagam 0,01 de taxa cada (0,005 arredondado), e a Rede recebe 0,02 — e nao
+// 0,01, que seria arredondar a soma. O Balanco tem de dizer o que os cestantes de fato
+// pagam.
+//
+// E quem nao e associado pode pagar ABAIXO da venda — acontece na Associacao. A funcao
+// devolve o numero com sinal, e a tela troca a palavra.
+$cha_rd = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-08-15 23:59:59','2026-08-04 00:00:00','2026-08-11 23:59:59',0.05)");
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900012,1," . (int)$forn_res . ",'Dez centavos','un',0.10,0.10,0.10,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900013,1," . (int)$forn_res . ",'Mais barato sem associacao','un',0.00,50.00,40.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_rd . ",900012,1)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_rd . ",900013,1)");
+foreach (array($usr_cf1, $usr_cf2b) as $u) {
+    $p = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+        VALUES (" . (int)$cha_rd . "," . (int)$u . "," . (int)$nuc_cf1 . ",1,'1')");
+    executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+        VALUES (" . (int)$p . ",900012,1,1)");
+}
+$p = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_rd . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$p . ",900013,1,1)");
+
+$cf_rd  = balanco_da_chamada($cha_rd);
+$rec_rd = (is_array($cf_rd) && isset($cf_rd['receita'])) ? $cf_rd['receita'] : null;
+verifica("a taxa e arredondada por pedido, como o debito do cestante",
+    is_array($rec_rd) && round($rec_rd['taxa'], 2) == 0.02,
+    json_encode($rec_rd));
+verifica("quem nao e associado e paga abaixo da venda sai negativo, para a tela trocar a palavra",
+    is_array($rec_rd) && round($rec_rd['nao_associados'], 2) == -10.00,
+    json_encode($rec_rd));
+
+// chamada sem taxa: zero, e nao ausente — a tela diz "sem taxa nesta chamada"
+$cf_sem_taxa = balanco_da_chamada($cha_cf);
+verifica("chamada sem taxa devolve a receita zerada, e nao ausente",
+    is_array($cf_sem_taxa) && isset($cf_sem_taxa['receita'])
+    && round($cf_sem_taxa['receita']['taxa_percentual'], 4) == 0.0
+    && round($cf_sem_taxa['receita']['taxa'], 2) == 0.00,
+    json_encode(is_array($cf_sem_taxa) && isset($cf_sem_taxa['receita']) ? $cf_sem_taxa['receita'] : null));
+
 // (a fila de fechamento e do modulo financeiro, e nao entra nesta suite)
 
 verifica("chamada que nao existe devolve null",
