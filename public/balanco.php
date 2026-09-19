@@ -261,27 +261,31 @@
 </legend>
 
 <?php
-  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado" com um menos na frente se lê como
-  // o que o rótulo afirma, mais um sinal que ninguém sabe interpretar sem uma referência
-  // de qual é o lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
-  // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
-  // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
-  // sinal do lançamento.
+  // O SINAL NÃO DIZ NADA SOZINHO. "confirmado e não cobrado" com um menos na frente se lê
+  // como o que o rótulo afirma, mais um sinal que ninguém sabe interpretar sem uma
+  // referência de qual é o lado normal. E o negativo significa o CONTRÁRIO do rótulo: saiu
+  // mais produto do que Finanças confirmou. Então quem muda é a palavra, e o número sai
+  // sempre positivo — a mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu"
+  // substituíram o sinal do lançamento.
+  //
+  // E A PALAVRA NÃO FALA EM PAGAR. Dizia "pago e não cobrado", e na Associação ninguém é
+  // pago: a anuidade tem compra 0 e fica inteira com a Rede. O que vale para toda chamada é
+  // o que Finanças confirmou — para onde isso vai está logo acima, na corrente.
   $saldo_conf = $conf['nao_cobrado'];
 
   if ($saldo_conf > 0.005)
   {
-      $rot_saldo = 'pago e não cobrado';
-      $sub_saldo = 'a Rede pagou por produto que ninguém foi cobrado';
+      $rot_saldo = 'confirmado e não cobrado';
+      $sub_saldo = 'Finanças confirmou produto que ninguém foi cobrado';
   }
   else if ($saldo_conf < -0.005)
   {
-      $rot_saldo = 'recebido e não pago';
-      $sub_saldo = 'entrou mais produto do que a Rede pagou ao produtor';
+      $rot_saldo = 'saiu além do confirmado';
+      $sub_saldo = 'saiu mais produto do que Finanças confirmou';
   }
   else
   {
-      $rot_saldo = 'pago e cobrado se equivalem';
+      $rot_saldo = 'confirmado e cobrado se equivalem';
       $sub_saldo = '';
   }
 ?>
@@ -319,12 +323,28 @@
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></td></tr>
         <?php
           // Finanças confirma POR ÚLTIMO, e a ordem da tabela diz isso: ela olha as
-          // justificativas que os núcleos escreveram depois da entrega, e só então fecha o
-          // número que paga o produtor. Posta no meio, parecia etapa do caminho do
-          // produto; no fim, é o julgamento que ela de fato é.
+          // justificativas que os núcleos escreveram depois da entrega, e só então fecha a
+          // conta. Posta no meio, parecia etapa do caminho do produto; no fim, é o
+          // julgamento que ela de fato é.
         ?>
-        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
+        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; fecha a conta</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
+        <?php
+          // PARA ONDE O CONFIRMADO VAI. O produtor recebe a preço de COMPRA — a mesma conta
+          // de A Pagar Produtores —, e a diferença até a venda fica com a Rede. É o que o
+          // módulo de Finanças separa: o que a Rede deve ao produtor, e o que é receita dela.
+          // Numa chamada comum quase tudo vai ao produtor; na Associação, nada vai.
+          //
+          // Se um dia a venda ficar abaixo da compra, a Rede põe a diferença do bolso: a
+          // palavra muda e o número segue positivo, como no saldo abaixo.
+          $rede_completa = ($conf['com_a_rede'] < -0.005);
+        ?>
+        <tr><td style="padding-left:24px;">vai para o produtor <small class="text-muted">&mdash; a preço de compra</small></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['ao_produtor']))); ?></td></tr>
+        <tr><td style="padding-left:24px;"><?php echo($rede_completa ? 'a Rede completa' : 'fica com a Rede'); ?>
+              <small class="text-muted">&mdash; <?php echo($rede_completa ? 'a venda ficou abaixo da compra'
+                                                                          : 'a diferença entre venda e compra'); ?></small></td>
+            <td class="text-right"><?php echo(h(formata_moeda(abs($conf['com_a_rede'])))); ?></td></tr>
         <tr class="active">
           <th><?php echo(h($rot_saldo)); ?>
             <?php if ($sub_saldo !== '') { ?>
@@ -340,7 +360,7 @@
   </div>
   <div class="col-sm-5">
     <?php
-      // A CONTA, aberta. O total de "pago e não cobrado" costuma sair bem acima da
+      // A CONTA, aberta. O total de "confirmado e não cobrado" costuma sair bem acima da
       // diferença direta entre as duas primeiras linhas, e isso faz quem lê desconfiar do
       // número — a explicação em prosa dizia só metade da verdade: que o estoque
       // desconta. Ele entra NOS DOIS SENTIDOS, e soma quando a entrega consumiu
@@ -352,7 +372,7 @@
     <table class="table table-condensed" style="margin-bottom:10px;">
       <tbody>
         <tr>
-          <td class="small">a Rede pagou ao produtor</td>
+          <td class="small">Finanças confirmou</td>
           <td class="text-right small"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td>
         </tr>
         <tr>
@@ -395,15 +415,15 @@
           $detalhes[] = 'O <strong>estoque entra nos dois sentidos</strong>, e é aí que o'
                       . ' número costuma surpreender.'
                       . '<br><br>Se o estoque <strong>encolheu</strong> nesta chamada, saiu'
-                      . ' produto do que estava guardado. A Rede pagou por ele numa chamada'
+                      . ' produto do que estava guardado. Finanças o confirmou numa chamada'
                       . ' anterior, e ele está entre o que saiu nesta aqui — então entra do'
-                      . ' lado do que foi pago, e <strong>soma</strong>.'
+                      . ' lado do confirmado, e <strong>soma</strong>.'
                       . '<br><br>Se o estoque <strong>cresceu</strong>, ficou produto'
-                      . ' guardado para a próxima chamada. A Rede pagou por ele, mas ele não'
-                      . ' foi entregue agora e continua sendo dela — então sai da conta desta'
-                      . ' chamada, e <strong>desconta</strong>.'
+                      . ' guardado para a próxima chamada. Finanças o confirmou, mas ele não'
+                      . ' foi entregue agora e continua sendo da Rede — então sai da conta'
+                      . ' desta chamada, e <strong>desconta</strong>.'
                       . '<br><br>As duas primeiras linhas sozinhas respondem "<em>nesta'
-                      . ' chamada, pagamos mais do que cobramos?</em>". Com o estoque, a'
+                      . ' chamada, confirmamos mais do que cobramos?</em>". Com o estoque, a'
                       . ' pergunta passa a ser "<em>de tudo que estava disponível para'
                       . ' entregar, quanto não virou cobrança?</em>".';
 
@@ -427,7 +447,8 @@
                       . ' não há contagem do mutirão, remessa a caminho nem estoque guardado'
                       . ' entre chamadas, e por isso essas linhas não aparecem. O produto'
                       . ' é contado <strong>três vezes</strong> — o núcleo confirma o que'
-                      . ' chegou, o cestante recebe, e Finanças fecha o que paga o produtor.'
+                      . ' chegou, o cestante recebe, e Finanças fecha a conta — o que vai'
+                      . ' para o produtor e o que fica com a Rede.'
                       . ' Confirmado contra entregue é o que ficou <strong>no núcleo</strong>;'
                       . ' confirmado contra Finanças é o que ela <strong>abateu</strong> ao ler'
                       . ' as justificativas.';
@@ -435,12 +456,12 @@
     ?>
     <p class="small text-muted">
       <?php if ($saldo_conf < -0.005) { ?>
-      <strong>Recebido e não pago</strong> é o contrário do caso comum: saiu mais produto
-      — entregue aos cestantes, mais o que ficou guardado — do que a Rede pagou ao produtor.
+      <strong>Saiu além do confirmado</strong> é o contrário do caso comum: saiu mais produto
+      — entregue aos cestantes, mais o que ficou guardado — do que Finanças confirmou.
       Costuma ser produto que chegou a mais e foi aceito, ou contagem de recebimento que
       ficou abaixo do que de fato entrou.
       <?php } else { ?>
-      <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
+      <strong>Confirmado e não cobrado</strong> é o que Finanças confirmou e ninguém foi
       cobrado. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi anotada.
       <?php } ?>
       <?php
@@ -458,8 +479,8 @@
          data-content="<?php echo(h(implode('<br><br>', $detalhes))); ?>">
         <i class="glyphicon glyphicon-info-sign"></i> Mais detalhes</a>
       <br><br>
-      Tudo a <strong>preço de venda</strong>: a pergunta aqui é quanto disto virou dívida de
-      alguém.
+      Tudo a <strong>preço de venda</strong>, menos a linha do produtor, que é a preço de
+      compra. A pergunta aqui é quanto disto virou dívida de alguém.
     </p>
   </div>
 </div>
