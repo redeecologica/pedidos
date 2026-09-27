@@ -139,9 +139,9 @@ foreach ($linhas as $l)
 }
 
 // ---- mostra o que faria ----
-printf("%-9s %-52s %12s\n", 'tipo', 'conta', 'valor');
+printf("%-9s %-80s %12s\n", 'tipo', 'conta', 'valor');
 foreach ($resolvidas as $r)
-	printf("%-9s %-52s %12s\n", $r['linha']['tipo'], mb_substr_carga($r['quem'], 52),
+	printf("%-9s %-80s %12s\n", $r['linha']['tipo'], mb_substr_carga($r['quem'], 80),
 	       number_format($r['linha']['valor'], 2, ',', '.'));
 
 // substr sem mbstring: corta por bytes respeitando o começo de caractere UTF-8, para a
@@ -157,7 +157,7 @@ function mb_substr_carga($t, $n)
 
 $soma = 0.0;
 foreach ($resolvidas as $r) $soma = round($soma + $r['linha']['valor'], 2);
-printf("%-9s %-52s %12s\n", '', 'soma das linhas', number_format($soma, 2, ',', '.'));
+printf("%-9s %-80s %12s\n", '', 'soma das linhas', number_format($soma, 2, ',', '.'));
 
 if (count($pendencias))
 {
