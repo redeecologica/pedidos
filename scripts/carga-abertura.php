@@ -144,14 +144,23 @@ foreach ($resolvidas as $r)
 	printf("%-9s %-80s %12s\n", $r['linha']['tipo'], mb_substr_carga($r['quem'], 80),
 	       number_format($r['linha']['valor'], 2, ',', '.'));
 
-// substr sem mbstring: corta por bytes respeitando o começo de caractere UTF-8, para a
-// tabela não sair com meio caractere no fim de uma linha
+// substr sem mbstring: corta por bytes sem partir caractere UTF-8 no meio.
+//
+// Duas remoções, e não uma. Primeiro os bytes de continuação (10xxxxxx), que são o meio do
+// caractere. Depois, se o último byte que sobrou for de ABERTURA (11xxxxxx), ele também
+// sai: um caractere que começou e não terminou deixa a saída inválida, e foi assim que a
+// primeira lista do ensaio saiu ilegível.
 function mb_substr_carga($t, $n)
 {
 	if (strlen($t) <= $n) return $t;
 	$corte = substr($t, 0, $n);
+
 	while (strlen($corte) && (ord($corte[strlen($corte) - 1]) & 0xC0) === 0x80)
 		$corte = substr($corte, 0, -1);
+
+	if (strlen($corte) && (ord($corte[strlen($corte) - 1]) & 0xC0) === 0xC0)
+		$corte = substr($corte, 0, -1);
+
 	return $corte;
 }
 
