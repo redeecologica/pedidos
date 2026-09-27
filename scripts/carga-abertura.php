@@ -32,10 +32,15 @@
 //
 // Idempotente: conta que já tem abertura é pulada, e o script diz quantas pulou.
 
-// O caminho do app muda entre a cópia local e o servidor, então tenta os dois.
-$app = is_readable('/var/www/html/common.inc.php')
-     ? '/var/www/html'
-     : dirname(dirname(__FILE__)) . '/public';
+// O CAMINHO DO APP muda de máquina para máquina. No container é /var/www/html; rodando do
+// repositório é ../public; e no servidor o script fica na pasta pessoal, fora do docroot —
+// porque o CSV que ele lê tem nome e saldo de gente, e nada disso pode ficar num diretório
+// que o servidor web serve. Lá o caminho vem por CARGA_APP.
+$app = (string)getenv('CARGA_APP');
+if ($app === '')
+	$app = is_readable('/var/www/html/common.inc.php')
+	     ? '/var/www/html'
+	     : dirname(dirname(__FILE__)) . '/public';
 
 require_once $app . "/common.inc.php";
 require_once $app . "/financeiro.inc.php";
