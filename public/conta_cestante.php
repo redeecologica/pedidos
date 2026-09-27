@@ -183,14 +183,16 @@
 
 
 	<?php
-	  // Uma linha, não o parágrafo que havia antes. Continua sendo verdade que o saldo
-	  // de abertura não entrou, e a frase some sozinha no dia em que a reconciliação
-	  // for lançada — que é quando ela deixa de ser verdade.
+	  // Uma linha, não o parágrafo que havia antes. E ela some sozinha no dia da carga de
+	  // abertura, que é quando deixa de ser verdade — a promessa que este comentário fazia
+	  // e que abertura_lancada() passou a cumprir.
 	  //
 	  // Sem hidden-print: o rótulo de situação também não tem, e esconder isto na
 	  // impressão entregaria o número sem a única frase que o qualifica.
+	  if (!abertura_lancada()) {
 	?>
 	<p class="small text-muted">Não inclui o saldo de abertura, que ainda está na planilha.</p>
+	<?php } ?>
 
 	<table class="table table-striped table-bordered table-condensed">
 	  <thead>

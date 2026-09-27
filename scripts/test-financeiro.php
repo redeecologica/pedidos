@@ -4269,6 +4269,26 @@ verifica("conta que nao existe nao se ajusta", !pode_lancar_ajuste(99999999));
 foreach ($papeis_pa as $p => $v) { if ($v === null) unset($_SESSION[$p]); else $_SESSION[$p] = $v; }
 foreach ($sessao_pa as $k => $v)  { if ($v === null) unset($_SESSION[$k]); else $_SESSION[$k] = $v; }
 
+echo "\na frase do saldo de abertura\n";
+// ---------------------------------------------------------------------------
+
+// Duas telas dizem "nao inclui o saldo de abertura, que ainda esta na planilha", e o
+// comentario ao lado promete que a frase some sozinha quando a reconciliacao for
+// lancada. Ela era incondicional; agora depende desta pergunta.
+//
+// A primeira asserção só vale enquanto a copia local nao tiver abertura nenhuma — depois
+// do ensaio da carga ela tem, e a pergunta passa a ser sempre verdadeira.
+$tinha_abertura = (int)valor_escalar("SELECT COUNT(*) FROM transacoes WHERE tra_tipo = 'abertura'");
+if ($tinha_abertura === 0)
+    verifica("sem carga, a tela ainda avisa que falta o saldo de abertura",
+        abertura_lancada() === false);
+
+lanca_transacao('2026-08-31 23:59:00', 'abertura', $con_aj, conta_de_contrapartida(),
+                10.00, 'saldo de abertura de teste');
+
+verifica("depois da carga, o aviso deixa de valer",
+    abertura_lancada() === true);
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

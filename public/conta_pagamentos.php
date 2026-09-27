@@ -477,7 +477,10 @@
 
   <p class="small text-muted">
     Saldo negativo: o cestante deve. Saldo positivo: tem a receber.
-    Não inclui o saldo de abertura, que ainda está na planilha.
+    <?php
+      // a mesma frase do extrato do cestante, e pela mesma regra: some no dia da carga
+      if (!abertura_lancada()) {
+    ?>Não inclui o saldo de abertura, que ainda está na planilha.<?php } ?>
   </p>
 
 

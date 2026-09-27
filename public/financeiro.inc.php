@@ -70,6 +70,21 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 }
 
 
+// A CARGA DE ABERTURA JÁ FOI FEITA? Duas telas dizem que o saldo de abertura "ainda está
+// na planilha", e isso deixa de ser verdade no dia da carga. A frase passa a depender
+// desta pergunta, e some nas duas ao mesmo tempo.
+//
+// CONTRATO: bool. Consulta que não roda devolve false, e aí a tela mostra a frase a mais
+// — que é o erro barato. Dizer que falta abertura quando ela já entrou incomoda; dizer
+// que entrou quando não entrou faz alguém confiar num saldo pela metade.
+function abertura_lancada()
+{
+	$res = executa_sql("SELECT 1 FROM transacoes WHERE tra_tipo = 'abertura' LIMIT 1");
+	if (!$res) return false;
+	return (bool)mysqli_fetch_array($res, MYSQLI_NUM);
+}
+
+
 // A PALAVRA DA TELA VIRA SINAL AQUI, num lugar só.
 //
 // No razão, a conta que SEGURA dinheiro tem saldo negativo, e a de quem DEVE também.
@@ -232,11 +247,10 @@ if (!defined('CONTA_CHAVE_ESTOQUE')) define('CONTA_CHAVE_ESTOQUE', 'estoque');
 // um cestante aparece devendo uma fortuna, e o painel de um núcleo, um negativo enorme.
 // Números certos pelo contrato do módulo e falsos como frase sobre a vida de alguém.
 //
-// !!! PROVISÓRIA !!! 2026-05-01 é valor de TESTE LOCAL, escolhido por cair limpo
-// no calendário (o ciclo de abril fecha em 28/04 e o de maio só entrega em 07/05;
-// conferido em produção: zero chamadas entregues antes do dia 1º ainda abertas
-// depois dele). A data de produção é decisão da Rede e ainda não foi tomada —
-// NÃO SUBIR sem trocar isto.
+// DECIDIDA PELA REDE e em produção desde 12/09/2026: 01/09/2026, a data que a planilha
+// da implantação já usava. O que veio antes dela fica fora do razão e entra pela carga
+// de abertura, uma linha por conta — ver
+// docs/superpowers/specs/2026-09-27-carga-abertura-e-ajuste-design.md.
 //
 // Trocar a data é livre enquanto a reconciliação não for lançada: o débito é
 // derivado, nada fica gravado, e o número se refaz sozinho. Depois de lançada, mover
