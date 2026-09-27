@@ -4134,6 +4134,97 @@ verifica("chamada com debito por congelar entra como PENDENTE, com quantos e qua
 
 
 
+echo "\najuste: a correcao que nao e receita nem despesa\n";
+// ---------------------------------------------------------------------------
+
+// A PALAVRA VIRA SINAL AQUI, e nao na tela: tres telas lancam ajuste, e cada uma com a
+// sua conta de cabeca fariam a primeira correcao divergir entre elas.
+//
+// No razao, conta que SEGURA dinheiro tem saldo negativo, e quem DEVE tambem. Entao
+// "entrou dinheiro" e "deve mais" andam para o mesmo lado: para baixo.
+verifica("dinheiro que entra no caixa baixa o saldo da conta",
+    delta_do_ajuste('nucleo', 'entrou', 120.00) == -120.00,
+    var_export(delta_do_ajuste('nucleo', 'entrou', 120.00), true));
+verifica("dinheiro que sai do caixa sobe o saldo da conta",
+    delta_do_ajuste('rede', 'saiu', 120.00) == 120.00,
+    var_export(delta_do_ajuste('rede', 'saiu', 120.00), true));
+verifica("cestante que passa a dever mais fica com o saldo mais negativo",
+    delta_do_ajuste('cestante', 'deve_mais', 50.00) == -50.00,
+    var_export(delta_do_ajuste('cestante', 'deve_mais', 50.00), true));
+verifica("cestante que deve menos fica com o saldo menos negativo",
+    delta_do_ajuste('cestante', 'deve_menos', 50.00) == 50.00,
+    var_export(delta_do_ajuste('cestante', 'deve_menos', 50.00), true));
+verifica("sentido que a tela nao oferece nao vira lancamento",
+    delta_do_ajuste('nucleo', 'qualquer', 10.00) === null
+    && delta_do_ajuste('cestante', 'entrou', 10.00) === null);
+verifica("valor zero nao e ajuste",
+    delta_do_ajuste('nucleo', 'entrou', 0) === null);
+
+// Nucleo proprio: os testes abaixo perguntam pelo resultado e pelo fluxo do mes, e num
+// nucleo ja usado por outro teste a resposta viria misturada.
+$nuc_aj = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+    VALUES ('nucajuste', 'Nucleo do ajuste', 0)");
+$con_aj = cria_conta('nucleo', array('con_nuc' => $nuc_aj, 'con_nome' => 'Caixa do ajuste'));
+
+$tra_aj = lanca_ajuste($con_aj, '2026-09-20 10:00:00', -120.00, 'deposito que ninguem registrou');
+
+verifica("o ajuste grava e move o saldo da conta",
+    $tra_aj !== null && round(saldo_da_conta($con_aj), 2) == -120.00,
+    "tra=" . var_export($tra_aj, true) . " saldo=" . var_export(saldo_da_conta($con_aj), true));
+
+verifica("a outra perna do ajuste e a conta de Sistema",
+    is_array(pernas_de($tra_aj)) && count(pernas_de($tra_aj)) === 2
+    && in_array(conta_de_contrapartida(), array_keys(pernas_de($tra_aj))),
+    json_encode(pernas_de($tra_aj)));
+
+verifica("o ajuste se grava com tipo proprio",
+    valor_escalar("SELECT tra_tipo FROM transacoes WHERE tra_id = " . (int)$tra_aj) === 'ajuste');
+
+verifica("o motivo vira o historico da transacao",
+    valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_aj)
+        === 'deposito que ninguem registrou');
+
+// AJUSTE SEM MOTIVO E BURACO NA HISTORIA: o numero muda e ninguem sabe por que.
+$tras_antes_aj = valor_escalar("SELECT COUNT(*) FROM transacoes");
+verifica("ajuste sem motivo e recusado, e nada e gravado",
+    lanca_ajuste($con_aj, '2026-09-20 10:00:00', -10.00, '   ') === null
+    && valor_escalar("SELECT COUNT(*) FROM transacoes") == $tras_antes_aj);
+
+verifica("ajuste de valor zero e recusado",
+    lanca_ajuste($con_aj, '2026-09-20 10:00:00', 0.0, 'motivo') === null);
+
+verifica("ajuste com data no futuro e recusado",
+    lanca_ajuste($con_aj, date('Y-m-d H:i:s', time() + 86400), -10.00, 'motivo') === null);
+
+// Antes do corte mora a abertura, que tem funcao propria: se o ajuste tambem pudesse
+// cair ali, a mesma correcao teria dois nomes e o extrato perderia a linha do tempo.
+// a data sai da CONSTANTE, e nao escrita a mao: a suite roda com o corte deslocado para
+// 2014, e uma data fixa aqui testaria o corte de producao, que nao e o que esta valendo
+verifica("ajuste antes da data de corte e recusado",
+    lanca_ajuste($con_aj, date('Y-m-d H:i:s', strtotime(DATA_CORTE_FINANCEIRO) - 86400),
+                 -10.00, 'motivo') === null);
+
+verifica("ajuste em conta que nao existe e recusado",
+    lanca_ajuste(99999999, '2026-09-20 10:00:00', -10.00, 'motivo') === null);
+
+// O AJUSTE CORRIGE SALDO E NAO INVENTA RECEITA: o Equilibrio soma so 'despesa' e
+// 'receita'. Se alguem um dia incluir 'ajuste' ali, o resultado do nucleo passa a contar
+// dinheiro que ninguem gerou — e este teste cai.
+$res_aj = resultado_do_nucleo($nuc_aj, 2026, 9);
+verifica("o ajuste nao entra no resultado do nucleo, nem como receita nem como custo",
+    is_array($res_aj) && round($res_aj['receita']['outras'], 2) == 0.00
+    && round($res_aj['custo']['total_proprias'], 2) == 0.00,
+    json_encode(is_array($res_aj) ? array($res_aj['receita'], $res_aj['custo']) : $res_aj));
+
+// MAS APARECE NO FLUXO, em bloco proprio: o saldo do caixa mudou, e relatorio de dinheiro
+// que engole a linha que explica a mudanca e a mentira que este modulo existe para nao
+// contar.
+$fx_aj = fluxo_de_caixa_mensal($nuc_aj, 2026);
+verifica("o ajuste aparece no fluxo de caixa, fora das linhas fixas",
+    is_array($fx_aj) && ($l = linha_do_fluxo($fx_aj, 'ajuste')) !== null
+    && $l['bloco'] === 'outros' && round($l['meses'][9], 2) == 120.00,
+    json_encode(is_array($fx_aj) ? linha_do_fluxo($fx_aj, 'ajuste') : $fx_aj));
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

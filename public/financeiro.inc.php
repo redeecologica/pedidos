@@ -70,6 +70,83 @@ function lanca_transacao($dt, $tipo, $con_debitada, $con_creditada, $valor, $his
 }
 
 
+// A PALAVRA DA TELA VIRA SINAL AQUI, num lugar só.
+//
+// No razão, a conta que SEGURA dinheiro tem saldo negativo, e a de quem DEVE também.
+// Então "entrou dinheiro" e "deve mais" andam para o mesmo lado — para baixo —, e é
+// justamente isso que ninguém acerta de cabeça na hora de escrever a tela. Três telas
+// lançam ajuste; com a conta feita em cada uma, a primeira correção faria as três
+// divergirem, e o erro apareceria como dinheiro trocado de lado.
+//
+// CONTRATO: float com o movimento do saldo, ou null quando o sentido não é um dos que a
+// tela oferece, ou quando o valor é zero.
+function delta_do_ajuste($tipo_conta, $sentido, $valor)
+{
+	$valor = abs(round((float)$valor, 2));
+	if ($valor < 0.005) return null;
+
+	if ((string)$tipo_conta === 'cestante')
+	{
+		if ($sentido === 'deve_mais')  return -$valor;
+		if ($sentido === 'deve_menos') return  $valor;
+		return null;
+	}
+
+	// rede, núcleo, estoque: contas que seguram dinheiro
+	if ($sentido === 'entrou') return -$valor;
+	if ($sentido === 'saiu')   return  $valor;
+	return null;
+}
+
+
+// O AJUSTE: a correção de saldo cuja origem ninguém conhece.
+//
+// MOVIMENTO QUE ACONTECEU NÃO SE CORRIGE POR AQUI — se registra pela tela dele, mesmo
+// atrasado. Pagamento de cestante lançado como ajuste abateria a dívida e deixaria o
+// caixa do núcleo curto, o que puxaria um segundo ajuste, e o Equilíbrio nunca veria a
+// receita. Ajuste é para o resto: o saldo de abertura que veio errado, a diferença que
+// sobrou no fim do mês e ninguém sabe de onde veio.
+//
+// A contrapartida é a conta de Sistema, a mesma da despesa paga ao motorista: do outro
+// lado não há conta, porque não há de quem.
+//
+// $delta é o movimento do SALDO da conta — delta_do_ajuste() o produz a partir da palavra
+// que a tela mostra.
+//
+// A DATA TEM PISO E TETO. Ajuste no futuro não existe. Antes da data de corte mora a
+// abertura, que tem função própria: deixar o ajuste cair ali daria dois nomes à mesma
+// correção, e o extrato perderia a linha do tempo que o explica.
+//
+// CONTRATO: tra_id, ou null quando algo não passa — e aí nada é gravado.
+function lanca_ajuste($con_id, $dt, $delta, $motivo, $extras = array())
+{
+	$delta  = round((float)$delta, 2);
+	$motivo = trim((string)$motivo);
+
+	if (abs($delta) < 0.005) return null;
+	if ($motivo === '') return null;          // ajuste sem motivo é buraco na história
+
+	$ts = strtotime((string)$dt);
+	if ($ts === false) return null;
+	if ($ts > time()) return null;
+	if ($ts < strtotime(DATA_CORTE_FINANCEIRO)) return null;
+
+	// conta que a tela não confirmou existir não recebe lançamento: o id vem da URL
+	$res = executa_sql("SELECT con_id FROM contas WHERE con_id = " . prep_para_bd($con_id));
+	if (!$res) return null;
+	if (!mysqli_fetch_array($res, MYSQLI_ASSOC)) return null;
+
+	$contra = conta_de_contrapartida();
+	if (!$contra) return null;
+
+	// saldo para baixo: a conta é a debitada, que é a perna negativa
+	$debitada  = ($delta < 0) ? $con_id : $contra;
+	$creditada = ($delta < 0) ? $contra : $con_id;
+
+	return lanca_transacao($dt, 'ajuste', $debitada, $creditada, abs($delta), $motivo, $extras);
+}
+
+
 // Saldo é sempre somado, nunca guardado: o núcleo lança na segunda um pagamento
 // feito na sexta, e saldo gravado obrigaria a reescrever tudo que veio depois.
 //
