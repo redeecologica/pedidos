@@ -4225,6 +4225,50 @@ verifica("o ajuste aparece no fluxo de caixa, fora das linhas fixas",
     && $l['bloco'] === 'outros' && round($l['meses'][9], 2) == 120.00,
     json_encode(is_array($fx_aj) ? linha_do_fluxo($fx_aj, 'ajuste') : $fx_aj));
 
+echo "\nquem pode lancar ajuste\n";
+// ---------------------------------------------------------------------------
+
+// A sessao volta ao que era no fim deste bloco: o ultimo teste da suite grava DE VERDADE
+// e exige sessao sem usuario de fixture, como o comentario dele explica.
+$papeis_pa = array();
+foreach (array(PAP_RESP_FINANCAS, PAP_ADM, PAP_RESP_NUCLEO, PAP_RESP_ENTREGA, PAP_BETA_TESTER) as $p)
+    $papeis_pa[$p] = isset($_SESSION[$p]) ? $_SESSION[$p] : null;
+$sessao_pa = array('usr.id'  => isset($_SESSION['usr.id'])  ? $_SESSION['usr.id']  : null,
+                   'usr.nuc' => isset($_SESSION['usr.nuc']) ? $_SESSION['usr.nuc'] : null);
+
+$nuc_pa = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+    VALUES ('nucajuste2', 'Nucleo do ajuste 2', 0)");
+$con_pa = cria_conta('nucleo', array('con_nuc' => $nuc_pa, 'con_nome' => 'Caixa do ajuste 2'));
+$usr_pa = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Cestante do ajuste','cestaj','cestaj@teste.local','x','0'," . (int)$nuc_aj . ")");
+$con_cest_pa = conta_do_cestante($usr_pa, true);
+
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_FINANCAS), $nuc_aj);
+verifica("Financas ajusta qualquer conta",
+    pode_lancar_ajuste($con_aj) && pode_lancar_ajuste($con_pa) && pode_lancar_ajuste($con_cest_pa));
+
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_ADM), $nuc_aj);
+verifica("Administrador ajusta qualquer conta", pode_lancar_ajuste($con_pa));
+
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_NUCLEO), $nuc_aj);
+verifica("responsavel de nucleo ajusta o proprio caixa", pode_lancar_ajuste($con_aj));
+verifica("e os cestantes do proprio nucleo", pode_lancar_ajuste($con_cest_pa));
+verifica("mas nao o caixa de outro nucleo", !pode_lancar_ajuste($con_pa));
+// a conta da Rede e de quem cuida do dinheiro da Rede: o nucleo enxerga o proprio caixa
+verifica("nem as contas da Rede", !pode_lancar_ajuste(conta_da_rede()));
+
+sessao_de_teste(array(PAP_RESP_FINANCAS), $nuc_aj);
+verifica("sem o papel Beta Tester ninguem ajusta", !pode_lancar_ajuste($con_aj));
+
+sessao_de_teste(array(PAP_BETA_TESTER), $nuc_aj);
+verifica("Beta Tester sozinho nao ajusta", !pode_lancar_ajuste($con_aj));
+
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_FINANCAS), $nuc_aj);
+verifica("conta que nao existe nao se ajusta", !pode_lancar_ajuste(99999999));
+
+foreach ($papeis_pa as $p => $v) { if ($v === null) unset($_SESSION[$p]); else $_SESSION[$p] = $v; }
+foreach ($sessao_pa as $k => $v)  { if ($v === null) unset($_SESSION[$k]); else $_SESSION[$k] = $v; }
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

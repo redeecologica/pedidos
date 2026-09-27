@@ -843,6 +843,42 @@ function pode_ver_conta_de($usr_id)
 }
 
 
+// QUEM CORRIGE O DINHEIRO DE QUEM. Mesma régua do resto do módulo: Finanças e
+// Administrador alcançam qualquer conta; o responsável do núcleo alcança o caixa dele e
+// os cestantes dele, que é onde ele enxerga a diferença antes de qualquer outra pessoa.
+//
+// As contas da Rede ficam com Finanças e Administrador: quem cuida do caixa da Rede é
+// quem o concilia contra o extrato do banco.
+//
+// Começa por pode_ver_financeiro() de propósito, mesmo onde quem chama já perguntou:
+// predicado de permissão que pode ser usado sozinho tem de falhar fechado sozinho.
+//
+// Consulta que não roda NEGA — a polaridade das checagens de permissão deste módulo, a
+// mesma de pode_ver_conta_de(): falhar para o lado fechado protege.
+function pode_lancar_ajuste($con_id)
+{
+	if (!pode_ver_financeiro()) return false;
+
+	$res = executa_sql("SELECT con_tipo, con_nuc, con_usr FROM contas WHERE con_id = " . prep_para_bd($con_id));
+	if (!$res) return false;
+	$con = mysqli_fetch_array($res, MYSQLI_ASSOC);
+	if (!$con) return false;
+
+	if (alcanca_todo_nucleo()) return true;
+
+	if (empty($_SESSION[PAP_RESP_NUCLEO])) return false;
+
+	if ((string)$con['con_tipo'] === 'nucleo')
+		return (isset($_SESSION['usr.nuc']) && (int)$con['con_nuc'] === (int)$_SESSION['usr.nuc']);
+
+	if ((string)$con['con_tipo'] === 'cestante')
+		return pode_ver_conta_de($con['con_usr']);
+
+	// conta da Rede, estoque e contrapartida: só Finanças e Administrador
+	return false;
+}
+
+
 // Quem pode LANÇAR pagamento — pergunta diferente de quem pode VER extrato. O cestante
 // vê o próprio e não lança nada; quem lança é o responsável de núcleo, o de finanças ou
 // a administração. pode_ver_conta_de() continua sendo quem decide PARA QUEM se lança.
