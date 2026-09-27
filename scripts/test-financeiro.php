@@ -4289,6 +4289,83 @@ lanca_transacao('2026-08-31 23:59:00', 'abertura', $con_aj, conta_de_contraparti
 verifica("depois da carga, o aviso deixa de valer",
     abertura_lancada() === true);
 
+echo "\ncarga de abertura\n";
+// ---------------------------------------------------------------------------
+
+$nuc_ab = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+    VALUES ('nucabertura', 'Nucleo da abertura', 0)");
+$con_ab = cria_conta('nucleo', array('con_nuc' => $nuc_ab, 'con_nome' => 'Caixa da abertura'));
+
+$tra_ab = lanca_abertura_da_conta($con_ab, -415.90);
+
+// A DATA E O TEXTO sao do modulo, e nao do script de uma passada: e por eles que a tela
+// vai explicar o primeiro lancamento de cada conta, e e sobre eles que este teste afirma.
+verifica("a abertura lanca com a data, o tipo e o historico do modulo",
+    $tra_ab !== null && $tra_ab !== 'ja_tinha'
+    && valor_escalar("SELECT tra_tipo FROM transacoes WHERE tra_id = " . (int)$tra_ab) === 'abertura'
+    && valor_escalar("SELECT tra_dt FROM transacoes WHERE tra_id = " . (int)$tra_ab) === DT_ABERTURA_FINANCEIRO
+    && valor_escalar("SELECT tra_historico FROM transacoes WHERE tra_id = " . (int)$tra_ab) === HISTORICO_ABERTURA,
+    var_export($tra_ab, true));
+
+verifica("e o nucleo passa a segurar o dinheiro que a planilha disse",
+    round(saldo_da_conta($con_ab), 2) == -415.90,
+    var_export(saldo_da_conta($con_ab), true));
+
+verifica("a outra perna da abertura e a conta de Sistema",
+    in_array(conta_de_contrapartida(), array_keys(pernas_de($tra_ab))),
+    json_encode(pernas_de($tra_ab)));
+
+// RODAR DUAS VEZES NAO DUPLICA: a carga vai ser ensaiada, corrigida e repetida, e uma
+// segunda passada dobrando saldo seria descoberta semanas depois, na conciliacao.
+verifica("a segunda passada na mesma conta nao lanca nada",
+    lanca_abertura_da_conta($con_ab, -415.90) === 'ja_tinha'
+    && round(saldo_da_conta($con_ab), 2) == -415.90);
+
+// Conta zerada nao recebe lancamento: linha de zero no extrato nao diz nada e ainda
+// sugere que alguem conferiu aquele zero.
+$nuc_ab0 = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_archive)
+    VALUES ('nucabertura0', 'Nucleo da abertura zero', 0)");
+$con_ab0 = cria_conta('nucleo', array('con_nuc' => $nuc_ab0, 'con_nome' => 'Caixa zerado'));
+verifica("abertura de valor zero nao vira lancamento",
+    lanca_abertura_da_conta($con_ab0, 0.0) === null
+    && round(saldo_da_conta($con_ab0), 2) == 0.00);
+
+verifica("cestante com credito abre com saldo positivo",
+    ($usr_abc = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+        VALUES ('Cestante com credito','credito','credito@teste.local','x','0'," . (int)$nuc_ab . ")"))
+    && lanca_abertura_da_conta(conta_do_cestante($usr_abc, true), 30.46) !== null
+    && round(saldo_da_conta(conta_do_cestante($usr_abc, true)), 2) == 30.46);
+
+// CASAMENTO DE NOMES: as planilhas trazem nome curto, e o cadastro tem os dois.
+$usr_cx1 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Miata da Silva','Miatã','miata@teste.local','x','0'," . (int)$nuc_ab . ")");
+$usr_cx2 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Outro Miata Pereira','Outro','outro@teste.local','x','0'," . (int)$nuc_ab . ")");
+
+verifica("casa pelo nome curto, sem acento e sem caixa",
+    casa_cestante_por_nome($nuc_ab, 'miata') === (int)$usr_cx1,
+    var_export(casa_cestante_por_nome($nuc_ab, 'miata'), true));
+verifica("casa pelo comeco do nome completo quando o curto nao bate",
+    casa_cestante_por_nome($nuc_ab, 'Outro Miata') === (int)$usr_cx2,
+    var_export(casa_cestante_por_nome($nuc_ab, 'Outro Miata'), true));
+verifica("nome de gente de outro nucleo nao casa",
+    casa_cestante_por_nome($nuc_ab0, 'Miatã') === null);
+verifica("nome que nao existe nao casa",
+    casa_cestante_por_nome($nuc_ab, 'Ninguem Com Esse Nome') === null);
+
+// EMPATE NAO SE RESOLVE SOZINHO: cobrar a divida de uma pessoa de outra e o pior erro
+// que esta carga pode cometer, e o script tem de parar e perguntar.
+insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Miata Segunda','Miatã','miata2@teste.local','x','0'," . (int)$nuc_ab . ")");
+verifica("dois com o mesmo nome no mesmo nucleo nao casam com ninguem",
+    casa_cestante_por_nome($nuc_ab, 'Miatã') === null);
+
+// arquivado nao e destino: quem saiu da Rede nao recebe saldo de abertura
+$usr_arq = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Saiu da Rede','saiu','saiu@teste.local','x','1'," . (int)$nuc_ab0 . ")");
+verifica("cestante arquivado nao casa",
+    casa_cestante_por_nome($nuc_ab0, 'saiu') === null);
+
 mysqli_rollback($conn_link);
 
 // FIM DA REDE DE PROTEÇÃO. Daqui para baixo não há transação aberta, e a flag

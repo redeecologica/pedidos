@@ -162,6 +162,97 @@ function lanca_ajuste($con_id, $dt, $delta, $motivo, $extras = array())
 }
 
 
+// A DATA E O TEXTO DA ABERTURA moram aqui, e não no script de uma passada: é por eles
+// que a tela explica o primeiro lançamento de cada conta, e é sobre eles que a suíte
+// afirma. No script, ficariam fora do alcance do teste.
+if (!defined('DT_ABERTURA_FINANCEIRO')) define('DT_ABERTURA_FINANCEIRO', '2026-08-31 23:59:00');
+if (!defined('HISTORICO_ABERTURA'))    define('HISTORICO_ABERTURA', 'saldo de abertura em 31/08/2026 (aproximado)');
+
+
+// O SALDO QUE A CONTA JÁ TINHA quando o módulo começou, lançado uma vez por conta.
+//
+// $delta é o movimento do saldo, como em lanca_ajuste(): negativo para a conta que segura
+// dinheiro e para quem deve.
+//
+// IDEMPOTENTE POR CONTA. A carga vai ser ensaiada, corrigida e repetida, e uma segunda
+// passada dobrando saldo só apareceria semanas depois, na conciliação — quando ninguém
+// mais lembra que a carga rodou duas vezes. A pergunta é sempre do lado da conta que
+// recebe o saldo, nunca da contrapartida: a conta de Sistema vai ter, por construção, uma
+// abertura para cada conta carregada.
+//
+// Conta zerada não recebe lançamento: linha de zero no extrato não diz nada e ainda
+// sugere que alguém conferiu aquele zero.
+//
+// CONTRATO: tra_id quando lançou; a string 'ja_tinha' quando a conta já tinha abertura;
+// null quando o valor é zero ou algo falhou.
+function lanca_abertura_da_conta($con_id, $delta)
+{
+	$delta = round((float)$delta, 2);
+	if (abs($delta) < 0.005) return null;
+
+	$sql = "SELECT 1 FROM transacoes t JOIN lancamentos l ON l.lan_tra = t.tra_id ";
+	$sql.= "WHERE t.tra_tipo = 'abertura' AND l.lan_con = " . prep_para_bd($con_id) . " LIMIT 1";
+	$res = executa_sql($sql);
+	if (!$res) return null;
+	if (mysqli_fetch_array($res, MYSQLI_NUM)) return 'ja_tinha';
+
+	$contra = conta_de_contrapartida();
+	if (!$contra) return null;
+
+	$debitada  = ($delta < 0) ? $con_id : $contra;
+	$creditada = ($delta < 0) ? $contra : $con_id;
+
+	return lanca_transacao(DT_ABERTURA_FINANCEIRO, 'abertura', $debitada, $creditada,
+	                       abs($delta), HISTORICO_ABERTURA);
+}
+
+
+// O NOME DA PLANILHA VIRA CESTANTE. As planilhas dos núcleos trazem nome curto — "Bruss",
+// "Miatã", "Bibi" —, e o cadastro tem nome curto e nome completo.
+//
+// CASA DENTRO DO NÚCLEO: nome curto se repete entre núcleos, e lançar a dívida de uma
+// pessoa na conta de outra é o pior erro que a carga pode cometer. Empate devolve null de
+// propósito — quem desempata é gente, olhando a lista que o script imprime antes de
+// gravar.
+//
+// Sem mb_*, pela mesma razão de compara_nome_de_nucleo(): não há evidência de mbstring
+// ligado na Locaweb, e a ausência dela é fatal, não aviso.
+//
+// CONTRATO: usr_id, ou null quando não casa, casa mais de um, ou a consulta não roda.
+function casa_cestante_por_nome($nuc_id, $nome)
+{
+	$nome = trim((string)$nome);
+	if ($nome === '') return null;
+
+	$sql = "SELECT usr_id, usr_nome_curto, usr_nome_completo FROM usuarios ";
+	$sql.= "WHERE usr_archive = 0 AND usr_nuc = " . prep_para_bd($nuc_id);
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	static $acentos = array(
+		'á'=>'a','à'=>'a','ã'=>'a','â'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e',
+		'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','õ'=>'o','ô'=>'o','ö'=>'o',
+		'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n',
+		'Á'=>'a','À'=>'a','Ã'=>'a','Â'=>'a','Ä'=>'a','É'=>'e','È'=>'e','Ê'=>'e','Ë'=>'e',
+		'Í'=>'i','Ì'=>'i','Î'=>'i','Ï'=>'i','Ó'=>'o','Ò'=>'o','Õ'=>'o','Ô'=>'o','Ö'=>'o',
+		'Ú'=>'u','Ù'=>'u','Û'=>'u','Ü'=>'u','Ç'=>'c','Ñ'=>'n');
+
+	$alvo = strtolower(strtr($nome, $acentos));
+	$achados = array();
+
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$curto    = strtolower(strtr(trim((string)$r['usr_nome_curto']), $acentos));
+		$completo = strtolower(strtr(trim((string)$r['usr_nome_completo']), $acentos));
+
+		if ($curto === $alvo || $completo === $alvo || strpos($completo, $alvo) === 0)
+			$achados[] = (int)$r['usr_id'];
+	}
+
+	return (count($achados) === 1) ? $achados[0] : null;
+}
+
+
 // Saldo é sempre somado, nunca guardado: o núcleo lança na segunda um pagamento
 // feito na sexta, e saldo gravado obrigaria a reescrever tudo que veio depois.
 //
