@@ -45,6 +45,39 @@
       return (is_string($v) || is_int($v) || is_float($v)) ? trim((string)$v) : "";
   }
 
+  // O AJUSTE CHEGA PELA MESMA AÇÃO do formulário de movimento, e por isso vem antes
+  // dele: quem distingue os dois é o campo aj_form.
+  if (request_get("action", "") == ACAO_SALVAR && request_get("aj_form", "") === "1")
+  {
+      $con_aj = conta_do_nucleo($nuc_id);
+
+      // A TRAVA CONFERE DE NOVO AQUI: a tela esconde o formulário, e o POST não.
+      if (!$con_aj || !pode_lancar_ajuste($con_aj))
+      {
+          adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
+          redireciona(PAGINAPRINCIPAL);
+          exit();
+      }
+
+      $dt_aj = date_create_from_format('d/m/Y', trim((string)request_get("aj_dt", "")));
+      $valor_aj = request_get("aj_valor", "");
+      $valor_aj = (is_string($valor_aj) || is_int($valor_aj) || is_float($valor_aj))
+                ? (float)str_replace(',', '.', str_replace('.', '', trim((string)$valor_aj))) : 0;
+      $delta_aj = delta_do_ajuste('nucleo', (string)request_get("aj_sentido", ""), $valor_aj);
+
+      $tra_aj = ($dt_aj && $delta_aj !== null)
+              ? lanca_ajuste($con_aj, date_format($dt_aj, 'Y-m-d H:i:s'), $delta_aj,
+                             (string)request_get("aj_motivo", ""),
+                             array('comprovante' => trim((string)request_get("aj_comprovante", ""))))
+              : null;
+
+      adiciona_mensagem_status($tra_aj ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+          $tra_aj ? "Ajuste lançado."
+                  : "Não foi possível lançar o ajuste. Confira a data, o valor e o motivo.");
+      redireciona("conta_nucleo.php?nuc_id=" . urlencode($nuc_id));
+      exit();
+  }
+
   if (request_get("action", "") == ACAO_SALVAR)
   {
       // O nuc_id do POST NÃO é consultado aqui: o núcleo é o que já foi imposto e
@@ -440,6 +473,55 @@
   <?php } ?>
   </tbody>
 </table>
+
+<?php
+  // O AJUSTE MORA ONDE A DIFERENÇA APARECE: quem confere este extrato contra o dinheiro
+  // que tem na mão é quem descobre a diferença, e corrige aqui mesmo.
+  //
+  // Escondido por padrão, e com a frase que separa as duas coisas logo abaixo: despesa e
+  // receita que aconteceram se lançam no formulário de movimento, lá em cima, porque são
+  // elas que o Fluxo de caixa e o Equilíbrio leem.
+  $con_ajuste = conta_do_nucleo($nuc_id);
+  if ($con_ajuste && pode_lancar_ajuste($con_ajuste)) {
+?>
+<p class="hidden-print">
+  <a href="#" class="btn btn-default btn-xs" onclick="document.getElementById('aj').style.display='block';return false;">
+    <i class="glyphicon glyphicon-wrench"></i> lançar ajuste
+  </a>
+</p>
+<div id="aj" style="display:none;" class="well well-sm hidden-print">
+  <form method="post" action="conta_nucleo.php" class="form-inline">
+    <input type="hidden" name="action" value="<?php echo(h(ACAO_SALVAR)); ?>" />
+    <input type="hidden" name="aj_form" value="1" />
+    <input type="hidden" name="nuc_id" value="<?php echo(h($nuc_id)); ?>" />
+    <div class="form-group">
+      <label for="aj_dt">Data</label>
+      <input type="text" class="form-control" id="aj_dt" name="aj_dt" size="10" value="<?php echo(h(date('d/m/Y'))); ?>" />
+    </div>
+    <div class="form-group">
+      <label for="aj_sentido">O que muda</label>
+      <select class="form-control" id="aj_sentido" name="aj_sentido">
+        <option value="entrou">entrou dinheiro no caixa</option>
+        <option value="saiu">saiu dinheiro do caixa</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="aj_valor">Valor</label>
+      <input type="text" class="form-control" id="aj_valor" name="aj_valor" size="8" />
+    </div>
+    <div class="form-group">
+      <label for="aj_motivo">Motivo</label>
+      <input type="text" class="form-control" id="aj_motivo" name="aj_motivo" size="40" maxlength="200" />
+    </div>
+    <button class="btn btn-primary" type="submit">lançar</button>
+  </form>
+  <p class="small text-muted" style="margin-top:8px;">
+    O ajuste é para diferença sem origem conhecida. Despesa ou receita que aconteceu se
+    lança no formulário de movimento, mesmo atrasada — é o que o Fluxo de caixa e o
+    Equilíbrio leem.
+  </p>
+</div>
+<?php } ?>
 
 <?php } ?>
 
