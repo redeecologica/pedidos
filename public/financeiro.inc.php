@@ -237,13 +237,23 @@ function casa_cestante_por_nome($nuc_id, $nome)
 		'Í'=>'i','Ì'=>'i','Î'=>'i','Ï'=>'i','Ó'=>'o','Ò'=>'o','Õ'=>'o','Ô'=>'o','Ö'=>'o',
 		'Ú'=>'u','Ù'=>'u','Û'=>'u','Ü'=>'u','Ç'=>'c','Ñ'=>'n');
 
-	$alvo = strtolower(strtr($nome, $acentos));
+	// PONTO E ESPAÇO DOBRADO SÃO DIGITAÇÃO, NÃO PESSOA. Na planilha da Urca o cadastro
+	// "Pedro H" aparece como "Pedro H.", e nomes com dois espaços no meio são comuns nas
+	// três planilhas. Tirar os dois antes de comparar casa quem é a mesma pessoa sem
+	// afrouxar a regra: continua sendo igualdade, e empate continua devolvendo null.
+	$limpa = function ($t) use ($acentos) {
+		$t = strtolower(strtr(trim((string)$t), $acentos));
+		$t = str_replace(array('.', ','), '', $t);
+		return trim(preg_replace('/\s+/', ' ', $t));
+	};
+
+	$alvo = $limpa($nome);
 	$achados = array();
 
 	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
 	{
-		$curto    = strtolower(strtr(trim((string)$r['usr_nome_curto']), $acentos));
-		$completo = strtolower(strtr(trim((string)$r['usr_nome_completo']), $acentos));
+		$curto    = $limpa($r['usr_nome_curto']);
+		$completo = $limpa($r['usr_nome_completo']);
 
 		if ($curto === $alvo || $completo === $alvo || strpos($completo, $alvo) === 0)
 			$achados[] = (int)$r['usr_id'];

@@ -4360,6 +4360,18 @@ insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_
 verifica("dois com o mesmo nome no mesmo nucleo nao casam com ninguem",
     casa_cestante_por_nome($nuc_ab, 'Miatã') === null);
 
+// PONTO FINAL E ESPACO DOBRADO NAO PODEM DERRUBAR O CASAMENTO. Na planilha da Urca o
+// cadastro "Pedro H" aparece como "Pedro H.", e na do Santa ha nome com dois espacos no
+// meio. Sao diferencas de digitacao, e nao de pessoa.
+$usr_cx3 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
+    VALUES ('Pedro Henrique Walter','Pedro H','pedroh@teste.local','x','0'," . (int)$nuc_ab0 . ")");
+verifica("ponto final na planilha nao impede o casamento",
+    casa_cestante_por_nome($nuc_ab0, 'Pedro H.') === (int)$usr_cx3,
+    var_export(casa_cestante_por_nome($nuc_ab0, 'Pedro H.'), true));
+verifica("espaco dobrado tambem nao",
+    casa_cestante_por_nome($nuc_ab0, 'Pedro  Henrique   Walter') === (int)$usr_cx3,
+    var_export(casa_cestante_por_nome($nuc_ab0, 'Pedro  Henrique   Walter'), true));
+
 // arquivado nao e destino: quem saiu da Rede nao recebe saldo de abertura
 $usr_arq = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
     VALUES ('Saiu da Rede','saiu','saiu@teste.local','x','1'," . (int)$nuc_ab0 . ")");
