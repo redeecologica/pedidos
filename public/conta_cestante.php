@@ -78,6 +78,42 @@
   if (!$pode_editar) $editar_tra = "";
   if ($editar_tra !== "" && cestante_da_transacao($editar_tra) !== (int)$usr_id) $editar_tra = "";
 
+  // O AJUSTE CHEGA PELO MESMO ACAO_SALVAR do formulário de descrição, e por isso vem
+  // ANTES dele: quem distingue os dois é o campo aj_form, e o de baixo trataria este
+  // POST como edição de lançamento, sem tra_id, e mandaria a pessoa de volta com erro.
+  if (request_get("action", "") == ACAO_SALVAR && request_get("aj_form", "") === "1")
+  {
+      $con_aj = conta_do_cestante($usr_id, true);
+
+      // A TRAVA CONFERE DE NOVO AQUI: a tela esconde o formulário, e o POST não.
+      if (!$con_aj || !pode_lancar_ajuste($con_aj))
+      {
+          adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
+          redireciona(PAGINAPRINCIPAL);
+          exit();
+      }
+
+      // date_create_from_format devolve FALSE para texto que não é data, e
+      // date_format(false, ...) derruba a página no PHP 8.
+      $dt_aj = date_create_from_format('d/m/Y', trim((string)request_get("aj_dt", "")));
+      $valor_aj = request_get("aj_valor", "");
+      $valor_aj = (is_string($valor_aj) || is_int($valor_aj) || is_float($valor_aj))
+                ? (float)str_replace(',', '.', str_replace('.', '', trim((string)$valor_aj))) : 0;
+      $delta_aj = delta_do_ajuste('cestante', (string)request_get("aj_sentido", ""), $valor_aj);
+
+      $tra_aj = ($dt_aj && $delta_aj !== null)
+              ? lanca_ajuste($con_aj, date_format($dt_aj, 'Y-m-d H:i:s'), $delta_aj,
+                             (string)request_get("aj_motivo", ""),
+                             array('comprovante' => trim((string)request_get("aj_comprovante", ""))))
+              : null;
+
+      adiciona_mensagem_status($tra_aj ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+          $tra_aj ? "Ajuste lançado."
+                  : "Não foi possível lançar o ajuste. Confira a data, o valor e o motivo.");
+      redireciona("conta_cestante.php?usr_id=" . urlencode($usr_id));
+      exit();
+  }
+
   if (request_get("action", "") == ACAO_SALVAR)
   {
       if (!$pode_editar)
@@ -315,6 +351,59 @@
 	  <?php } ?>
 	  </tbody>
 	</table>
+
+<?php
+  // O AJUSTE MORA ONDE A DIFERENÇA APARECE. Quem lê este extrato e vê um saldo que não
+  // bate é quem sabe o que aconteceu — e é aqui que ele corrige, sem pedir a ninguém.
+  //
+  // O formulário nasce escondido: na maioria das visitas ninguém vai ajustar nada, e um
+  // formulário aberto embaixo do extrato convida a usar o ajuste como atalho para o
+  // pagamento que ninguém registrou. A frase abaixo dele diz isso em palavras.
+  //
+  // SEM CONTA NÃO HÁ BOTÃO, e não é esquecimento: conta de cestante nasce no primeiro
+  // pagamento, na materialização do débito ou na carga de abertura. Quem nunca teve
+  // nenhum dos três não tem lançamento nenhum, e não há saldo para conciliar.
+  $con_ajuste = conta_do_cestante($usr_id, false);
+  if ($con_ajuste && pode_lancar_ajuste($con_ajuste)) {
+?>
+<p class="hidden-print">
+  <a href="#" class="btn btn-default btn-xs" onclick="document.getElementById('aj').style.display='block';return false;">
+    <i class="glyphicon glyphicon-wrench"></i> lançar ajuste
+  </a>
+</p>
+<div id="aj" style="display:none;" class="well well-sm hidden-print">
+  <form method="post" action="conta_cestante.php" class="form-inline">
+    <input type="hidden" name="action" value="<?php echo(h(ACAO_SALVAR)); ?>" />
+    <input type="hidden" name="aj_form" value="1" />
+    <input type="hidden" name="usr_id" value="<?php echo(h($usr_id)); ?>" />
+    <div class="form-group">
+      <label for="aj_dt">Data</label>
+      <input type="text" class="form-control" id="aj_dt" name="aj_dt" size="10" value="<?php echo(h(date('d/m/Y'))); ?>" />
+    </div>
+    <div class="form-group">
+      <label for="aj_sentido">O que muda</label>
+      <select class="form-control" id="aj_sentido" name="aj_sentido">
+        <option value="deve_menos">diminui o que a pessoa deve</option>
+        <option value="deve_mais">aumenta o que a pessoa deve</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="aj_valor">Valor</label>
+      <input type="text" class="form-control" id="aj_valor" name="aj_valor" size="8" />
+    </div>
+    <div class="form-group">
+      <label for="aj_motivo">Motivo</label>
+      <input type="text" class="form-control" id="aj_motivo" name="aj_motivo" size="40" maxlength="200" />
+    </div>
+    <button class="btn btn-primary" type="submit">lançar</button>
+  </form>
+  <p class="small text-muted" style="margin-top:8px;">
+    O ajuste é para diferença sem origem conhecida. Pagamento que aconteceu se registra em
+    Pagamentos Cestantes, mesmo atrasado — lá o dinheiro anda para o caixa do núcleo, e o
+    Equilíbrio do núcleo enxerga.
+  </p>
+</div>
+<?php } ?>
 
 <?php } ?>
 
