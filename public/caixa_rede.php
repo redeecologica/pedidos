@@ -14,6 +14,40 @@
       exit();
   }
 
+  // O AJUSTE DAS CONTAS DA REDE mora aqui porque conta da Rede não tem tela de extrato:
+  // conta.php é o editor de rótulo e só Administrador o abre. Esta é a tela onde Finanças
+  // lê estes saldos e os confere contra o extrato do banco.
+  if (request_get("action", "") == ACAO_SALVAR && request_get("aj_form", "") === "1")
+  {
+      $con_aj = request_get("aj_con", "");
+      $con_aj = ((is_string($con_aj) || is_int($con_aj)) && ctype_digit((string)$con_aj)) ? (int)$con_aj : 0;
+
+      // A TRAVA CONFERE DE NOVO AQUI: a tela esconde o formulário, e o POST não.
+      if (!$con_aj || !pode_lancar_ajuste($con_aj))
+      {
+          adiciona_mensagem_status(MSG_TIPO_ERRO, "Usuário não possui permissão para a ação executada.");
+          redireciona(PAGINAPRINCIPAL);
+          exit();
+      }
+
+      $dt_aj = date_create_from_format('d/m/Y', trim((string)request_get("aj_dt", "")));
+      $valor_aj = request_get("aj_valor", "");
+      $valor_aj = (is_string($valor_aj) || is_int($valor_aj) || is_float($valor_aj))
+                ? (float)str_replace(',', '.', str_replace('.', '', trim((string)$valor_aj))) : 0;
+      $delta_aj = delta_do_ajuste('rede', (string)request_get("aj_sentido", ""), $valor_aj);
+
+      $tra_aj = ($dt_aj && $delta_aj !== null)
+              ? lanca_ajuste($con_aj, date_format($dt_aj, 'Y-m-d H:i:s'), $delta_aj,
+                             (string)request_get("aj_motivo", ""))
+              : null;
+
+      adiciona_mensagem_status($tra_aj ? MSG_TIPO_SUCESSO : MSG_TIPO_ERRO,
+          $tra_aj ? "Ajuste lançado."
+                  : "Não foi possível lançar o ajuste. Confira a data, o valor e o motivo.");
+      redireciona("caixa_rede.php");
+      exit();
+  }
+
   $ano = (int)request_get("ano", date('Y'));
   if ($ano < 2000 || $ano > 2200) $ano = (int)date('Y');
 
@@ -47,13 +81,55 @@
 
     <table class="table table-bordered table-condensed">
       <tbody>
-      <?php foreach ($pos['caixa']['contas'] as $c) { ?>
+      <?php foreach ($pos['caixa']['contas'] as $c) { $pode_aj = pode_lancar_ajuste($c['con_id']); ?>
         <tr>
-          <td><?php echo(h($c['nome'])); ?></td>
+          <td><?php echo(h($c['nome'])); ?>
+            <?php
+              // O ajuste da conta da Rede fica na linha dela, e o formulário abre logo
+              // abaixo — sem coluna nova, que empurraria o valor para longe do nome.
+              if ($pode_aj) { ?>
+            <a href="#" class="btn btn-default btn-xs hidden-print"
+               onclick="document.getElementById('aj<?php echo(h($c['con_id'])); ?>').style.display='table-row';return false;"
+               title="lançar ajuste nesta conta"><i class="glyphicon glyphicon-wrench"></i></a>
+            <?php } ?>
+          </td>
           <td class="text-right<?php echo($c['em_caixa'] < -0.005 ? ' text-danger' : ''); ?>">
             <?php echo(h(formata_moeda($c['em_caixa']))); ?>
           </td>
         </tr>
+        <?php if ($pode_aj) { ?>
+        <tr id="aj<?php echo(h($c['con_id'])); ?>" style="display:none;" class="hidden-print">
+          <td colspan="2">
+            <form method="post" action="caixa_rede.php" class="form-inline">
+              <input type="hidden" name="action" value="<?php echo(h(ACAO_SALVAR)); ?>" />
+              <input type="hidden" name="aj_form" value="1" />
+              <input type="hidden" name="aj_con" value="<?php echo(h($c['con_id'])); ?>" />
+              <div class="form-group">
+                <input type="text" class="form-control input-sm" name="aj_dt" size="10"
+                       value="<?php echo(h(date('d/m/Y'))); ?>" title="data" />
+              </div>
+              <div class="form-group">
+                <select class="form-control input-sm" name="aj_sentido">
+                  <option value="entrou">entrou dinheiro</option>
+                  <option value="saiu">saiu dinheiro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control input-sm" name="aj_valor" size="8" placeholder="valor" />
+              </div>
+              <div class="form-group">
+                <input type="text" class="form-control input-sm" name="aj_motivo" size="28" maxlength="200" placeholder="motivo" />
+              </div>
+              <button class="btn btn-primary btn-sm" type="submit">lançar</button>
+            </form>
+            <p class="small text-muted" style="margin:6px 0 0;">
+              O ajuste é para diferença sem origem conhecida — o que o extrato do banco mostra
+              e o sistema não explica. Despesa da Rede que aconteceu se lança em Despesas da
+              Rede, e pagamento a produtor, em A Pagar Produtores.
+            </p>
+          </td>
+        </tr>
+        <?php } ?>
       <?php } ?>
       <?php if (!count($pos['caixa']['contas'])) { ?>
         <tr><td colspan="2" class="text-muted">Nenhuma conta da Rede cadastrada.</td></tr>
