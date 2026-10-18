@@ -54,7 +54,7 @@ function conta($rotulo, $con_id)
 echo "contas da Rede\n";
 // Duas, numeradas, porque a Rede recebe em mais de uma conta — na prática a conta
 // pessoal de quem está com o dinheiro. O nome é editável em ADM e vira algo como
-// "Rede (conta Adelina)"; a con_chave é que não muda, e é ela que identifica a linha
+// "Rede (conta da Fulana)"; a con_chave é que não muda, e é ela que identifica a linha
 // se alguém renomear. Foi essa a lição da Task 3: identidade em rótulo editável faz
 // renomear criar uma segunda conta em silêncio.
 //

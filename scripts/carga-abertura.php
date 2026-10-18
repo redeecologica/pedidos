@@ -3,7 +3,7 @@
 //
 // Lê um CSV com o saldo de cada conta na data de corte e lança uma transação de tipo
 // 'abertura' por conta, com a conta de Sistema do outro lado. O CSV NÃO mora neste
-// repositório: ele tem nome e saldo de gente de verdade, e este repositório é público.
+// repositório: é montado à parte, a partir das planilhas dos núcleos.
 //
 // SEM CONFIRMAÇÃO O SCRIPT SÓ ENSAIA: casa os nomes, mostra o que faria e não grava nada.
 // É essa saída que a Rede confere antes de autorizar a carga — em especial a lista de
@@ -20,9 +20,9 @@
 // O CSV, com cabeçalho e ponto e vírgula:
 //
 //   tipo;chave;nome;valor
-//   rede;Rede (Sandra Bradesco);;4800.00
-//   nucleo;Santa;;3644.06
-//   cestante;Santa;Pedro;-24.28
+//   rede;Rede Ecológica 1;;1500.00
+//   nucleo;Exemplo;;800.00
+//   cestante;Exemplo;Fulana;-12.50
 //
 //   tipo    rede, nucleo ou cestante
 //   chave   o nome da conta da Rede, ou o nome curto do núcleo
@@ -33,9 +33,8 @@
 // Idempotente: conta que já tem abertura é pulada, e o script diz quantas pulou.
 
 // O CAMINHO DO APP muda de máquina para máquina. No container é /var/www/html; rodando do
-// repositório é ../public; e no servidor o script fica na pasta pessoal, fora do docroot —
-// porque o CSV que ele lê tem nome e saldo de gente, e nada disso pode ficar num diretório
-// que o servidor web serve. Lá o caminho vem por CARGA_APP.
+// repositório é ../public; e no servidor o script roda fora do docroot, e lá o caminho
+// vem por CARGA_APP.
 $app = (string)getenv('CARGA_APP');
 if ($app === '')
 	$app = is_readable('/var/www/html/common.inc.php')

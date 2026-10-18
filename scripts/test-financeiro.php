@@ -2073,7 +2073,7 @@ verifica("conta_do_nucleo devolve null para nucleo sem conta",
 $con_contra = conta_de_contrapartida();
 $tra_desp = lanca_movimento_nucleo($nuc_livre[3], 'despesa', '2026-08-01 10:00:00', 45.00,
     null, array('categoria' => 'passagens', 'historico' => 'passagem do motorista',
-                'favorecido' => 'Seu Antunes'));
+                'favorecido' => 'Seu Sicrano'));
 $p = pernas_de($tra_desp);
 verifica("despesa: caixa +45 e contrapartida -45, sem tocar na Rede",
     $tra_desp && isset($p[$con_caixa]) && $p[$con_caixa] == 45.00
@@ -2082,7 +2082,7 @@ verifica("despesa: caixa +45 e contrapartida -45, sem tocar na Rede",
     "tra=" . var_export($tra_desp, true) . " pernas=" . json_encode($p));
 
 verifica("e guarda QUEM recebeu, que nao tem conta e nao teria onde ficar",
-    valor_escalar("SELECT tra_favorecido FROM transacoes WHERE tra_id = " . (int)$tra_desp) === 'Seu Antunes',
+    valor_escalar("SELECT tra_favorecido FROM transacoes WHERE tra_id = " . (int)$tra_desp) === 'Seu Sicrano',
     var_export(valor_escalar("SELECT tra_favorecido FROM transacoes WHERE tra_id = " . (int)$tra_desp), true));
 
 // A conta escolhida no POST e IGNORADA em despesa, nao recusada — a tela nao oferece o
@@ -2274,7 +2274,7 @@ verifica("linha derivada tem a chave contraparte, vazia",
 verifica("o rotulo leva o prefixo do tipo, como na lista de destinos",
     rotulo_de_contraparte(array('contra_tipo' => 'nucleo',   'nuc_nome_curto'  => 'Urca')) === 'Núcleo Urca'
  && rotulo_de_contraparte(array('contra_tipo' => 'produtor', 'forn_nome_curto' => 'Bionatur')) === 'Produtor Bionatur'
- && rotulo_de_contraparte(array('contra_tipo' => 'cestante', 'usr_nome_curto'  => 'Bruss')) === 'Bruss'
+ && rotulo_de_contraparte(array('contra_tipo' => 'cestante', 'usr_nome_curto'  => 'Sicrano')) === 'Sicrano'
  && rotulo_de_contraparte(array('contra_tipo' => 'rede',     'contra_nome'     => 'Rede Ecológica 1')) === 'Rede Ecológica 1');
 
 // Coluna ausente e o caso normal, nao excecao: cada consulta traz so o que precisa, e
@@ -2332,7 +2332,7 @@ verifica("o extrato vem em ordem cronologica",
     is_array($ext) ? json_encode(array_map(function ($l) { return $l['dt']; }, $ext)) : 'sem extrato');
 
 verifica("a linha de despesa carrega QUEM recebeu",
-    is_array($ext) && $ext[0]['favorecido'] === 'Seu Antunes',
+    is_array($ext) && $ext[0]['favorecido'] === 'Seu Sicrano',
     is_array($ext) && isset($ext[0]) ? var_export($ext[0]['favorecido'], true) : 'sem extrato');
 
 // Em repasse e pagamento a produtor o favorecido E a conta, e nao se grava duas vezes.
@@ -4296,7 +4296,7 @@ $nuc_ab = insere("INSERT INTO nucleos (nuc_nome_curto, nuc_nome_completo, nuc_ar
     VALUES ('nucabertura', 'Nucleo da abertura', 0)");
 $con_ab = cria_conta('nucleo', array('con_nuc' => $nuc_ab, 'con_nome' => 'Caixa da abertura'));
 
-$tra_ab = lanca_abertura_da_conta($con_ab, -415.90);
+$tra_ab = lanca_abertura_da_conta($con_ab, -321.45);
 
 // A DATA E O TEXTO sao do modulo, e nao do script de uma passada: e por eles que a tela
 // vai explicar o primeiro lancamento de cada conta, e e sobre eles que este teste afirma.
@@ -4308,7 +4308,7 @@ verifica("a abertura lanca com a data, o tipo e o historico do modulo",
     var_export($tra_ab, true));
 
 verifica("e o nucleo passa a segurar o dinheiro que a planilha disse",
-    round(saldo_da_conta($con_ab), 2) == -415.90,
+    round(saldo_da_conta($con_ab), 2) == -321.45,
     var_export(saldo_da_conta($con_ab), true));
 
 verifica("a outra perna da abertura e a conta de Sistema",
@@ -4318,8 +4318,8 @@ verifica("a outra perna da abertura e a conta de Sistema",
 // RODAR DUAS VEZES NAO DUPLICA: a carga vai ser ensaiada, corrigida e repetida, e uma
 // segunda passada dobrando saldo seria descoberta semanas depois, na conciliacao.
 verifica("a segunda passada na mesma conta nao lanca nada",
-    lanca_abertura_da_conta($con_ab, -415.90) === 'ja_tinha'
-    && round(saldo_da_conta($con_ab), 2) == -415.90);
+    lanca_abertura_da_conta($con_ab, -321.45) === 'ja_tinha'
+    && round(saldo_da_conta($con_ab), 2) == -321.45);
 
 // Conta zerada nao recebe lancamento: linha de zero no extrato nao diz nada e ainda
 // sugere que alguem conferiu aquele zero.
@@ -4333,44 +4333,44 @@ verifica("abertura de valor zero nao vira lancamento",
 verifica("cestante com credito abre com saldo positivo",
     ($usr_abc = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
         VALUES ('Cestante com credito','credito','credito@teste.local','x','0'," . (int)$nuc_ab . ")"))
-    && lanca_abertura_da_conta(conta_do_cestante($usr_abc, true), 30.46) !== null
-    && round(saldo_da_conta(conta_do_cestante($usr_abc, true)), 2) == 30.46);
+    && lanca_abertura_da_conta(conta_do_cestante($usr_abc, true), 27.35) !== null
+    && round(saldo_da_conta(conta_do_cestante($usr_abc, true)), 2) == 27.35);
 
 // CASAMENTO DE NOMES: as planilhas trazem nome curto, e o cadastro tem os dois.
 $usr_cx1 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
-    VALUES ('Miata da Silva','Miatã','miata@teste.local','x','0'," . (int)$nuc_ab . ")");
+    VALUES ('Fulano de Tal','Fulanão','fulano@teste.local','x','0'," . (int)$nuc_ab . ")");
 $usr_cx2 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
-    VALUES ('Outro Miata Pereira','Outro','outro@teste.local','x','0'," . (int)$nuc_ab . ")");
+    VALUES ('Outro Fulano Pereira','Outro','outro@teste.local','x','0'," . (int)$nuc_ab . ")");
 
 verifica("casa pelo nome curto, sem acento e sem caixa",
-    casa_cestante_por_nome($nuc_ab, 'miata') === (int)$usr_cx1,
-    var_export(casa_cestante_por_nome($nuc_ab, 'miata'), true));
+    casa_cestante_por_nome($nuc_ab, 'fulanao') === (int)$usr_cx1,
+    var_export(casa_cestante_por_nome($nuc_ab, 'fulanao'), true));
 verifica("casa pelo comeco do nome completo quando o curto nao bate",
-    casa_cestante_por_nome($nuc_ab, 'Outro Miata') === (int)$usr_cx2,
-    var_export(casa_cestante_por_nome($nuc_ab, 'Outro Miata'), true));
+    casa_cestante_por_nome($nuc_ab, 'Outro Fulano') === (int)$usr_cx2,
+    var_export(casa_cestante_por_nome($nuc_ab, 'Outro Fulano'), true));
 verifica("nome de gente de outro nucleo nao casa",
-    casa_cestante_por_nome($nuc_ab0, 'Miatã') === null);
+    casa_cestante_por_nome($nuc_ab0, 'Fulanão') === null);
 verifica("nome que nao existe nao casa",
     casa_cestante_por_nome($nuc_ab, 'Ninguem Com Esse Nome') === null);
 
 // EMPATE NAO SE RESOLVE SOZINHO: cobrar a divida de uma pessoa de outra e o pior erro
 // que esta carga pode cometer, e o script tem de parar e perguntar.
 insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
-    VALUES ('Miata Segunda','Miatã','miata2@teste.local','x','0'," . (int)$nuc_ab . ")");
+    VALUES ('Fulano Segundo','Fulanão','fulano2@teste.local','x','0'," . (int)$nuc_ab . ")");
 verifica("dois com o mesmo nome no mesmo nucleo nao casam com ninguem",
-    casa_cestante_por_nome($nuc_ab, 'Miatã') === null);
+    casa_cestante_por_nome($nuc_ab, 'Fulanão') === null);
 
-// PONTO FINAL E ESPACO DOBRADO NAO PODEM DERRUBAR O CASAMENTO. Na planilha da Urca o
-// cadastro "Pedro H" aparece como "Pedro H.", e na do Santa ha nome com dois espacos no
+// PONTO FINAL E ESPACO DOBRADO NAO PODEM DERRUBAR O CASAMENTO. Numa das planilhas o
+// cadastro "Beltrano B" aparece como "Beltrano B.", e em outra ha nome com dois espacos no
 // meio. Sao diferencas de digitacao, e nao de pessoa.
 $usr_cx3 = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)
-    VALUES ('Pedro Henrique Walter','Pedro H','pedroh@teste.local','x','0'," . (int)$nuc_ab0 . ")");
+    VALUES ('Beltrano Bastos Rocha','Beltrano B','beltrano@teste.local','x','0'," . (int)$nuc_ab0 . ")");
 verifica("ponto final na planilha nao impede o casamento",
-    casa_cestante_por_nome($nuc_ab0, 'Pedro H.') === (int)$usr_cx3,
-    var_export(casa_cestante_por_nome($nuc_ab0, 'Pedro H.'), true));
+    casa_cestante_por_nome($nuc_ab0, 'Beltrano B.') === (int)$usr_cx3,
+    var_export(casa_cestante_por_nome($nuc_ab0, 'Beltrano B.'), true));
 verifica("espaco dobrado tambem nao",
-    casa_cestante_por_nome($nuc_ab0, 'Pedro  Henrique   Walter') === (int)$usr_cx3,
-    var_export(casa_cestante_por_nome($nuc_ab0, 'Pedro  Henrique   Walter'), true));
+    casa_cestante_por_nome($nuc_ab0, 'Beltrano  Bastos   Rocha') === (int)$usr_cx3,
+    var_export(casa_cestante_por_nome($nuc_ab0, 'Beltrano  Bastos   Rocha'), true));
 
 // arquivado nao e destino: quem saiu da Rede nao recebe saldo de abertura
 $usr_arq = insere("INSERT INTO usuarios (usr_nome_completo, usr_nome_curto, usr_email, usr_senha, usr_archive, usr_nuc)

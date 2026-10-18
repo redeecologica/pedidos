@@ -27,7 +27,7 @@
       {
           // Criar: só conta da REDE. Núcleo, produtor e cestante nascem sozinhos — o
           // vínculo delas já está no cadastro e o nome sai dele. A da Rede é a única
-          // cujo rótulo é uma decisão ("Rede (conta Adelina)").
+          // cujo rótulo é uma decisão ("Rede (conta da Fulana)").
           $nome  = trim((string)request_get("con_nome", ""));
           $chave = trim((string)request_get("con_chave", ""));
 

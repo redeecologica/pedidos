@@ -207,8 +207,8 @@ function lanca_abertura_da_conta($con_id, $delta)
 }
 
 
-// O NOME DA PLANILHA VIRA CESTANTE. As planilhas dos núcleos trazem nome curto — "Bruss",
-// "Miatã", "Bibi" —, e o cadastro tem nome curto e nome completo.
+// O NOME DA PLANILHA VIRA CESTANTE. As planilhas dos núcleos trazem nome curto, muitas
+// vezes um apelido, e o cadastro tem nome curto e nome completo.
 //
 // CASA DENTRO DO NÚCLEO: nome curto se repete entre núcleos, e lançar a dívida de uma
 // pessoa na conta de outra é o pior erro que a carga pode cometer. Empate devolve null de
@@ -237,8 +237,8 @@ function casa_cestante_por_nome($nuc_id, $nome)
 		'Í'=>'i','Ì'=>'i','Î'=>'i','Ï'=>'i','Ó'=>'o','Ò'=>'o','Õ'=>'o','Ô'=>'o','Ö'=>'o',
 		'Ú'=>'u','Ù'=>'u','Û'=>'u','Ü'=>'u','Ç'=>'c','Ñ'=>'n');
 
-	// PONTO E ESPAÇO DOBRADO SÃO DIGITAÇÃO, NÃO PESSOA. Na planilha da Urca o cadastro
-	// "Pedro H" aparece como "Pedro H.", e nomes com dois espaços no meio são comuns nas
+	// PONTO E ESPAÇO DOBRADO SÃO DIGITAÇÃO, NÃO PESSOA. Numa das planilhas o cadastro
+	// "Beltrano B" aparece como "Beltrano B.", e nomes com dois espaços no meio são comuns nas
 	// três planilhas. Tirar os dois antes de comparar casa quem é a mesma pessoa sem
 	// afrouxar a regra: continua sendo igualdade, e empate continua devolvendo null.
 	$limpa = function ($t) use ($acentos) {
