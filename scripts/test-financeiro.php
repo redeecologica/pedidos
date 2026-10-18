@@ -4257,6 +4257,13 @@ verifica("mas nao o caixa de outro nucleo", !pode_lancar_ajuste($con_pa));
 // a conta da Rede e de quem cuida do dinheiro da Rede: o nucleo enxerga o proprio caixa
 verifica("nem as contas da Rede", !pode_lancar_ajuste(conta_da_rede()));
 
+// RESPONSAVEL ENTREGA corrige a entrega de qualquer nucleo, mas ajuste nao e entrega: o
+// ajuste fica com quem concilia o dinheiro e com o responsavel do proprio nucleo.
+sessao_de_teste(array(PAP_BETA_TESTER, PAP_RESP_ENTREGA), $nuc_aj);
+verifica("responsavel de entrega nao ajusta caixa, cestante nem conta da Rede",
+    !pode_lancar_ajuste($con_aj) && !pode_lancar_ajuste($con_pa)
+    && !pode_lancar_ajuste($con_cest_pa) && !pode_lancar_ajuste(conta_da_rede()));
+
 sessao_de_teste(array(PAP_RESP_FINANCAS), $nuc_aj);
 verifica("sem o papel Beta Tester ninguem ajusta", !pode_lancar_ajuste($con_aj));
 

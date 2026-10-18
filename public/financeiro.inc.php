@@ -958,9 +958,9 @@ function pode_ver_conta_de($usr_id)
 }
 
 
-// QUEM CORRIGE O DINHEIRO DE QUEM. Mesma régua do resto do módulo: Finanças e
-// Administrador alcançam qualquer conta; o responsável do núcleo alcança o caixa dele e
-// os cestantes dele, que é onde ele enxerga a diferença antes de qualquer outra pessoa.
+// QUEM CORRIGE O DINHEIRO DE QUEM. Finanças e Administrador alcançam qualquer conta; o
+// responsável do núcleo alcança o caixa dele e os cestantes dele, que é onde ele enxerga
+// a diferença antes de qualquer outra pessoa. Ninguém mais.
 //
 // As contas da Rede ficam com Finanças e Administrador: quem cuida do caixa da Rede é
 // quem o concilia contra o extrato do banco.
@@ -979,7 +979,10 @@ function pode_lancar_ajuste($con_id)
 	$con = mysqli_fetch_array($res, MYSQLI_ASSOC);
 	if (!$con) return false;
 
-	if (alcanca_todo_nucleo()) return true;
+	// Finanças e Administrador, e NÃO alcanca_todo_nucleo(): aquela régua traz junto o
+	// Responsável Entrega, que corrige a entrega de qualquer núcleo — e ajuste não é
+	// entrega.
+	if (!empty($_SESSION[PAP_RESP_FINANCAS]) || !empty($_SESSION[PAP_ADM])) return true;
 
 	if (empty($_SESSION[PAP_RESP_NUCLEO])) return false;
 
