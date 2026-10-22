@@ -73,17 +73,28 @@
   // chamada dizer sozinha o que ela mostra.
   function tabela_detalhe($linhas, $tem_mutirao)
   {
-      $cols = $tem_mutirao ? 7 : 6;
+      $cols = $tem_mutirao ? 9 : 8;
       $num  = function ($v) { return rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ','); };
 ?>
 <table class="table table-bordered table-condensed table-striped" style="margin-bottom:0;">
   <thead>
     <tr>
       <th>Produto</th>
+      <?php
+        // O PEDIDO LOGO DEPOIS DO NOME, na mesma ordem da linha do núcleo logo acima: o
+        // detalhe conta a mesma história, produto a produto, e as duas tabelas precisam
+        // se ler na mesma sequência.
+      ?>
+      <th class="text-right">Pedido</th>
       <?php if ($tem_mutirao) { ?><th class="text-right">Enviado</th><?php } ?>
       <th class="text-right">Núcleo confirmou receber</th>
       <th class="text-right">Entregue</th>
-      <th class="text-right">Diferença</th>
+      <?php
+        // o mesmo "(recebido e entregue)" da tabela de cima, pelo mesmo motivo: com o
+        // Pedido na linha, um "Diferença" solto convida a supor que é contra ele
+      ?>
+      <th class="text-right" title="o que o núcleo confirmou receber menos o que entregou, em unidades">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right" title="a mesma diferença, a preço de venda">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th>Justificativa</th>
       <th>Linhas em branco</th>
     </tr>
@@ -92,6 +103,7 @@
   <?php foreach ($linhas as $d) { ?>
     <tr>
       <td><?php echo(h($d['nome'])); ?> <small class="text-muted"><?php echo(h($d['unidade'])); ?></small></td>
+      <td class="text-right"><?php echo(h($num($d['pediu']))); ?></td>
       <?php if ($tem_mutirao) { ?>
       <td class="text-right">
         <?php echo($d['enviou'] > 0 ? h($num($d['enviou']))
@@ -100,6 +112,13 @@
       <?php } ?>
       <td class="text-right"><?php echo(h($num($d['recebeu']))); ?></td>
       <td class="text-right"><?php echo(h($num($d['entregue']))); ?></td>
+      <?php
+        // cada diferença se marca pelo PRÓPRIO valor: produto sem preço diverge em
+        // unidades e fecha em zero real
+      ?>
+      <td class="text-right<?php echo(abs($d['diferenca_qtd']) > 0.005 ? ' text-danger' : ''); ?>">
+        <?php echo(h($num($d['diferenca_qtd']))); ?>
+      </td>
       <td class="text-right<?php echo(abs($d['diferenca']) > 0.005 ? ' text-danger' : ''); ?>">
         <?php echo(h(formata_moeda($d['diferenca']))); ?>
       </td>
@@ -242,27 +261,31 @@
 </legend>
 
 <?php
-  // O SINAL NÃO DIZ NADA SOZINHO. "pago e não cobrado −81,00" se lê como o que o rótulo
-  // afirma, com um menos que ninguém sabe interpretar sem uma referência de qual é o
-  // lado normal. E o negativo significa o CONTRÁRIO do rótulo: entrou mais produto do
-  // que a Rede pagou. Então quem muda é a palavra, e o número sai sempre positivo — a
-  // mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu" substituíram o
-  // sinal do lançamento.
+  // O SINAL NÃO DIZ NADA SOZINHO. "confirmado e não cobrado" com um menos na frente se lê
+  // como o que o rótulo afirma, mais um sinal que ninguém sabe interpretar sem uma
+  // referência de qual é o lado normal. E o negativo significa o CONTRÁRIO do rótulo: saiu
+  // mais produto do que Finanças confirmou. Então quem muda é a palavra, e o número sai
+  // sempre positivo — a mesma escolha de fechamento_chamada.php, onde "guardou"/"consumiu"
+  // substituíram o sinal do lançamento.
+  //
+  // E A PALAVRA NÃO FALA EM PAGAR. Dizia "pago e não cobrado", e na Associação ninguém é
+  // pago: a anuidade tem compra 0 e fica inteira com a Rede. O que vale para toda chamada é
+  // o que Finanças confirmou — para onde isso vai está logo acima, na corrente.
   $saldo_conf = $conf['nao_cobrado'];
 
   if ($saldo_conf > 0.005)
   {
-      $rot_saldo = 'pago e não cobrado';
-      $sub_saldo = 'a Rede pagou por produto que ninguém foi cobrado';
+      $rot_saldo = 'confirmado e não cobrado';
+      $sub_saldo = 'Finanças confirmou produto que ninguém foi cobrado';
   }
   else if ($saldo_conf < -0.005)
   {
-      $rot_saldo = 'recebido e não pago';
-      $sub_saldo = 'entrou mais produto do que a Rede pagou ao produtor';
+      $rot_saldo = 'saiu além do confirmado';
+      $sub_saldo = 'saiu mais produto do que Finanças confirmou';
   }
   else
   {
-      $rot_saldo = 'pago e cobrado se equivalem';
+      $rot_saldo = 'confirmado e cobrado se equivalem';
       $sub_saldo = '';
   }
 ?>
@@ -300,12 +323,28 @@
             <td class="text-right"><?php echo(h(formata_moeda($conf['total']['distribuiu']))); ?></td></tr>
         <?php
           // Finanças confirma POR ÚLTIMO, e a ordem da tabela diz isso: ela olha as
-          // justificativas que os núcleos escreveram depois da entrega, e só então fecha o
-          // número que paga o produtor. Posta no meio, parecia etapa do caminho do
-          // produto; no fim, é o julgamento que ela de fato é.
+          // justificativas que os núcleos escreveram depois da entrega, e só então fecha a
+          // conta. Posta no meio, parecia etapa do caminho do produto; no fim, é o
+          // julgamento que ela de fato é.
         ?>
-        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; paga o produtor</small></td>
+        <tr><td>confirmado por Finanças <small class="text-muted">&mdash; fecha a conta</small></td>
             <td class="text-right"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td></tr>
+        <?php
+          // PARA ONDE O CONFIRMADO VAI. O produtor recebe a preço de COMPRA — a mesma conta
+          // de A Pagar Produtores —, e a diferença até a venda fica com a Rede. É o que o
+          // módulo de Finanças separa: o que a Rede deve ao produtor, e o que é receita dela.
+          // Numa chamada comum quase tudo vai ao produtor; na Associação, nada vai.
+          //
+          // Se um dia a venda ficar abaixo da compra, a Rede põe a diferença do bolso: a
+          // palavra muda e o número segue positivo, como no saldo abaixo.
+          $rede_completa = ($conf['com_a_rede'] < -0.005);
+        ?>
+        <tr><td style="padding-left:24px;">vai para o produtor <small class="text-muted">&mdash; a preço de compra</small></td>
+            <td class="text-right"><?php echo(h(formata_moeda($conf['ao_produtor']))); ?></td></tr>
+        <tr><td style="padding-left:24px;"><?php echo($rede_completa ? 'a Rede completa' : 'fica com a Rede'); ?>
+              <small class="text-muted">&mdash; <?php echo($rede_completa ? 'a venda ficou abaixo da compra'
+                                                                          : 'a diferença entre venda e compra'); ?></small></td>
+            <td class="text-right"><?php echo(h(formata_moeda(abs($conf['com_a_rede'])))); ?></td></tr>
         <tr class="active">
           <th><?php echo(h($rot_saldo)); ?>
             <?php if ($sub_saldo !== '') { ?>
@@ -321,7 +360,7 @@
   </div>
   <div class="col-sm-5">
     <?php
-      // A CONTA, aberta. O total de "pago e não cobrado" costuma sair bem acima da
+      // A CONTA, aberta. O total de "confirmado e não cobrado" costuma sair bem acima da
       // diferença direta entre as duas primeiras linhas, e isso faz quem lê desconfiar do
       // número — a explicação em prosa dizia só metade da verdade: que o estoque
       // desconta. Ele entra NOS DOIS SENTIDOS, e soma quando a entrega consumiu
@@ -333,7 +372,7 @@
     <table class="table table-condensed" style="margin-bottom:10px;">
       <tbody>
         <tr>
-          <td class="small">a Rede pagou ao produtor</td>
+          <td class="small">Finanças confirmou</td>
           <td class="text-right small"><?php echo(h(formata_moeda($conf['confirmado']))); ?></td>
         </tr>
         <tr>
@@ -376,15 +415,15 @@
           $detalhes[] = 'O <strong>estoque entra nos dois sentidos</strong>, e é aí que o'
                       . ' número costuma surpreender.'
                       . '<br><br>Se o estoque <strong>encolheu</strong> nesta chamada, saiu'
-                      . ' produto do que estava guardado. A Rede pagou por ele numa chamada'
+                      . ' produto do que estava guardado. Finanças o confirmou numa chamada'
                       . ' anterior, e ele está entre o que saiu nesta aqui — então entra do'
-                      . ' lado do que foi pago, e <strong>soma</strong>.'
+                      . ' lado do confirmado, e <strong>soma</strong>.'
                       . '<br><br>Se o estoque <strong>cresceu</strong>, ficou produto'
-                      . ' guardado para a próxima chamada. A Rede pagou por ele, mas ele não'
-                      . ' foi entregue agora e continua sendo dela — então sai da conta desta'
-                      . ' chamada, e <strong>desconta</strong>.'
+                      . ' guardado para a próxima chamada. Finanças o confirmou, mas ele não'
+                      . ' foi entregue agora e continua sendo da Rede — então sai da conta'
+                      . ' desta chamada, e <strong>desconta</strong>.'
                       . '<br><br>As duas primeiras linhas sozinhas respondem "<em>nesta'
-                      . ' chamada, pagamos mais do que cobramos?</em>". Com o estoque, a'
+                      . ' chamada, confirmamos mais do que cobramos?</em>". Com o estoque, a'
                       . ' pergunta passa a ser "<em>de tudo que estava disponível para'
                       . ' entregar, quanto não virou cobrança?</em>".';
 
@@ -408,7 +447,8 @@
                       . ' não há contagem do mutirão, remessa a caminho nem estoque guardado'
                       . ' entre chamadas, e por isso essas linhas não aparecem. O produto'
                       . ' é contado <strong>três vezes</strong> — o núcleo confirma o que'
-                      . ' chegou, o cestante recebe, e Finanças fecha o que paga o produtor.'
+                      . ' chegou, o cestante recebe, e Finanças fecha a conta — o que vai'
+                      . ' para o produtor e o que fica com a Rede.'
                       . ' Confirmado contra entregue é o que ficou <strong>no núcleo</strong>;'
                       . ' confirmado contra Finanças é o que ela <strong>abateu</strong> ao ler'
                       . ' as justificativas.';
@@ -416,12 +456,12 @@
     ?>
     <p class="small text-muted">
       <?php if ($saldo_conf < -0.005) { ?>
-      <strong>Recebido e não pago</strong> é o contrário do caso comum: saiu mais produto
-      — entregue aos cestantes, mais o que ficou guardado — do que a Rede pagou ao produtor.
+      <strong>Saiu além do confirmado</strong> é o contrário do caso comum: saiu mais produto
+      — entregue aos cestantes, mais o que ficou guardado — do que Finanças confirmou.
       Costuma ser produto que chegou a mais e foi aceito, ou contagem de recebimento que
       ficou abaixo do que de fato entrou.
       <?php } else { ?>
-      <strong>Pago e não cobrado</strong> é o que a Rede pagou ao produtor e ninguém foi
+      <strong>Confirmado e não cobrado</strong> é o que Finanças confirmou e ninguém foi
       cobrado. Sobrou, foi doado, estragou depois de aceito, ou a entrega não foi anotada.
       <?php } ?>
       <?php
@@ -439,9 +479,54 @@
          data-content="<?php echo(h(implode('<br><br>', $detalhes))); ?>">
         <i class="glyphicon glyphicon-info-sign"></i> Mais detalhes</a>
       <br><br>
-      Tudo a <strong>preço de venda</strong>: a pergunta aqui é quanto disto virou dívida de
-      alguém.
+      Tudo a <strong>preço de venda</strong>, menos a linha do produtor, que é a preço de
+      compra. A pergunta aqui é quanto disto virou dívida de alguém.
     </p>
+
+    <?php
+      // A ARRECADAÇÃO EM TAXAS, PARA REFERÊNCIA. É o que se cobrou além do preço de venda — a
+      // taxa dos associados e a margem de quem não é associado —, e fica FORA da conta: a
+      // conta acima é inteira a preço de venda, então nenhum real daqui aparece nela. A taxa
+      // é a mesma do Entregue aos Cestantes, somada nos núcleos.
+      //
+      // O número sai sempre positivo e a palavra diz o sentido, como no resto da tela: há
+      // produto com preço de não associado abaixo do de associado.
+      $rec       = $conf['receita'];
+      $tem_taxa  = ($rec['taxa_percentual'] > 0.00001);
+      $tem_nao_a = (abs($rec['nao_associados']) > 0.005);
+      $pct_taxa  = formata_numero_de_mysql(round($rec['taxa_percentual'] * 100, 2));
+    ?>
+    <p class="small" style="margin:16px 0 4px;"><strong>Arrecadação em taxas nesta chamada</strong><br>
+      <span class="text-muted">para referência — não entra na conta acima</span></p>
+    <table class="table table-condensed" style="margin-bottom:10px;">
+      <tbody>
+        <?php if ($tem_taxa) { ?>
+        <tr>
+          <td class="small">taxa de <?php echo(h($pct_taxa)); ?>% dos associados
+            <span class="text-muted">&mdash; sobre o entregue a associados</span></td>
+          <td class="text-right small"><?php echo(h(formata_moeda($rec['taxa']))); ?></td>
+        </tr>
+        <?php } else { ?>
+        <tr><td class="small text-muted" colspan="2">sem taxa nesta chamada</td></tr>
+        <?php } ?>
+        <?php if ($tem_nao_a) { ?>
+        <tr>
+          <td class="small"><?php echo($rec['nao_associados'] > 0 ? 'margem' : 'desconto'); ?> de quem não é associado
+            <span class="text-muted">&mdash; o que ele paga <?php echo($rec['nao_associados'] > 0 ? 'acima' : 'abaixo'); ?> do preço de venda</span></td>
+          <td class="text-right small"><?php echo(h(formata_moeda(abs($rec['nao_associados'])))); ?></td>
+        </tr>
+        <?php } ?>
+        <?php
+          // o total só quando há duas linhas: com uma só, ele repetiria o número dela
+          if ($tem_taxa && $tem_nao_a) { ?>
+        <tr class="active">
+          <th class="small"><?php echo($rec['alem_da_venda'] >= -0.005 ? 'cobrado além do preço de venda'
+                                                                  : 'abaixo do preço de venda, no total'); ?></th>
+          <th class="text-right small"><?php echo(h(formata_moeda(abs($rec['alem_da_venda'])))); ?></th>
+        </tr>
+        <?php } ?>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -492,8 +577,11 @@
         // "Diferença" solto convida a supor que é contra o pedido — a coluna mais à
         // esquerda —, e não contra as duas ao lado. Ela é recebido menos entregue, e é
         // esse par que ela mede.
+        //
+        // E diz R$ porque o detalhe de cada núcleo traz a mesma diferença também em
+        // unidades: sem a moeda no cabeçalho, as duas se confundem.
       ?>
-      <th class="text-right">Diferença <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
+      <th class="text-right">Diferença (R$) <small class="text-muted" style="font-weight:normal;">(recebido e entregue)</small></th>
       <th></th>
     </tr>
   </thead>

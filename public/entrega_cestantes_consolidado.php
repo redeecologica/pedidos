@@ -241,12 +241,23 @@ if($nuc_id!=-1 && $cha_id!=-1)
 			   $somatorio_entregue=0;
 			   $somatorio_taxa=0;
 		   			   			   
-               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
+               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC))
                {
+				   // A TAXA DE QUEM NÃO É ASSOCIADO É ZERO: ele paga o preço com margem, e não
+				   // a taxa. A coluna mostrava o entregue inteiro como se fosse taxa, e o TOTAL
+				   // somava esse valor duas vezes — a linha de cada pessoa sempre esteve certa.
+				   //
+				   // E a taxa sai arredondada por pessoa, como no débito do cestante
+				   // (debitos_derivados): o TOTAL é a soma do que cada linha mostra, e bate com
+				   // a taxa que o Balanço dá à chamada.
+				   $taxa_linha = ($row["ped_usr_associado"]=='0') ? 0.0
+				               : round(round((float)$row["valor_entregue"], 2) * (float)$cha_taxa_percentual, 2);
+
 				   $somatorio_pedido+=$row["valor_pedido"];
 				   $somatorio_extra+=$row["valor_extra"];
-				   $somatorio_entregue+=$row["valor_entregue"];
-				   $somatorio_taxa+=$row["ped_usr_associado"]=='0' ? $row["valor_entregue"] : $row["valor_entregue"]*$cha_taxa_percentual;
+				   // arredondado por linha, como a taxa: o TOTAL fecha com o que as linhas mostram
+				   $somatorio_entregue+=round((float)$row["valor_entregue"], 2);
+				   $somatorio_taxa+=$taxa_linha;
               
                     ?>
                     <tr>                              
@@ -255,8 +266,8 @@ if($nuc_id!=-1 && $cha_id!=-1)
                     <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
                     <td><?php echo(formata_moeda($row["valor_extra"])); ?></td>
                     <td><?php echo(formata_moeda($row["valor_entregue"])); ?></td> 
-                    <td><?php echo(formata_moeda($row["ped_usr_associado"]=='0' ? $row["valor_entregue"] : $row["valor_entregue"]*$cha_taxa_percentual)); ?></td>
-                    <td><?php echo(formata_moeda($row["ped_usr_associado"]=='0'  ? $row["valor_entregue"] : $row["valor_entregue"]*(1+$cha_taxa_percentual))); ?></td>                   
+                    <td><?php echo(formata_moeda($taxa_linha)); ?></td>
+                    <td><?php echo(formata_moeda(round((float)$row["valor_entregue"], 2) + $taxa_linha)); ?></td>
                     <!--                      
                     <td>
                         <a class="btn btn-default" href="entrega_cestante.php?action=<?php echo(ACAO_EXIBIR_LEITURA . "&cha_id=" . $cha_id .  "&ped_id=" . $row["ped_id"]);?>"><i class="glyphicon glyphicon-search glyphicon-white"></i> visualizar</a>

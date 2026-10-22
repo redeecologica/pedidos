@@ -1,18 +1,19 @@
 <?php  
   require  "common.inc.php"; 
+  require_once(__DIR__ . "/financeiro.inc.php");
   verifica_seguranca($_SESSION[PAP_RESP_FINANCAS]);
   top();
   
     
 ?>
 
-<ul class="nav nav-tabs">
-  <li><a href="financas.php">Finanças</a></li>
-  <li><a href="recebimento.php?action=0&recebimento=final"><i class="glyphicon glyphicon-road"></i> Confirmação Entrega dos Produtores</a></li>
-  <li class="active"><a href="#"><i class="glyphicon glyphicon-calendar"></i> Configuração Prazos</a></li>  
-</ul>
-                                    
-<br>
+<?php
+  // A barra vinha copiada aqui, com as três abas que existiam antes do módulo — então
+  // chegar nesta tela fazia as novas sumirem, como se não existissem. É o defeito que
+  // uma sequência copiada sempre produz, e o mesmo que já tinha acontecido em entregas.
+  // Quem decide o que entra é abas_financeiras_do_grupo(), num lugar só.
+  abas_financeiras('rede', 'prazos');
+?>
 
 <?php
 

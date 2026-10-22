@@ -20,7 +20,7 @@
  
 
                       
- $sql = "SELECT prodt_nome, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, date_format(cha_dt_prazo_contabil,'%d/%m/%Y %H:%i') cha_dt_prazo_contabil ";
+ $sql = "SELECT prodt_nome, prodt_mutirao, DATE_FORMAT(cha_dt_entrega,'%d/%m/%Y') cha_dt_entrega, cha_taxa_percentual, ((cha_dt_prazo_contabil is null) OR (cha_dt_prazo_contabil > now() ) ) as cha_dentro_prazo, date_format(cha_dt_prazo_contabil,'%d/%m/%Y %H:%i') cha_dt_prazo_contabil ";
  $sql.= "FROM chamadas LEFT JOIN produtotipos ON prodt_id = cha_prodt ";
  $sql.= "WHERE cha_id = " . prep_para_bd($cha_id);
 
@@ -37,6 +37,8 @@ $cha_dt_entrega = $row["cha_dt_entrega"];
 $cha_taxa_percentual = $row["cha_taxa_percentual"];
 $cha_dt_prazo_contabil = $row["cha_dt_prazo_contabil"];
 $cha_dentro_prazo = $row["cha_dentro_prazo"];
+// se o tipo desta chamada passa pelo mutirão — sem ele não há distribuição a mostrar
+$tem_mutirao = ($row && (int)$row["prodt_mutirao"] === 1);
 
 ?>
 
@@ -139,123 +141,110 @@ $cha_dentro_prazo = $row["cha_dentro_prazo"];
 
 if($cha_id!=-1)
 {
-	$sql="SELECT nuc_nome_curto, nuc_id, ";
-	$sql.=" SUM(prod_valor_compra * pedprod_quantidade) AS valor_pedido ";
-	$sql.="FROM chamadaprodutos ";
-	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha LEFT JOIN produtos on prod_id = chaprod_prod ";
-	$sql.="LEFT JOIN pedidos ON ped_cha = cha_id LEFT JOIN usuarios on ped_usr = usr_id ";
-	$sql.="LEFT JOIN nucleos ON ped_nuc = nuc_id ";
-	$sql.="LEFT JOIN pedidoprodutos ON pedprod_ped = ped_id AND pedprod_prod=chaprod_prod ";
-	$sql.="WHERE ped_cha = " . prep_para_bd($cha_id);
-	$sql.=" AND ped_fechado = '1' AND chaprod_disponibilidade <> '0' ";
-	$sql.=" AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
-	$sql.="GROUP BY nuc_id ";
-	$sql.="ORDER BY nuc_nome_curto";
-	$res = executa_sql($sql); 
+	// A preço de venda, pela mesma função que dá ao Balanço os números dele — ver
+	// recebido_pelos_nucleos() em balanco.inc.php, que diz o que mudou e por quê.
+	$recebidos = recebido_pelos_nucleos($cha_id);
 
-	$sql="SELECT nuc_id, ";
-	$sql.=" SUM(prod_valor_compra * dist_quantidade) AS valor_distribuido, ";		
-	$sql.=" SUM(prod_valor_compra * dist_quantidade_recebido) AS valor_recebido ";	
-	$sql.="FROM chamadaprodutos ";
-	$sql.="LEFT JOIN chamadas on cha_id = chaprod_cha ";
-	$sql.="LEFT JOIN produtos on prod_id = chaprod_prod ";
-	$sql.="LEFT JOIN distribuicao ON dist_cha = chaprod_cha AND dist_prod = chaprod_prod ";	
-	$sql.="LEFT JOIN nucleos ON dist_nuc = nuc_id ";	
-	$sql.="WHERE chaprod_cha = " . prep_para_bd($cha_id);
-	$sql.=" AND chaprod_disponibilidade <> '0' ";
-	$sql.=" AND prod_ini_validade<=cha_dt_entrega AND prod_fim_validade>=cha_dt_entrega ";
-	$sql.="GROUP BY nuc_id ";
-	$rs_distribuicao = executa_sql($sql); 	
-	$distribuicao = array();
-	if($rs_distribuicao)
+	if ($recebidos === null)
 	{
-		while($row = mysqli_fetch_array($rs_distribuicao,MYSQLI_ASSOC))
-		{
-			$distribuicao[$row["nuc_id"]]["distribuido"] = $row["valor_distribuido"];
-			$distribuicao[$row["nuc_id"]]["recebido"] = $row["valor_recebido"];			
-		}
-	}	
-	
-	
-	if($res) 
-	{	
-		?>		
-        
-			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );"> 
+		// null é "não deu para perguntar", e não "nenhum núcleo": uma tabela vazia aqui
+		// diria que ninguém recebeu nada
+		?>
+		<div class="alert alert-danger">Não foi possível consultar o que os núcleos receberam nesta chamada. Tente recarregar a página.</div>
+		<?php
+	}
+	else
+	{
+		?>
+
+			 <input class="btn btn-success" type="button" value="selecionar tabela para copiar"  onclick="selectElementContents( document.getElementById('selectable') );">
              <p />
 
-        
                 <table id="selectable" class="table table-striped table-bordered table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th colspan="9">Consolidado Entrega no Núcleo <?php echo(" - " . $prodt_nome . " " .  $cha_dt_entrega); ?> </th>
+                        <th colspan="9">Consolidado Entrega no Núcleo <?php echo(" - " . h($prodt_nome) . " " .  h($cha_dt_entrega)); ?>
+                          <small class="text-muted" style="font-weight:normal;">&mdash; valores a preço de venda</small></th>
                     </tr>
 					<tr>
                     	<th>Núcleo</th>
-                        <th>Pedido (R$)</th>
+                        <?php
+                          // O pedido DAQUI não é o do Balanço: aqui é o que o núcleo devia
+                          // receber, sem o que ficou indisponível; lá é a demanda inteira. O
+                          // cabeçalho diz, para quem compara as duas abas não achar um erro.
+                        ?>
+                        <th>Pedido (R$) <small class="text-muted" style="font-weight:normal;">sem os indisponíveis</small></th>
+                        <?php
+                          // Chamada que não passa pelo mutirão não tem distribuição: o
+                          // produtor entrega direto no núcleo. A coluna só existe onde a
+                          // etapa existe — a mesma regra do Balanço.
+                          if ($tem_mutirao) { ?>
                         <th>Distribuído pelo <br>Mutirão (R$)</th>
+                        <?php } ?>
                         <th>Recebido (R$)</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
-                
+
                 <tbody>
                 <?php
 
 			   $somatorio_pedido=0;
 			   $somatorio_ditribuido=0;
 			   $somatorio_recebido=0;
-		   			   			   
-               while ($row = mysqli_fetch_array($res,MYSQLI_ASSOC)) 
+
+               foreach ($recebidos as $n)
                {
-			   
-				   $valor_distribuido=isset($distribuicao[$row["nuc_id"]]["distribuido"]) ? $distribuicao[$row["nuc_id"]]["distribuido"] :0;
-				   $valor_recebido=isset($distribuicao[$row["nuc_id"]]["recebido"]) ? $distribuicao[$row["nuc_id"]]["recebido"] : 0;				   
-			   
-				   $somatorio_pedido+=$row["valor_pedido"];
-				   
-				   $somatorio_ditribuido+=$valor_distribuido;
-				   $somatorio_recebido+=$valor_recebido;
-              
+				   $somatorio_pedido+=$n["pedido"];
+				   $somatorio_ditribuido+=$n["distribuido"];
+				   $somatorio_recebido+=$n["recebido"];
+
                     ?>
-                    <tr>                              
-                    <td><?php echo(h($row["nuc_nome_curto"]));?></td>
-                    <td><?php echo(formata_moeda($row["valor_pedido"])); ?></td>
-                    <td><?php echo(formata_moeda($valor_distribuido)); ?></td>
-                    <td><?php echo(formata_moeda($valor_recebido)); ?></td> 
-                  
+                    <tr>
+                    <td><?php echo(h($n["nome"]));?></td>
+                    <td><?php echo(formata_moeda($n["pedido"])); ?></td>
+                    <?php if ($tem_mutirao) { ?>
+                    <td><?php echo(formata_moeda($n["distribuido"])); ?></td>
+                    <?php } ?>
+                    <td><?php echo(formata_moeda($n["recebido"])); ?></td>
+
                     <td>
-                    	<?php 
+                    	<?php
 						if($cha_dentro_prazo)
 						{
+							// vermelho = o núcleo ainda não registrou quantidade nenhuma.
+							// Olha a quantidade, e não o valor: produto de compra ou venda 0
+							// deixava o núcleo vermelho para sempre.
 						?>
-                            <a class="btn btn-default <?php echo($valor_recebido>0? "" : "btn-danger" ); ?>" href="entrega_nucleo.php?action=<?php echo(ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&nuc_id=" . $row["nuc_id"]);?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>                            
-                        
+                            <a class="btn btn-default <?php echo($n["registrou"] ? "" : "btn-danger" ); ?>" href="<?php echo(h("entrega_nucleo.php?action=" . ACAO_EXIBIR_EDICAO . "&cha_id=" . $cha_id .  "&nuc_id=" . $n["nuc_id"]));?>"><i class="glyphicon glyphicon-pencil glyphicon-white"></i> atualizar</a>
+
 						<?php
 						}
 						?>
-                         <a class="btn btn-default" href="entrega_nucleo.php?action=<?php echo(ACAO_EXIBIR_LEITURA . "&cha_id=" . $cha_id .  "&nuc_id=" . $row["nuc_id"]);?>"><i class="glyphicon glyphicon-search glyphicon-white"></i> ver</a>  
+                         <a class="btn btn-default" href="<?php echo(h("entrega_nucleo.php?action=" . ACAO_EXIBIR_LEITURA . "&cha_id=" . $cha_id .  "&nuc_id=" . $n["nuc_id"]));?>"><i class="glyphicon glyphicon-search glyphicon-white"></i> ver</a>
                     </td>
-                                        
+
                     </tr>
-                     
+
                     <?php
 
                }
-          ?>             
-          <tr>          
+          ?>
+          <tr>
             <th>TOTAL</th>
             <th><?php echo(formata_moeda($somatorio_pedido));?></th>
+            <?php if ($tem_mutirao) { ?>
             <th><?php echo(formata_moeda($somatorio_ditribuido));?></th>
+            <?php } ?>
             <th><?php echo(formata_moeda($somatorio_recebido));?></th>
             <th>&nbsp;</th>
-                        
-          </tr>
-                         
-          </tbody></table>
-       
 
-        <?php 
+          </tr>
+
+          </tbody></table>
+
+
+        <?php
 	}
 
 }

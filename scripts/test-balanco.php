@@ -200,8 +200,8 @@ verifica("o abatido de Financas e a distancia entre os nucleos e a confirmacao d
     round($cf['confirmado'],2) == 900.00 && round($cf['abatido'],2) == 0.00,
     "confirmado=" . $cf['confirmado'] . " abatido=" . $cf['abatido']);
 
-// B − C, ja descontado o estoque: o que a Rede pagou e ninguem foi cobrado.
-verifica("o nao cobrado e o que a Rede pagou sem ninguem ser cobrado",
+// B − C, ja descontado o estoque: o que Financas confirmou e ninguem foi cobrado.
+verifica("o nao cobrado e o que Financas confirmou sem ninguem ser cobrado",
     round($cf['nao_cobrado'],2) == 100.00,
     var_export($cf['nao_cobrado'], true));
 
@@ -214,15 +214,15 @@ verifica("produto que ficou guardado sai do 'nao cobrado'",
     "estoque=" . json_encode($cf2['estoque']) . " nao_cobrado=" . $cf2['nao_cobrado']);
 
 // O NUMERO VIRA NEGATIVO, e isso nao e defeito: quer dizer que saiu mais produto —
-// entregue mais guardada — do que a Rede pagou. Visto na chamada 1123 da base, com
-// -81,00. A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra
-// "recebido e nao pago", porque "pago e nao cobrado -81,00" afirma o contrario do que
+// entregue mais guardado — do que Financas confirmou. Acontece em chamada real de secos.
+// A TELA depende deste sinal para trocar o rotulo: com o negativo ela mostra "saiu alem
+// do confirmado", porque "confirmado e nao cobrado" com um menos na frente afirma o contrario do que
 // aconteceu. Se a funcao parasse de devolver negativo, o rotulo nunca mais apareceria e
 // nada reclamaria.
 executa_sql("UPDATE estoque SET est_prod_qtde_depois = 30
     WHERE est_cha = " . (int)$cha_cf . " AND est_prod = " . (int)$prod_est_id);
 $cf_neg = balanco_da_chamada($cha_cf);
-verifica("guardar mais do que a Rede pagou deixa o 'nao cobrado' NEGATIVO",
+verifica("guardar mais do que Financas confirmou deixa o 'nao cobrado' NEGATIVO",
     is_array($cf_neg) && round($cf_neg['nao_cobrado'],2) == -200.00,
     "estoque=" . json_encode(is_array($cf_neg) ? $cf_neg['estoque'] : null)
     . " nao_cobrado=" . (is_array($cf_neg) ? $cf_neg['nao_cobrado'] : '?'));
@@ -356,6 +356,24 @@ verifica("o detalhe traz o produto que diverge, com a justificativa ja escrita",
     && round($det[0]['diferenca'], 2) == 100.00
     && $det[0]['justificativa'] === 'chegou quebrado',
     is_array($det) ? json_encode($det) : var_export($det, true));
+
+// O QUE O NUCLEO PEDIU de cada produto, em unidades, ao lado do que confirmou receber e
+// do que entregou. Soma TODA linha de cestante, inclusive a que ficou em branco: cf2b
+// pediu 10 e ninguem anotou a entrega, mas o pedido existiu. Sem essa linha a coluna
+// diria que o nucleo pediu 30, e os 40 confirmados pareceriam sobra.
+verifica("o detalhe soma o que os cestantes pediram do produto, inclusive quem ficou em branco",
+    is_array($det) && isset($det[0]['pediu']) && round($det[0]['pediu'], 2) == 40.00,
+    json_encode(is_array($det) ? $det[0] : $det));
+
+// A DIFERENCA EM UNIDADES, e a em R$ continua a mesma. 40 confirmados menos 30 entregues
+// sao 10 unidades; a R$ 10 cada, os mesmos R$ 100 de antes. As duas tem de fechar entre
+// si pelo preco: se nao fecharem, uma das contas esta errada.
+verifica("e a diferenca em unidades, que fecha com a diferenca em R$ pelo preco",
+    is_array($det) && isset($det[0]['diferenca_qtd'])
+    && round($det[0]['diferenca_qtd'], 2) == 10.00
+    && round($det[0]['diferenca'], 2) == 100.00
+    && abs($det[0]['diferenca_qtd'] * $det[0]['preco'] - $det[0]['diferenca']) < 0.005,
+    json_encode(is_array($det) ? $det[0] : $det));
 
 // Os nomes sao o que torna a linha investigavel: "4 em branco" manda abrir outra tela.
 verifica("e NOMEIA quem ficou em branco, com o que cada um pediu",
@@ -510,6 +528,238 @@ verifica("o nao cobrado dela e a distancia entre Financas e o cestante, sem esto
     is_array($cf_sm) && round($cf_sm['nao_cobrado'],2) == 200.00,
     var_export(is_array($cf_sm) ? $cf_sm['nao_cobrado'] : $cf_sm, true));
 
+// ---- para onde vai o que Financas confirmou ----
+//
+// O confirmado por Financas e a preco de VENDA, como o resto do Balanco: e o que devia
+// virar cobranca. Mas nem tudo dele vai para o produtor. O produtor recebe a preco de
+// COMPRA — a mesma conta de A Pagar Produtores —, e a diferenca fica com a Rede. Numa
+// chamada comum a Rede repassa a custo e quase nada fica; na Associacao o produto tem
+// compra 0, nada vai para produtor nenhum, e o valor inteiro e da Rede.
+//
+// Aqui: 90 confirmados, venda 10 e compra 8 — 900 a preco de venda, 720 ao produtor, 180
+// com a Rede.
+verifica("o confirmado se divide entre o produtor, a preco de compra, e a Rede",
+    is_array($cf) && isset($cf['ao_produtor'], $cf['com_a_rede'])
+    && round($cf['ao_produtor'], 2) == 720.00 && round($cf['com_a_rede'], 2) == 180.00
+    && abs($cf['ao_produtor'] + $cf['com_a_rede'] - $cf['confirmado']) < 0.005,
+    json_encode(is_array($cf) ? array_intersect_key($cf, array_flip(array('confirmado', 'ao_produtor', 'com_a_rede'))) : $cf));
+
+// ---- a chamada de Associacao ----
+//
+// A anuidade entra no sistema como produto de uma chamada de tipo Associacao, com
+// compra 0 e venda igual ao valor da associacao: a Rede nao deve nada a produtor nenhum,
+// e fica com o valor inteiro. O tipo vem pelo NOME, como o modulo financeiro o
+// reconhece — o id muda de base para base.
+$prodt_assoc = valor_escalar("SELECT prodt_id FROM produtotipos WHERE prodt_nome LIKE 'Associa%' ORDER BY prodt_id LIMIT 1");
+verifica("o tipo de chamada Associacao esta cadastrado", (bool)$prodt_assoc, var_export($prodt_assoc, true));
+
+$cha_as = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (" . (int)$prodt_assoc . ",'2026-08-01 23:59:59','2026-07-20 00:00:00','2026-07-28 23:59:59',0.00)");
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900010," . (int)$prodt_assoc . "," . (int)$forn_res . ",'Anuidade','un',0.00,50.00,50.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+// outra anuidade, que ficou INDISPONIVEL depois de pedida: o Pedido da tela de Entregas
+// nao a conta, e o do Balanco conta — sao perguntas diferentes (abaixo)
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900011," . (int)$prodt_assoc . "," . (int)$forn_res . ",'Anuidade indisponivel','un',0.00,30.00,30.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade, chaprod_recebido_confirmado)
+    VALUES (" . (int)$cha_as . ",900010,1,3)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_as . ",900011,'0')");
+
+// nucleo 1 pediu 2 anuidades (e 1 da indisponivel) e confirmou receber 3 — o terceiro
+// cestante entrou na entrega sem ter pedido, que e o comum na Associacao
+$ped_as1 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_as . "," . (int)$usr_cf1 . "," . (int)$nuc_cf1 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_as1 . ",900010,2,3)");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_as1 . ",900011,1,NULL)");
+executa_sql("INSERT INTO distribuicao (dist_cha, dist_nuc, dist_prod, dist_quantidade, dist_quantidade_recebido)
+    VALUES (" . (int)$cha_as . "," . (int)$nuc_cf1 . ",900010,NULL,3)");
+// nucleo 2 pediu e ainda NAO registrou o que recebeu
+$ped_as2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_as . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_as2 . ",900010,1,NULL)");
+
+$cf_as = balanco_da_chamada($cha_as);
+
+verifica("na Associacao nada vai para o produtor, e o confirmado inteiro fica com a Rede",
+    is_array($cf_as) && isset($cf_as['ao_produtor'], $cf_as['com_a_rede'])
+    && round($cf_as['confirmado'], 2) == 150.00
+    && round($cf_as['ao_produtor'], 2) == 0.00 && round($cf_as['com_a_rede'], 2) == 150.00,
+    json_encode(is_array($cf_as) ? array_intersect_key($cf_as, array_flip(array('confirmado', 'ao_produtor', 'com_a_rede'))) : $cf_as));
+
+// ---- o Recebido pelo Nucleo, a tela de Entregas ----
+//
+// A PRECO DE VENDA, como o Balanco e o Entregue aos Cestantes. Ela usava o preco de
+// compra, e na Associacao — compra 0 — mostrava tudo zerado.
+//
+// E o aviso de "nucleo ainda nao registrou" olha a QUANTIDADE recebida, nao o valor.
+// Ele era "valor recebido > 0" a preco de compra, e na Associacao todo nucleo parecia
+// pendente para sempre, mesmo depois de registrar.
+function nuc_da_lista($lista, $nuc) {
+    foreach ((array)$lista as $n) if ($n['nuc_id'] === (int)$nuc) return $n;
+    return null;
+}
+
+$rn_as = function_exists('recebido_pelos_nucleos') ? recebido_pelos_nucleos($cha_as) : null;
+$rn_as1 = nuc_da_lista($rn_as, $nuc_cf1);
+$rn_as2 = nuc_da_lista($rn_as, $nuc_cf2);
+
+verifica("o recebido pelo nucleo e a preco de venda: a Associacao deixa de sair zerada",
+    is_array($rn_as1) && round($rn_as1['recebido'], 2) == 150.00,
+    json_encode($rn_as1));
+
+verifica("nucleo que registrou o recebimento nao aparece como pendente, mesmo com compra 0",
+    is_array($rn_as1) && $rn_as1['registrou'] === true,
+    json_encode($rn_as1));
+
+verifica("nucleo que ainda nao registrou nada aparece como pendente",
+    is_array($rn_as2) && $rn_as2['registrou'] === false,
+    json_encode($rn_as2));
+
+// O Pedido desta tela e o que o nucleo DEVIA RECEBER: sem o que ficou indisponivel. O do
+// Balanco e a DEMANDA: tudo que se pediu. Os dois sao de proposito, e o cabecalho da tela
+// diz qual e qual.
+verifica("o pedido da tela de Entregas nao conta o que ficou indisponivel",
+    is_array($rn_as1) && round($rn_as1['pedido'], 2) == 100.00,
+    json_encode($rn_as1));
+$bal_as1 = is_array($cf_as) ? nuc_da_conf($cf_as, $nuc_cf1) : null;
+verifica("e o do Balanco conta, porque la a pergunta e a demanda",
+    is_array($bal_as1) && round($bal_as1['pediu'], 2) == 130.00,
+    json_encode($bal_as1));
+
+// Distribuido e recebido sao os MESMOS numeros do Balanco, nucleo a nucleo — quem compara
+// as duas abas tem de encontrar a mesma coisa.
+//
+// O Balanco e recalculado AQUI, e nao reaproveitado do $cf do comeco: o fixture mexeu na
+// distribuicao desta chamada depois dele, e comparar com a foto velha acusava diferenca
+// que o banco nao tem.
+$rn_cf    = function_exists('recebido_pelos_nucleos') ? recebido_pelos_nucleos($cha_cf) : null;
+$cf_agora = balanco_da_chamada($cha_cf);
+$batem = is_array($rn_cf) && count($rn_cf) > 0 && is_array($cf_agora);
+$pares = array();
+foreach ((array)$rn_cf as $n) {
+    $b = nuc_da_conf($cf_agora, $n['nuc_id']);
+    $pares[] = $n['nome'] . ': entregas ' . $n['distribuido'] . '/' . $n['recebido']
+             . ' balanco ' . ($b ? $b['enviou'] . '/' . $b['recebeu'] : 'ausente');
+    if (!$b || abs($n['distribuido'] - $b['enviou']) > 0.005 || abs($n['recebido'] - $b['recebeu']) > 0.005)
+        $batem = false;
+}
+verifica("distribuido e recebido batem com o Balanco, nucleo a nucleo",
+    $batem, implode(' | ', $pares));
+
+// ---- a receita que a Rede cobra ALEM do preco de venda ----
+//
+// Referencia, fora da conta do nao cobrado. O associado paga a taxa da chamada sobre o
+// que recebeu; quem nao e associado paga o preco com margem, e nao a taxa. As duas coisas
+// sao o que se cobra por fora do preco de venda — e a conta do Balanco inteira e a preco
+// de venda, entao nenhum real aparece nos dois lugares.
+//
+// Chamada com taxa de 5%: o associado recebe 20 a 10 — 200, taxa 10,00. Quem nao e
+// associado recebe 5 com margem 13 — paga 3 acima da venda em cada, 15,00. E um produto
+// que ficou INDISPONIVEL e mesmo assim foi entregue ao associado nao entra: o debito do
+// cestante tambem nao o cobra.
+$cha_tx = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-08-08 23:59:59','2026-07-28 00:00:00','2026-08-04 23:59:59',0.05)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_tx . "," . (int)$prod_est_id . ",1)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_tx . "," . (int)$prod_cf2_id . ",'0')");
+$ped_tx1 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_tx . "," . (int)$usr_cf1 . "," . (int)$nuc_cf1 . ",1,'1')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx1 . "," . (int)$prod_est_id . ",20,20)");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx1 . "," . (int)$prod_cf2_id . ",10,10)");
+$ped_tx2 = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_tx . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$ped_tx2 . "," . (int)$prod_est_id . ",5,5)");
+
+$cf_tx  = balanco_da_chamada($cha_tx);
+$rec_tx = (is_array($cf_tx) && isset($cf_tx['receita'])) ? $cf_tx['receita'] : null;
+
+verifica("a taxa da chamada incide sobre o entregue a associados, sem o indisponivel",
+    is_array($rec_tx) && round($rec_tx['taxa_percentual'], 4) == 0.05 && round($rec_tx['taxa'], 2) == 10.00,
+    json_encode($rec_tx));
+verifica("quem nao e associado paga a margem acima do preco de venda, e nao a taxa",
+    is_array($rec_tx) && round($rec_tx['nao_associados'], 2) == 15.00,
+    json_encode($rec_tx));
+verifica("e o cobrado alem do preco de venda soma as duas",
+    is_array($rec_tx) && round($rec_tx['alem_da_venda'], 2) == 25.00,
+    json_encode($rec_tx));
+
+// A RECEITA NAO ENTRA NA CONTA. A mesma chamada sem taxa tem de devolver o mesmo
+// confirmado e o mesmo nao cobrado: se a taxa um dia vazar para a conta, e aqui que
+// aparece.
+executa_sql("UPDATE chamadas SET cha_taxa_percentual = 0.00 WHERE cha_id = " . (int)$cha_tx);
+$cf_tx0 = balanco_da_chamada($cha_tx);
+verifica("mudar a taxa da chamada nao mexe no confirmado nem no nao cobrado",
+    is_array($cf_tx) && is_array($cf_tx0) && isset($cf_tx0['receita'])
+    && abs($cf_tx['confirmado'] - $cf_tx0['confirmado']) < 0.005
+    && abs($cf_tx['nao_cobrado'] - $cf_tx0['nao_cobrado']) < 0.005
+    && round($cf_tx0['receita']['taxa'], 2) == 0.00,
+    json_encode(array(is_array($cf_tx) ? $cf_tx['nao_cobrado'] : null, is_array($cf_tx0) ? $cf_tx0['nao_cobrado'] : null)));
+
+// ARREDONDADA POR PEDIDO, como o debito do cestante: dois associados que recebem 0,10
+// cada um pagam 0,01 de taxa cada (0,005 arredondado), e a Rede recebe 0,02 — e nao
+// 0,01, que seria arredondar a soma. O Balanco tem de dizer o que os cestantes de fato
+// pagam.
+//
+// E quem nao e associado pode pagar ABAIXO da venda — acontece na Associacao. A funcao
+// devolve o numero com sinal, e a tela troca a palavra.
+$cha_rd = insere("INSERT INTO chamadas (cha_prodt, cha_dt_entrega, cha_dt_min, cha_dt_max, cha_taxa_percentual)
+    VALUES (1,'2026-08-15 23:59:59','2026-08-04 00:00:00','2026-08-11 23:59:59',0.05)");
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900012,1," . (int)$forn_res . ",'Dez centavos','un',0.10,0.10,0.10,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+insere("INSERT INTO produtos (prod_id, prod_prodt, prod_forn, prod_nome, prod_unidade,
+    prod_valor_compra, prod_valor_venda, prod_valor_venda_margem, prod_ini_validade, prod_fim_validade,
+    prod_multiplo_venda, prod_retornavel)
+    VALUES (900013,1," . (int)$forn_res . ",'Mais barato sem associacao','un',0.00,50.00,40.00,
+    '2020-01-01 00:00:00','2030-01-01 00:00:00',1,0)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_rd . ",900012,1)");
+executa_sql("INSERT INTO chamadaprodutos (chaprod_cha, chaprod_prod, chaprod_disponibilidade)
+    VALUES (" . (int)$cha_rd . ",900013,1)");
+foreach (array($usr_cf1, $usr_cf2b) as $u) {
+    $p = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+        VALUES (" . (int)$cha_rd . "," . (int)$u . "," . (int)$nuc_cf1 . ",1,'1')");
+    executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+        VALUES (" . (int)$p . ",900012,1,1)");
+}
+$p = insere("INSERT INTO pedidos (ped_cha, ped_usr, ped_nuc, ped_fechado, ped_usr_associado)
+    VALUES (" . (int)$cha_rd . "," . (int)$usr_cf2 . "," . (int)$nuc_cf2 . ",1,'0')");
+executa_sql("INSERT INTO pedidoprodutos (pedprod_ped, pedprod_prod, pedprod_quantidade, pedprod_entregue)
+    VALUES (" . (int)$p . ",900013,1,1)");
+
+$cf_rd  = balanco_da_chamada($cha_rd);
+$rec_rd = (is_array($cf_rd) && isset($cf_rd['receita'])) ? $cf_rd['receita'] : null;
+verifica("a taxa e arredondada por pedido, como o debito do cestante",
+    is_array($rec_rd) && round($rec_rd['taxa'], 2) == 0.02,
+    json_encode($rec_rd));
+verifica("quem nao e associado e paga abaixo da venda sai negativo, para a tela trocar a palavra",
+    is_array($rec_rd) && round($rec_rd['nao_associados'], 2) == -10.00,
+    json_encode($rec_rd));
+
+// chamada sem taxa: zero, e nao ausente — a tela diz "sem taxa nesta chamada"
+$cf_sem_taxa = balanco_da_chamada($cha_cf);
+verifica("chamada sem taxa devolve a receita zerada, e nao ausente",
+    is_array($cf_sem_taxa) && isset($cf_sem_taxa['receita'])
+    && round($cf_sem_taxa['receita']['taxa_percentual'], 4) == 0.0
+    && round($cf_sem_taxa['receita']['taxa'], 2) == 0.00,
+    json_encode(is_array($cf_sem_taxa) && isset($cf_sem_taxa['receita']) ? $cf_sem_taxa['receita'] : null));
+
 // (a fila de fechamento e do modulo financeiro, e nao entra nesta suite)
 
 verifica("chamada que nao existe devolve null",
@@ -520,11 +770,16 @@ executa_sql("CREATE TEMPORARY TABLE distribuicao (
     dist_cha mediumint(6) unsigned NOT NULL, dist_nuc mediumint(6) unsigned NOT NULL) ENGINE=InnoDB");
 $sombra_cf = (executa_sql("SELECT dist_quantidade_recebido FROM distribuicao") === false);
 $cf_sem_bd = balanco_da_chamada($cha_cf);
+$rn_sem_bd = function_exists('recebido_pelos_nucleos') ? recebido_pelos_nucleos($cha_cf) : 'funcao ausente';
 executa_sql("DROP TEMPORARY TABLE distribuicao");
 
 verifica("a sombra faz o servidor recusar o balanco", $sombra_cf);
 verifica("balanco de consulta recusada e null, e nao chamada sem divergencia",
     $cf_sem_bd === null, var_export($cf_sem_bd, true));
+// null, e nao lista vazia: a tela diria "nenhum nucleo" onde a verdade e "nao deu para
+// perguntar"
+verifica("recebido pelos nucleos de consulta recusada e null, e nao lista vazia",
+    $rn_sem_bd === null, var_export($rn_sem_bd, true));
 
 mysqli_rollback($conn_link);
 

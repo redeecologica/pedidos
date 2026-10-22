@@ -118,17 +118,28 @@ function compara_nome_de_nucleo($a, $b)
 // significa uma coisa:
 //
 //   A  o que os NÚCLEOS confirmaram receber   (distribuicao.dist_quantidade_recebido)
-//   B  o que FINANÇAS confirmou para a Rede   (chaprod_recebido_confirmado) → paga o produtor
+//   B  o que FINANÇAS confirmou para a Rede   (chaprod_recebido_confirmado) → fecha a conta
 //   C  o que os CESTANTES receberam           (pedprod_entregue)            → cobra o cestante
 //
 //   A − B  o que Finanças abateu ao ler as justificativas: produto vencido sai da conta
 //          do produtor. É julgamento humano, caso a caso, e já acontece hoje.
-//   B − C  o que a Rede pagou e ninguém foi cobrado. Sobrou, foi doado, estragou depois
-//          de aceito — ou a entrega não foi anotada.
+//   B − C  o que Finanças confirmou e ninguém foi cobrado. Sobrou, foi doado, estragou
+//          depois de aceito — ou a entrega não foi anotada.
 //
 // TUDO A PREÇO DE VENDA, que é o preço pelo qual o cestante é cobrado: a pergunta aqui é
 // "quanto disto virou dívida de alguém". No razão o estoque é avaliado a preço de COMPRA,
 // porque lá a pergunta é outra — quanto a Rede desembolsou por um ativo que ainda tem.
+//
+// A ÚNICA EXCEÇÃO é para onde B vai. O produtor recebe a preço de COMPRA — a mesma conta
+// de A Pagar Produtores —, e a diferença até a venda fica com a Rede. Numa chamada comum
+// a Rede repassa a custo e quase nada fica; na Associação a anuidade tem compra 0, nada
+// vai para produtor nenhum, e B inteiro é da Rede. Sem essa divisão a tela dizia que a
+// Rede "pagou ao produtor" um dinheiro que nunca saiu.
+//
+// E A ARRECADAÇÃO EM TAXAS, AO LADO E FORA DA CONTA: o que se cobrou além do preço de
+// venda — a taxa da chamada, dos associados, e a margem de quem não é associado. É
+// referência do que a chamada gerou para a Rede, e não entra no confirmado nem no não
+// cobrado.
 //
 // O CONTADOR DE ENTREGAS NÃO REGISTRADAS vem junto de propósito. Sem ele, alguém leria
 // como perda do núcleo o que é apenas entrega que ninguém anotou — e cobraria do núcleo
@@ -138,7 +149,7 @@ function compara_nome_de_nucleo($a, $b)
 // CONTRATO: array, ou null quando a chamada não existe ou a consulta não roda.
 function balanco_da_chamada($cha_id)
 {
-	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, pt.prodt_nome, pt.prodt_mutirao "
+	$res = executa_sql("SELECT c.cha_id, c.cha_dt_entrega, c.cha_taxa_percentual, pt.prodt_nome, pt.prodt_mutirao "
 	     . "FROM chamadas c "
 	     . "JOIN produtotipos pt ON pt.prodt_id = c.cha_prodt "
 	     . "WHERE c.cha_id = " . prep_para_bd($cha_id));
@@ -285,7 +296,9 @@ function balanco_da_chamada($cha_id)
 	$sql = "SELECT SUM(cp.chaprod_recebido * p.prod_valor_venda) m, ";
 	$sql.= "SUM(cp.chaprod_recebido > 0) m_linhas, ";
 	$sql.= "SUM(cp.chaprod_recebido_confirmado > 0) b_linhas, ";
-	$sql.= "SUM(cp.chaprod_recebido_confirmado * p.prod_valor_venda) b ";
+	$sql.= "SUM(cp.chaprod_recebido_confirmado * p.prod_valor_venda) b, ";
+	// a parte de B que vai para o produtor, a preço de compra
+	$sql.= "SUM(cp.chaprod_recebido_confirmado * p.prod_valor_compra) b_compra ";
 	$sql.= "FROM chamadaprodutos cp ";
 	$sql.= "JOIN chamadas c ON c.cha_id = cp.chaprod_cha ";
 	$sql.= "JOIN produtos p ON p.prod_id = cp.chaprod_prod ";
@@ -296,6 +309,7 @@ function balanco_da_chamada($cha_id)
 	if (!$res) return null;
 	$r = mysqli_fetch_array($res, MYSQLI_ASSOC);
 	$confirmado = ($r && $r['b'] !== null) ? round((float)$r['b'], 2) : 0.0;
+	$ao_produtor = ($r && $r['b_compra'] !== null) ? round((float)$r['b_compra'], 2) : 0.0;
 	$mutirao    = ($r && $r['m'] !== null) ? round((float)$r['m'], 2) : 0.0;
 	// guardados AGORA porque $r é reaproveitado pela consulta de estoque logo abaixo
 	$mutirao_linhas    = $r ? (int)$r['m_linhas'] : 0;
@@ -323,6 +337,48 @@ function balanco_da_chamada($cha_id)
 		);
 	}
 
+	// ---- a arrecadação em taxas: o que se cobra ALÉM do preço de venda — referência, fora da conta ----
+	//
+	// A conta acima é inteira a preço de venda. Por fora dela o cestante paga mais duas
+	// coisas, e são elas que esta parte mede: o associado paga a TAXA da chamada sobre o
+	// que recebeu, e quem não é associado paga o preço COM MARGEM, e não a taxa. Nenhum
+	// real daqui aparece na conta, então somar as duas coisas não conta nada duas vezes.
+	//
+	// A MESMA CONTA DO DÉBITO DO CESTANTE (debitos_derivados, em financeiro.inc.php): pedido
+	// fechado, produto disponível, o entregue de cada pedido arredondado, e a taxa
+	// arredondada POR PEDIDO. Somar e arredondar no fim daria centavos a menos — e o Balanço
+	// tem de dizer o que os cestantes de fato pagam.
+	$taxa_pct = ($cha['cha_taxa_percentual'] === null) ? 0.0 : (float)$cha['cha_taxa_percentual'];
+
+	$sql = "SELECT ped.ped_id, ped.ped_usr_associado assoc, ";
+	$sql.= "SUM(p.prod_valor_venda * pp.pedprod_entregue) venda, ";
+	$sql.= "SUM(p.prod_valor_venda_margem * pp.pedprod_entregue) com_margem ";
+	$sql.= "FROM pedidos ped ";
+	$sql.= "JOIN pedidoprodutos pp  ON pp.pedprod_ped = ped.ped_id ";
+	$sql.= "JOIN chamadas c         ON c.cha_id = ped.ped_cha ";
+	$sql.= "JOIN chamadaprodutos cp ON cp.chaprod_cha = c.cha_id AND cp.chaprod_prod = pp.pedprod_prod ";
+	$sql.= "JOIN produtos p         ON p.prod_id = pp.pedprod_prod ";
+	$sql.= "  AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "WHERE ped.ped_cha = " . prep_para_bd($id) . " AND ped.ped_fechado = 1 ";
+	$sql.= "AND cp.chaprod_disponibilidade <> '0' AND pp.pedprod_entregue > 0 ";
+	$sql.= "GROUP BY ped.ped_id, ped.ped_usr_associado";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$taxa = 0.0;
+	$nao_associados = 0.0;
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$venda = round((float)$r['venda'], 2);
+		if ($r['assoc'] == '0')
+			// o que ele paga acima da venda. Pode ser NEGATIVO: há produto com preço de
+			// não associado abaixo do de associado, e a tela troca a palavra
+			$nao_associados += round((float)$r['com_margem'], 2) - $venda;
+		else
+			$taxa += round($venda * $taxa_pct, 2);
+	}
+
 	return array(
 		'cha_id'     => $id,
 		'tipo'       => (string)$cha['prodt_nome'],
@@ -333,16 +389,28 @@ function balanco_da_chamada($cha_id)
 		'nucleos'    => array_values($nucleos),
 		'total'      => $total,
 		'confirmado' => $confirmado,
+		// para onde o confirmado vai: ao produtor a preço de compra, e o resto até a venda
+		// fica com a Rede. Os dois somam o confirmado.
+		'ao_produtor' => $ao_produtor,
+		'com_a_rede'  => round($confirmado - $ao_produtor, 2),
 		// o que o mutirão contou chegar dos produtores, antes do julgamento de Finanças.
 		// Preenchido numa minoria das linhas que Finanças confirma — é piso, não total.
 		'mutirao'    => $mutirao,
 		'mutirao_linhas'    => $mutirao_linhas,
 		'confirmado_linhas' => $confirmado_linhas,
 		'estoque'    => $estoque,
-		// o que a Rede pagou e ninguém foi cobrado, já descontado o que ficou guardado
+		// o que Finanças confirmou e ninguém foi cobrado, já descontado o que ficou guardado
 		'nao_cobrado' => round($confirmado + $estoque['antes'] - $total['distribuiu'] - $estoque['depois'], 2),
 		// o julgamento de Finanças ao ler as justificativas
 		'abatido'     => round($total['recebeu'] - $confirmado, 2),
+		// o que se cobrou além do preço de venda. REFERÊNCIA: nada daqui entra no
+		// confirmado nem no não cobrado
+		'receita'     => array(
+			'taxa_percentual' => $taxa_pct,
+			'taxa'            => round($taxa, 2),
+			'nao_associados'  => round($nao_associados, 2),
+			'alem_da_venda'   => round($taxa + $nao_associados, 2),
+		),
 	);
 }
 
@@ -422,12 +490,14 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 			// NULL quando a linha só existe pela justificativa: o núcleo não confirmou
 			// recebimento nenhum daquele produto, e 0,00 diria que confirmou zero.
 			'recebeu'      => ($r['recebeu'] === null) ? 0.0 : round((float)$r['recebeu'], 2),
+			// o que os cestantes do núcleo pediram, somado abaixo linha a linha
+			'pediu'        => 0.0,
 			'entregue'     => 0.0,
 			'justificativa'=> trim((string)$r['justificativa']),
 			'em_branco'    => array(),
 			// TODA linha de cestante deste produto, e não só as em branco: é o registro
-			// que deu origem à nota. Quem lê "chegou quebrado no núcleo · R$ 49,00"
-			// precisa poder ver de quem era o mel, quem pediu e quem levou — sem isso a
+			// que deu origem à nota. Quem lê uma justificativa curta ao lado de um valor
+			// precisa poder ver de quem era aquele produto, quem pediu e quem levou — sem isso a
 			// justificativa é palavra sem lastro, e conferir vira abrir outra tela.
 			'cestantes'    => array());
 
@@ -454,6 +524,11 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 		$pediu    = round((float)$r['pediu'], 2);
 		$entregue = ($r['entregue'] === null) ? null : round((float)$r['entregue'], 2);
 
+		// Soma TODA linha, inclusive a que ficou em branco: o pedido existiu mesmo que
+		// ninguém tenha anotado a entrega. Somar só as preenchidas faria o recebido
+		// parecer sobra justamente onde falta anotação.
+		$produtos[$id]['pediu'] = round($produtos[$id]['pediu'] + $pediu, 2);
+
 		// cestante que não pediu e nada recebeu não é registro, é linha de grade
 		if ($pediu > 0 || ($entregue !== null && $entregue > 0))
 			$produtos[$id]['cestantes'][] = array(
@@ -476,7 +551,10 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	$linhas = array();
 	foreach ($produtos as $x)
 	{
-		$x['diferenca'] = round(($x['recebeu'] - $x['entregue']) * $x['preco'], 2);
+		// a mesma diferença em unidades e em R$: quem confere o produto conta unidades, e
+		// quem fecha a conta soma reais
+		$x['diferenca_qtd'] = round($x['recebeu'] - $x['entregue'], 2);
+		$x['diferenca']     = round(($x['recebeu'] - $x['entregue']) * $x['preco'], 2);
 
 		if (abs($x['diferenca']) < 0.005 && !count($x['em_branco']) && $x['justificativa'] === '')
 			continue;
@@ -491,4 +569,88 @@ function detalhe_do_nucleo_na_chamada($cha_id, $nuc_id)
 	});
 
 	return $linhas;
+}
+
+
+// O RECEBIDO PELO NÚCLEO, a tela de Entregas: por núcleo, o que se pediu, o que o
+// mutirão distribuiu e o que o núcleo confirmou receber.
+//
+// A PREÇO DE VENDA, como o Balanço e o Entregue aos Cestantes. A tela usava o preço de
+// compra, e as duas bases quase sempre coincidem — a Rede repassa a custo —, até a
+// Associação: a anuidade tem compra 0, e a tela saía inteira zerada. Com venda, o
+// distribuído e o recebido daqui são os mesmos números do Balanço, núcleo a núcleo.
+//
+// O PEDIDO NÃO É O DO BALANÇO, de propósito. Aqui ele deixa de fora o produto que ficou
+// indisponível, porque a pergunta é o que o núcleo devia receber. O Balanço conta tudo,
+// porque lá a pergunta é a demanda. O cabeçalho da tela diz qual é qual.
+//
+// 'registrou' é o aviso de núcleo pendente, e olha a QUANTIDADE recebida. Era "valor
+// recebido > 0" a preço de compra, e na Associação todo núcleo parecia pendente para
+// sempre, mesmo depois de registrar.
+//
+// As duas consultas vieram da própria tela, com a mesma forma — quem aparece e o que
+// cada soma cobre não mudou. Mudou o preço, e o aviso.
+//
+// CONTRATO: array de núcleos na ordem da caixa de seleção (vazio quando a chamada não
+// tem pedido fechado), ou null quando a consulta não roda.
+function recebido_pelos_nucleos($cha_id)
+{
+	// quem aparece: núcleo com pedido fechado na chamada
+	$sql = "SELECT n.nuc_id nuc, n.nuc_nome_curto nome, ";
+	$sql.= "SUM(p.prod_valor_venda * pp.pedprod_quantidade) pedido ";
+	$sql.= "FROM chamadaprodutos cp ";
+	$sql.= "JOIN chamadas c  ON c.cha_id  = cp.chaprod_cha ";
+	$sql.= "JOIN produtos p  ON p.prod_id = cp.chaprod_prod ";
+	$sql.= "JOIN pedidos ped ON ped.ped_cha = c.cha_id ";
+	$sql.= "JOIN nucleos n   ON n.nuc_id  = ped.ped_nuc ";
+	$sql.= "LEFT JOIN pedidoprodutos pp ON pp.pedprod_ped = ped.ped_id AND pp.pedprod_prod = cp.chaprod_prod ";
+	$sql.= "WHERE cp.chaprod_cha = " . prep_para_bd($cha_id) . " ";
+	$sql.= "AND ped.ped_fechado = '1' AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "GROUP BY n.nuc_id";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	$nucleos = array();
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+		$nucleos[(int)$r['nuc']] = array(
+			'nuc_id'      => (int)$r['nuc'],
+			'nome'        => (string)$r['nome'],
+			'pedido'      => ($r['pedido'] === null) ? 0.0 : round((float)$r['pedido'], 2),
+			'distribuido' => 0.0,
+			'recebido'    => 0.0,
+			'registrou'   => false);
+
+	$sql = "SELECT d.dist_nuc nuc, ";
+	$sql.= "SUM(p.prod_valor_venda * d.dist_quantidade) distribuido, ";
+	$sql.= "SUM(p.prod_valor_venda * d.dist_quantidade_recebido) recebido, ";
+	$sql.= "SUM(d.dist_quantidade_recebido > 0) linhas_recebidas ";
+	$sql.= "FROM chamadaprodutos cp ";
+	$sql.= "JOIN chamadas c ON c.cha_id  = cp.chaprod_cha ";
+	$sql.= "JOIN produtos p ON p.prod_id = cp.chaprod_prod ";
+	$sql.= "JOIN distribuicao d ON d.dist_cha = cp.chaprod_cha AND d.dist_prod = cp.chaprod_prod ";
+	$sql.= "WHERE cp.chaprod_cha = " . prep_para_bd($cha_id) . " AND cp.chaprod_disponibilidade <> '0' ";
+	$sql.= "AND p.prod_ini_validade <= c.cha_dt_entrega AND p.prod_fim_validade >= c.cha_dt_entrega ";
+	$sql.= "GROUP BY d.dist_nuc";
+
+	$res = executa_sql($sql);
+	if (!$res) return null;
+
+	while ($r = mysqli_fetch_array($res, MYSQLI_ASSOC))
+	{
+		$id = (int)$r['nuc'];
+		// núcleo que recebeu sem ter pedido fechado não entra na lista, como sempre
+		if (!isset($nucleos[$id])) continue;
+
+		$nucleos[$id]['distribuido'] = ($r['distribuido'] === null) ? 0.0 : round((float)$r['distribuido'], 2);
+		$nucleos[$id]['recebido']    = ($r['recebido'] === null) ? 0.0 : round((float)$r['recebido'], 2);
+		$nucleos[$id]['registrou']   = ((int)$r['linhas_recebidas'] > 0);
+	}
+
+	uasort($nucleos, function ($a, $b) {
+		return compara_nome_de_nucleo($a['nome'], $b['nome']);
+	});
+
+	return array_values($nucleos);
 }
