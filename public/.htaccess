@@ -1,6 +1,15 @@
 #AddHandler php53-script .php
 #suPHP_ConfigPath /home/site72665/
 
+# o app não recebe upload: nenhum formulário manda multipart/form-data. Pedido
+# multipart para aqui, com 403, antes de chegar ao PHP, que nem chega a ler o corpo.
+# Se um dia entrar upload, esta regra sai junto.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP:Content-Type} multipart [NC]
+RewriteRule ^ - [F]
+</IfModule>
+
 # força https usando o cabeçalho do proxy (X-Forwarded-Proto), NÃO %{HTTPS},
 # para não criar loop atrás do proxy SSL da Locaweb. Validar no deploy; se houver
 # loop, remover este bloco (o cookie Secure não depende dele).
